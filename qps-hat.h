@@ -699,8 +699,10 @@ void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en,
                                     uint32_t key) __leaf;
 
 static ALWAYS_INLINE
-const void *qhat_tree_enumerator_get_value(qhat_tree_enumerator_t *en)
+const void *qhat_tree_enumerator_get_value(const qhat_tree_enumerator_t *en)
 {
+    assert(en->path.generation == en->path.hat->struct_gen);
+
     if (en->compact) {
 #define CASE(Size, Compact, Flat)  return &Compact->values[en->pos];
         QHAT_VALUE_LEN_SWITCH(en->path.hat, en->memory, CASE)
@@ -734,6 +736,7 @@ void qhat_tree_enumerator_update_value_ptr(qhat_tree_enumerator_t *en)
 static inline
 void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en)
 {
+    assert(en->path.generation == en->path.hat->struct_gen);
     if (en->pos != en->value_pos) {
         uint32_t offset;
 
@@ -766,6 +769,8 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
                 en->pos++;
             }
             en->count += en->pos - old_pos;
+            assert(en->count == en->memory.compact->count);
+
             qhat_tree_enumerator_fixup_value_ptr(en);
         }
     }
@@ -847,6 +852,10 @@ void qhat_tree_enumerator_find_down_up(qhat_tree_enumerator_t *en,
 
     shift = qhat_depth_shift(hat, en->path.depth);
     if (shift == 32) {
+        /* The current leaf is a compact (ie. not a flat) because flats
+         * appears only at maximum depth and shift 32 means depth == 0. */
+        assert(en->compact);
+
         if (en->memory.compact->keys[en->memory.compact->count - 1] < key) {
             en->end = true;
         } else {
@@ -935,7 +944,12 @@ static ALWAYS_INLINE
 void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
                                 bool value, bool safe)
 {
-    if (en->end || en->key >= key) {
+    /* The tree enumerator should only go forward. */
+    assert(key >= en->key);
+
+    /* FIXME This check doesn't handle the case (with safe==true) where the
+     * current key was removed so it has to go the the next key. */
+    if (en->end || key <= en->key) {
         return;
     }
     if (unlikely(safe && en->path.generation != en->path.hat->struct_gen)) {
@@ -945,6 +959,9 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
             qhat_tree_enumerator_update_value_ptr(en);
         }
     } else {
+        /* The caller should probably have used the safe version. */
+        assert(en->path.generation == en->path.hat->struct_gen);
+
         if (unlikely(safe && en->compact)) {
             en->count = en->memory.compact->count;
             if (en->pos >= en->count) {
@@ -1018,9 +1035,12 @@ typedef union qhat_enumerator_t {
     qhat_tree_enumerator_t t;
 } qhat_enumerator_t;
 
+/* Only for nullable QPS hats. */
 static ALWAYS_INLINE
 void qhat_enumerator_catchup(qhat_enumerator_t *en, bool value, bool safe)
 {
+    assert(en->is_nullable);
+
     if (en->bitmap.end) {
         en->end = true;
         return;
