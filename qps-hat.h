@@ -753,7 +753,9 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
 {
     if (unlikely(en->path.generation != en->path.hat->struct_gen)) {
         qhat_tree_enumerator_refresh_path(en);
-        return qhat_tree_enumerator_get_value(en);
+        qhat_tree_enumerator_update_value_ptr(en);
+
+        return en->value;
     }
     if (unlikely(en->value == NULL)) {
         qhat_tree_enumerator_update_value_ptr(en);
