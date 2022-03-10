@@ -811,6 +811,7 @@ void qhat_tree_enumerator_find_entry(qhat_tree_enumerator_t *en)
     if (shift == 32) {
         /* There is no next leaf. The enumerator is done. */
         en->end = true;
+        en->value = NULL;
         return;
     }
     new_key += next << shift;
@@ -860,6 +861,7 @@ void qhat_tree_enumerator_find_down_up(qhat_tree_enumerator_t *en,
 
         if (en->memory.compact->keys[en->memory.compact->count - 1] < key) {
             en->end = true;
+            en->value = NULL;
         } else {
             qhat_tree_enumerator_find_entry_from(en, key);
         }
@@ -1045,6 +1047,7 @@ void qhat_enumerator_catchup(qhat_enumerator_t *en, bool value, bool safe)
 
     if (en->bitmap.end) {
         en->end = true;
+        en->value = NULL;
         return;
     }
     en->key = en->bitmap.key.key;
