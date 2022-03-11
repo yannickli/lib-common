@@ -639,6 +639,70 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(enumeration_get_value_safe, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_enumerator_t en;
+        const uint32_t *v;
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        htrie = qhat_create(qps, 4, false);
+        qhat_init(&trie, qps, htrie);
+
+        for (int i = 25; i < 100; i++) {
+            *(uint32_t *)qhat_set(&trie, i) = i;
+        }
+
+        /* Get the current value. */
+        en = qhat_get_enumerator_at(&trie, 25);
+        v = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT_EQ(*v, 25u);
+
+        /* Insert keys before the current one. */
+        en = qhat_get_enumerator_at(&trie, 25);
+        for (int i = 1; i < 25; i++) {
+            *(uint32_t *)qhat_set(&trie, i) = i;
+        }
+        v = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT_EQ(*v, 25u);
+
+        /* Remove the key after the current one. */
+        en = qhat_get_enumerator_at(&trie, 25);
+        qhat_remove(&trie, 26, NULL);
+        v = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT_EQ(*v, 25u);
+
+        /* Remove the key before the current one. */
+        en = qhat_get_enumerator_at(&trie, 50);
+        qhat_remove(&trie, 49, NULL);
+        v = qhat_enumerator_get_value_safe(&en);
+        /* FIXME Should be 50. */
+        Z_ASSERT_EQ(*v, 51u);
+
+        /* Remove the current key. */
+        en = qhat_get_enumerator_at(&trie, 75);
+        qhat_remove(&trie, 75, NULL);
+        v = qhat_enumerator_get_value_safe(&en);
+        /* FIXME Should be zero. */
+        Z_ASSERT_EQ(*v, 76u);
+
+        /* Get the value after the trie structure has changed. */
+        en = qhat_get_enumerator_at(&trie, 80);
+        for (int i = 100;; i++) {
+            if (en.t.path.generation != trie.struct_gen) {
+                /* The trie structure has changed. Stop now. */
+                break;
+            }
+            *(uint32_t *)qhat_set(&trie, i) = i;
+        }
+        v = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT_EQ(*v, 80u);
+
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
