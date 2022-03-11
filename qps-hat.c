@@ -1232,8 +1232,13 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
     uint32_t root = qhat_get_key_bits(hat, key, 0);
     ssize_t  i;
 
+    /* We're going to refresh the whole path so the structure generation can
+     * be updated. */
+    en->path.generation = hat->struct_gen;
+
     en->path.depth = 0;
     en->path.key   = 0;
+
     i = scan_non_zero32(&hat->root->nodes[0].value, root,
                         hat->desc->root_node_count);
     if (i >= 0) {

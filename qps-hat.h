@@ -701,8 +701,7 @@ void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en,
 static ALWAYS_INLINE
 const void *qhat_tree_enumerator_get_value(const qhat_tree_enumerator_t *en)
 {
-    /* FIXME This assert is triggered by our tests:
-       assert(en->path.generation == en->path.hat->struct_gen); */
+    assert(en->path.generation == en->path.hat->struct_gen);
 
     if (en->compact) {
 #define CASE(Size, Compact, Flat)  return &Compact->values[en->pos];
@@ -737,8 +736,7 @@ void qhat_tree_enumerator_update_value_ptr(qhat_tree_enumerator_t *en)
 static inline
 void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en)
 {
-    /* FIXME This assert is triggered by our tests:
-       assert(en->path.generation == en->path.hat->struct_gen); */
+    assert(en->path.generation == en->path.hat->struct_gen);
 
     if (en->pos != en->value_pos) {
         int offset = en->pos - en->value_pos;
