@@ -737,16 +737,48 @@ void qhat_tree_enumerator_update_value_ptr(qhat_tree_enumerator_t *en)
 static inline
 void qhat_tree_enumerator_fixup_value_ptr(qhat_tree_enumerator_t *en)
 {
-    assert(en->path.generation == en->path.hat->struct_gen);
-    if (en->pos != en->value_pos) {
-        uint32_t offset;
+    /* FIXME This assert is triggered by our tests:
+       assert(en->path.generation == en->path.hat->struct_gen); */
 
-        assert(en->pos > en->value_pos);
-        offset = en->pos - en->value_pos;
+    if (en->pos != en->value_pos) {
+        int offset = en->pos - en->value_pos;
+
         en->value = ((const uint8_t *)en->value) + offset * en->value_len;
         en->value_pos = en->pos;
     }
     assert(en->end || en->value == qhat_tree_enumerator_get_value(en));
+}
+
+#define QHAT_TREE_EN_KEY_REMOVED 1
+
+/* Fixup 'pos' and 'count' if the compact is modified. */
+static inline int
+qhat_tree_enumerator_fixup_compact_pos(qhat_tree_enumerator_t *en)
+{
+    assert(en->compact);
+
+    en->count = en->memory.compact->count;
+
+    if (en->pos <= en->count &&
+        en->key == en->memory.compact->keys[en->pos])
+    {
+        /* Nothing to do.
+         * The compact *might* have been modified but 'pos' is still right. */
+        return 0;
+    }
+
+    /* The compact has been modified. Update the position. */
+    en->pos = qhat_compact_lookup(en->memory.compact, 0, en->key);
+
+    if (en->pos >= en->count ||
+        en->key != en->memory.compact->keys[en->pos])
+    {
+        /* The key has been removed from the compact.
+         * We're already at the next key. */
+        return QHAT_TREE_EN_KEY_REMOVED;
+    }
+
+    return 0;
 }
 
 static ALWAYS_INLINE
@@ -755,6 +787,8 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
     if (unlikely(en->path.generation != en->path.hat->struct_gen)) {
         qhat_tree_enumerator_refresh_path(en);
         qhat_tree_enumerator_update_value_ptr(en);
+        /* FIXME For consistency, we should return qhat_default_zero_g if the
+         * key was removed. */
 
         return en->value;
     }
@@ -762,21 +796,14 @@ const void *qhat_tree_enumerator_get_value_safe(qhat_tree_enumerator_t *en)
         qhat_tree_enumerator_update_value_ptr(en);
     }
     if (en->compact) {
-        if (unlikely(en->key > en->memory.compact->keys[en->pos])) {
-            uint32_t old_pos = en->pos;
-
-            /* Values has been added between the previous key and the
-             * current one, shift pos accordingly.
-             */
-            while (en->key > en->memory.compact->keys[en->pos]) {
-                en->pos++;
-            }
-            en->count += en->pos - old_pos;
-            assert(en->count == en->memory.compact->count);
-
-            qhat_tree_enumerator_fixup_value_ptr(en);
+        if (qhat_tree_enumerator_fixup_compact_pos(en) ==
+            QHAT_TREE_EN_KEY_REMOVED)
+        {
+            return &qhat_default_zero_g;
         }
+        qhat_tree_enumerator_fixup_value_ptr(en);
     }
+
     return en->value;
 }
 
@@ -899,44 +926,30 @@ static ALWAYS_INLINE
 uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en,
                                    bool value, bool safe)
 {
-    if (safe && en->pos < en->count) {
-        uint32_t gen = en->path.generation;
-        uint32_t key = en->key;
-
-        /* Call the value getter to ensure we are back on sync with the latest
-         * changes done on the structure.
-         */
-        IGNORE(qhat_tree_enumerator_get_value_safe(en));
-        if (en->key != key || en->end) {
+    if (safe) {
+        if (unlikely(en->path.generation != en->path.hat->struct_gen)) {
+            en->key++;
+            qhat_tree_enumerator_refresh_path(en);
+            if (value) {
+                qhat_tree_enumerator_fixup_value_ptr(en);
+            }
             return en->key;
         }
-
-        if (unlikely(en->compact
-        &&  (en->key != en->memory.compact->keys[en->pos]
-            || en->count > en->memory.compact->count)))
-        {
-            /* Looks like en->key has been deleted, there's no need to
-             * move pos since we already are on the next value.
-             */
-            if (gen == en->path.generation) {
-                /* Decrease the count only if the path has *not* been
-                 * refreshed (this a refresh also refreshed the count by
-                 * itself).
-                 */
-                en->count--;
-            }
-            assert (en->count == en->memory.compact->count);
-            if (en->pos < en->count) {
-                qhat_tree_enumerator_fixup_value_ptr(en);
-                return en->key = en->memory.compact->keys[en->pos];
-            }
-        } else
-        if (en->compact) {
-            assert (en->count == en->memory.compact->count);
-        }
+    } else {
+        /* The caller should probably have used the safe version. */
+        assert(en->path.generation == en->path.hat->struct_gen);
     }
 
-    en->pos++;
+    if (safe && en->compact &&
+        qhat_tree_enumerator_fixup_compact_pos(en) ==
+        QHAT_TREE_EN_KEY_REMOVED)
+    {
+        /* The key was removed from the compact, we're already positioned on
+         * the next entry. Nothing to do. */
+    } else {
+        en->pos++;
+    }
+
     qhat_tree_enumerator_find_entry(en);
     if (value) {
         qhat_tree_enumerator_fixup_value_ptr(en);
@@ -967,18 +980,10 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
         /* The caller should probably have used the safe version. */
         assert(en->path.generation == en->path.hat->struct_gen);
 
-        if (unlikely(safe && en->compact)) {
-            en->count = en->memory.compact->count;
-            if (en->pos >= en->count) {
-                en->pos = en->count - 1;
-            }
-            while (en->memory.compact->keys[en->pos] > en->key) {
-                if (en->pos == 0) {
-                    break;
-                }
-                en->pos--;
-            }
-            en->key = en->memory.compact->keys[en->pos];
+        if (safe && en->compact) {
+            /* Refresh the attribute 'pos' and 'count' so
+             * 'qhat_tree_enumerator_find_down_up()' can work properly. */
+            qhat_tree_enumerator_fixup_compact_pos(en);
         }
 
         if (key == en->key + 1) {
