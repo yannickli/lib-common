@@ -970,6 +970,10 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
     if (en->end || key <= en->key) {
         return;
     }
+    if (key == en->key + 1) {
+        qhat_tree_enumerator_next(en, value, safe);
+        return;
+    }
     if (unlikely(safe && en->path.generation != en->path.hat->struct_gen)) {
         qhat_tree_enumerator_find_up_down(en, key);
 
@@ -986,11 +990,7 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
             qhat_tree_enumerator_fixup_compact_pos(en);
         }
 
-        if (key == en->key + 1) {
-            qhat_tree_enumerator_next(en, false, false);
-        } else {
-            qhat_tree_enumerator_find_down_up(en, key);
-        }
+        qhat_tree_enumerator_find_down_up(en, key);
         if (value) {
             qhat_tree_enumerator_fixup_value_ptr(en);
         }
