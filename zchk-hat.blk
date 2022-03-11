@@ -760,6 +760,39 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(enumeration_next_after_zero, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_enumerator_t en;
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        htrie = qhat_create(qps, 4, true);
+        qhat_init(&trie, qps, htrie);
+
+        /* Fill a nullable qhat with non-null elements except for only the
+         * element [50]. */
+        for (int i = 1; i < 100; i++) {
+            if (i == 50) {
+                qhat_set0(&trie, i, NULL);
+            } else {
+                *(uint32_t *)qhat_set(&trie, i) = i;
+            }
+        }
+
+        /* Start the enumeration at element [50], check that the value is
+         * right. */
+        en = qhat_get_enumerator_at(&trie, 50);
+        Z_ASSERT(en.value == (const void *)&qhat_default_zero_g);
+
+        /* Check that the enumerator goes to the next element without bug. */
+        qhat_enumerator_next(&en, true, false);
+        Z_ASSERT_EQ(*(uint32_t *)en.value, 51u);
+
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);

@@ -1069,8 +1069,6 @@ void qhat_enumerator_catchup(qhat_enumerator_t *en, bool value, bool safe)
             /* The key exists in the bitmap but not in the trie, it means that
              * the associated value is the default one: zero, which is
              * forbidden in non-nullable qhats. */
-            /* FIXME Isn't it going to crash if we fixup the value starting
-             * from this one ? */
             en->value = &qhat_default_zero_g;
         } else {
             en->value = en->trie.value;
