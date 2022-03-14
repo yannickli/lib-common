@@ -95,6 +95,46 @@ Z_GROUP_EXPORT(qps_bitmap) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(qps_bitmap_nr, "") { /* {{{ */
+        qps_handle_t hbitmap;
+        qps_bitmap_t bitmap;
+        qps_bitmap_enumerator_t en;
+
+        Z_TEST_FLAGS("redmine_83666");
+
+        hbitmap = qps_bitmap_create(qps, false);
+        qps_bitmap_init(&bitmap, qps, hbitmap);
+
+        for (int i = 1; i < 100; i++) {
+            qps_bitmap_set(&bitmap, i);
+        }
+        en = qps_bitmap_get_enumerator_at(&bitmap, 80);
+        for (int i = 100; i < 1025; i++) {
+            qps_bitmap_set(&bitmap, i);
+        }
+
+        for (uint32_t key = 80; key < 1025; key++) {
+            /* FIXME QPS bitmap enumerator is "safe" for changes that modify
+             * the structure of the bitmap (eg. when the structure generation
+             * "struct_gen" is changed), but not for small changes that keep
+             * the structure untouched.
+             *
+             * We should have a "safe" version of
+             * 'qps_bitmap_enumerator_next[_nn]() that would cope with those
+             * small changes.
+             */
+            if (key == 100) {
+                key = 128;
+            }
+
+            Z_ASSERT(!en.end);
+            Z_ASSERT_EQ(en.key.key, key);
+            qps_bitmap_enumerator_next_nn(&en);
+        }
+        Z_ASSERT(en.end);
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
