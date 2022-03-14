@@ -760,6 +760,53 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(enumeration_next, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_enumerator_t en;
+        uint32_t max_key = 0;
+
+        Z_TEST_FLAGS("redmine_83283");
+
+        htrie = qhat_create(qps, 4, false);
+        qhat_init(&trie, qps, htrie);
+
+        /* Insert 99 entries. */
+        for (int i = 1; i < 100; i++) {
+            *(uint32_t *)qhat_set(&trie, i) = i;
+        }
+
+        /* Position the enumerator in the middle of the entries. */
+        en = qhat_get_enumerator_at(&trie, 80);
+
+        /* Keep adding entries until the structure of the trie changes. */
+        for (int i = 100;; i++) {
+            if (en.t.path.generation != trie.struct_gen) {
+                /* The trie structure has changed. Stop now. */
+                break;
+            }
+            *(uint32_t *)qhat_set(&trie, i) = i;
+            max_key = i;
+        }
+        Z_ASSERT(!en.end);
+
+        /* Check that the enumerator properly iterates on the rest of the
+         * trie after the structure change. */
+        for (uint32_t key = 81; key <= max_key; key++) {
+            const uint32_t *value;
+
+            qhat_enumerator_next(&en, true, true);
+            Z_ASSERT(!en.end, "end reached too early, key(%u) < max_key(%u)",
+                     key, max_key);
+            value = qhat_enumerator_get_value(&en);
+            Z_ASSERT_EQ(*value, key);
+            Z_ASSERT_EQ(en.key, key);
+        }
+        qhat_enumerator_next(&en, true, true);
+        Z_ASSERT(en.end);
+    } Z_TEST_END;
+
+    /* }}} */
     Z_TEST(enumeration_next_after_zero, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
