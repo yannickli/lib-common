@@ -1170,10 +1170,10 @@ void qhat_fix_stored0(qhat_t *hat)
     uint32_t c = 0;
 
     for (qhat_tree_enumerator_t en = qhat_get_tree_enumerator(hat);
-         !en.end; qhat_tree_enumerator_next(&en, true, true))
+         !en.end; qhat_tree_enumerator_next(&en, true))
     {
         if (en.compact) {
-            const void *v = qhat_tree_enumerator_get_value_safe(&en);
+            const void *v = qhat_tree_enumerator_get_value(&en, true);
 #define CASE(Size, Compact, Flat)                                            \
             if (IS_ZERO(Size, *(const qhat_##Size##_t *)v)) {                \
                 qhat_path_t path = en.path;                                  \
@@ -1209,19 +1209,17 @@ static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
     if (PATH_NODE(&en->path).compact) {
         en->compact = true;
         en->count   = en->memory.compact->count;
-#define CASE(Size, Compact, Flat)  en->value = &Compact->values[0]
+#define CASE(Size, Compact, Flat) en->value_tab = Compact->values;
         QHAT_VALUE_LEN_SWITCH(en->path.hat, en->memory, CASE);
 #undef CASE
     } else {
         en->compact = false;
         en->count   = en->path.hat->desc->leaves_per_flat;
-#define CASE(Size, Compact, Flat)  en->value = &Flat[0]
+#define CASE(Size, Compact, Flat) en->value_tab = Flat;
         QHAT_VALUE_LEN_SWITCH(en->path.hat, en->memory, CASE);
 #undef CASE
     }
-
     en->pos = 0;
-    en->value_pos = 0;
     qhat_tree_enumerator_find_entry_from(en, key);
 }
 
@@ -1256,7 +1254,6 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
         }
     } else {
         en->end   = true;
-        en->value = NULL;
     }
 }
 
@@ -1273,7 +1270,6 @@ void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
 
     if (new_key <= key) {
         en->end   = true;
-        en->value = NULL;
     } else
     if (key_0 != new_key_0) {
         qhat_tree_enumerator_find_root(en, new_key);
@@ -1319,8 +1315,7 @@ void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en, uint32_t key)
     shift   = qhat_depth_shift(hat, en->path.depth);
     new_key = key + (1UL << shift);
     if (shift == 32) {
-        en->end   = true;
-        en->value = NULL;
+        en->end = true;
     } else {
         qhat_tree_enumerator_dispatch_up(en, key, new_key);
     }
@@ -1339,9 +1334,7 @@ qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
     en.is_nullable = en.path.hat->root->is_nullable;
 
     qhat_tree_enumerator_find_up_down(&en, key);
-    if (!en.end) {
-        qhat_tree_enumerator_update_value_ptr(&en);
-    }
+
     return en;
 }
 
