@@ -207,6 +207,7 @@ zchk_SOURCES = zchk.c \
 	zchk-bithacks.c \
 	zchk-container.blk \
 	zchk-hat.blk \
+	zchk-qps-bitmap.c \
 	zchk-iop.c \
 	zchk-iop.blk \
 	zchk-iop-rpc.c \
