@@ -2576,7 +2576,7 @@ class IopySlowTests(z.TestCase):
             assert child_pid >= 0
             if child_pid == 0:
                 process_cb()
-                os._exit(0)
+                os._exit(0) # pylint: disable=protected-access
 
             # Wait for the two threads to be started
             queue.get()
@@ -2587,6 +2587,7 @@ class IopySlowTests(z.TestCase):
             # Terminate process
             os.kill(child_pid, signal.SIGTERM)
             _, code = os.waitpid(child_pid, 0)
+            self.assertEqual(code, 0)
 
             # We should have a timeout in less than 1.0s
             end_time = time.time()
