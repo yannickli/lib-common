@@ -240,14 +240,18 @@ fi
 # }}}
 # {{{ npm
 
-# Since npm 5.7, a 'npm ci' command is provided that does not
-# modify the package-lock.json.
-# For simplification, just the major version is checked, so
-# for npm >= 6.0.0, npm ci is used
-if [ $(npm --version | cut -d. -f1) -ge 6 ]; then
-    setenv npminstall_BIN "npm ci"
-else
-    setenv npminstall_BIN "npm install"
+# Do not set npminstall_BIN if npm is not installed. npm is not directly
+# required to compile lib-common anyway.
+if command -v npm >/dev/null 2>&1; then
+    # Since npm 5.7, a 'npm ci' command is provided that does not
+    # modify the package-lock.json.
+    # For simplification, just the major version is checked, so
+    # for npm >= 6.0.0, npm ci is used
+    if [ $(npm --version | cut -d. -f1) -ge 6 ]; then
+        setenv npminstall_BIN "npm ci"
+    else
+        setenv npminstall_BIN "npm install"
+    fi
 fi
 
 # }}}
