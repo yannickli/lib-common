@@ -484,6 +484,7 @@ def build(ctx):
             'zchk-file-log.c',
             'zchk-hash.c',
             'zchk-hat.blk',
+            'zchk-qps-bitmap.c',
             'zchk-iop.blk',
             'zchk-iop.c',
             'zchk-iop-core-obj.c',
