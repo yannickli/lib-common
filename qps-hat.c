@@ -1169,11 +1169,11 @@ void qhat_fix_stored0(qhat_t *hat)
 {
     uint32_t c = 0;
 
-    for (qhat_tree_enumerator_t en = qhat_tree_start_enumeration(hat);
-         !en.end; qhat_tree_enumeration_next(&en, true, true))
+    for (qhat_tree_enumerator_t en = qhat_get_tree_enumerator(hat);
+         !en.end; qhat_tree_enumerator_next(&en, true))
     {
         if (en.compact) {
-            const void *v = qhat_tree_enumeration_get_value_safe(&en);
+            const void *v = qhat_tree_enumerator_get_value(&en, true);
 #define CASE(Size, Compact, Flat)                                            \
             if (IS_ZERO(Size, *(const qhat_##Size##_t *)v)) {                \
                 qhat_path_t path = en.path;                                  \
@@ -1194,37 +1194,49 @@ void qhat_fix_stored0(qhat_t *hat)
 /* }}} */
 /* Enumerator {{{ */
 
-static void qhat_tree_enumeration_enter_leaf(qhat_tree_enumerator_t *en,
-                                             uint32_t key)
+/* After call:
+ * - memory set to the current leaf
+ * - compact updated
+ * - pos set to the position of the key
+ * - key updated
+ * - value_pos updated
+ */
+static void qhat_tree_enumerator_enter_leaf(qhat_tree_enumerator_t *en,
+                                            uint32_t key)
 {
     en->memory = qhat_node_deref(&en->path);
 
     if (PATH_NODE(&en->path).compact) {
         en->compact = true;
         en->count   = en->memory.compact->count;
-#define CASE(Size, Compact, Flat)  en->value = &Compact->values[0]
+#define CASE(Size, Compact, Flat) en->value_tab = Compact->values;
         QHAT_VALUE_LEN_SWITCH(en->path.hat, en->memory, CASE);
 #undef CASE
     } else {
         en->compact = false;
         en->count   = en->path.hat->desc->leaves_per_flat;
-#define CASE(Size, Compact, Flat)  en->value = &Flat[0]
+#define CASE(Size, Compact, Flat) en->value_tab = Flat;
         QHAT_VALUE_LEN_SWITCH(en->path.hat, en->memory, CASE);
 #undef CASE
     }
-
     en->pos = 0;
-    qhat_tree_enumeration_find_entry_from(en, key);
+    qhat_tree_enumerator_find_entry_from(en, key);
 }
 
-void qhat_tree_enumeration_find_root(qhat_tree_enumerator_t *en, uint32_t key)
+/* Guaranteed to either enter a leaf or end the enumerator. */
+void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t *hat = en->path.hat;
     uint32_t root = qhat_get_key_bits(hat, key, 0);
     ssize_t  i;
 
+    /* We're going to refresh the whole path so the structure generation can
+     * be updated. */
+    en->path.generation = hat->struct_gen;
+
     en->path.depth = 0;
     en->path.key   = 0;
+
     i = scan_non_zero32(&hat->root->nodes[0].value, root,
                         hat->desc->root_node_count);
     if (i >= 0) {
@@ -1236,18 +1248,18 @@ void qhat_tree_enumeration_find_root(qhat_tree_enumerator_t *en, uint32_t key)
         }
 
         if (PATH_NODE(&en->path).leaf) {
-            qhat_tree_enumeration_enter_leaf(en, key);
+            qhat_tree_enumerator_enter_leaf(en, key);
         } else {
-            qhat_tree_enumeration_find_node(en, key);
+            qhat_tree_enumerator_find_node(en, key);
         }
     } else {
         en->end   = true;
-        en->value = NULL;
     }
 }
 
-void qhat_tree_enumeration_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
-                                       uint32_t new_key)
+/* Guaranteed to either enter a leaf or end the enumerator. */
+void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
+                                      uint32_t new_key)
 {
     qhat_t  *hat = en->path.hat;
     uint32_t key_0 = qhat_get_key_bits(hat, key, 0);
@@ -1258,21 +1270,21 @@ void qhat_tree_enumeration_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
 
     if (new_key <= key) {
         en->end   = true;
-        en->value = NULL;
     } else
     if (key_0 != new_key_0) {
-        qhat_tree_enumeration_find_root(en, new_key);
+        qhat_tree_enumerator_find_root(en, new_key);
     } else {
         if (key_1 != new_key_1) {
             en->path.depth = 0;
         } else {
             en->path.depth = 1;
         }
-        qhat_tree_enumeration_find_node(en, new_key);
+        qhat_tree_enumerator_find_node(en, new_key);
     }
 }
 
-void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
+/* Guaranteed to either enter a leaf or end the enumerator. */
+void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en, uint32_t key)
 {
     qhat_t   *hat = en->path.hat;
     uint32_t  pos = qhat_get_key_bits(hat, key, en->path.depth + 1);
@@ -1292,9 +1304,9 @@ void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
         }
 
         if (PATH_NODE(&en->path).leaf) {
-            qhat_tree_enumeration_enter_leaf(en, key);
+            qhat_tree_enumerator_enter_leaf(en, key);
         } else {
-            qhat_tree_enumeration_find_node(en, key);
+            qhat_tree_enumerator_find_node(en, key);
         }
         return;
     }
@@ -1303,15 +1315,15 @@ void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
     shift   = qhat_depth_shift(hat, en->path.depth);
     new_key = key + (1UL << shift);
     if (shift == 32) {
-        en->end   = true;
-        en->value = NULL;
+        en->end = true;
     } else {
-        qhat_tree_enumeration_dispatch_up(en, key, new_key);
+        qhat_tree_enumerator_dispatch_up(en, key, new_key);
     }
 }
 
 __flatten
-qhat_tree_enumerator_t qhat_tree_start_enumeration_at(qhat_t *trie, uint32_t key)
+qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
+                                                   uint32_t key)
 {
     qhat_tree_enumerator_t en;
     qps_hptr_deref(trie->qps, &trie->root_cache);
@@ -1321,16 +1333,15 @@ qhat_tree_enumerator_t qhat_tree_start_enumeration_at(qhat_t *trie, uint32_t key
     en.value_len   = en.path.hat->desc->value_len;
     en.is_nullable = en.path.hat->root->is_nullable;
 
-    qhat_tree_enumeration_find_up_down(&en, key);
-    if (!en.end) {
-        en.value = qhat_tree_get_enumeration_value(&en);
-    }
+    qhat_tree_enumerator_find_up_down(&en, key);
+
     return en;
 }
 
-void qhat_tree_enumeration_refresh_path(qhat_tree_enumerator_t *en)
+/* Guaranteed to either enter a leaf or end the enumerator. */
+void qhat_tree_enumerator_refresh_path(qhat_tree_enumerator_t *en)
 {
-    qhat_tree_enumeration_find_up_down(en, en->key);
+    qhat_tree_enumerator_find_up_down(en, en->key);
 }
 
 
@@ -1468,28 +1479,29 @@ void qhat_compute_counts(qhat_t *hat, bool enable)
     qhat_compute_counts_(hat, root, mem, hat->desc->root_node_count);
 }
 
-static void qhat_debug_print_indent(int depth, bool final)
+static void qhat_debug_print_indent(int depth, bool final, FILE *stream)
 {
     static bool finals[QHAT_DEPTH_MAX + 1];
 
     finals[depth] = final;
     for (int i = 0; i < depth; i++) {
         if (finals[i]) {
-            fprintf(stderr, "    ");
+            fprintf(stream, "    ");
         } else {
-            fprintf(stderr, "|   ");
+            fprintf(stream, "|   ");
         }
     }
 }
 
 static void qhat_debug_print_node(const qhat_t *hat, uint32_t flags,
                                   int depth, uint32_t prefix,
-                                  qhat_node_t node, bool pure);
+                                  qhat_node_t node, bool pure,
+                                  FILE *stream);
 
 static void qhat_debug_print_dispatch_node(const qhat_t *hat, uint32_t flags,
                                            int depth, uint32_t prefix,
                                            const qhat_node_t *pointers,
-                                           int end)
+                                           int end, FILE *stream)
 {
     qhat_node_t value    = pointers[0];
     int         previous = 0;
@@ -1499,15 +1511,16 @@ static void qhat_debug_print_dispatch_node(const qhat_t *hat, uint32_t flags,
         if (value.value != pointers[i].value) {
             if (value.value != 0) {
                 has_next = (scan_non_zero32(&pointers[0].value, i, end) >= 0);
-                qhat_debug_print_indent(depth, !has_next);
+                qhat_debug_print_indent(depth, !has_next, stream);
                 if (i - previous > 1) {
-                    fprintf(stderr, "+ [%x -> %x]\n", previous, i - 1);
+                    fprintf(stream, "+ [%x -> %x]\n", previous, i - 1);
                 } else {
-                    fprintf(stderr, "+ [%x]\n", previous);
+                    fprintf(stream, "+ [%x]\n", previous);
                 }
                 qhat_debug_print_node(hat, flags, depth + 1,
-                                      prefix | (previous << qhat_depth_shift(hat, depth)),
-                                      value, (i - previous == 1));
+                                      prefix | (previous <<
+                                                qhat_depth_shift(hat, depth)),
+                                      value, (i - previous == 1), stream);
             }
             previous = i;
             value    = pointers[i];
@@ -1515,11 +1528,11 @@ static void qhat_debug_print_dispatch_node(const qhat_t *hat, uint32_t flags,
     }
     if (value.value != 0) {
         int shift;
-        qhat_debug_print_indent(depth, true);
-        if (end -previous > 1) {
-            fprintf(stderr, "+ [%x -> %x]\n", previous, end - 1);
+        qhat_debug_print_indent(depth, true, stream);
+        if (end - previous > 1) {
+            fprintf(stream, "+ [%x -> %x]\n", previous, end - 1);
         } else {
-            fprintf(stderr, "+ [%x]\n", previous);
+            fprintf(stream, "+ [%x]\n", previous);
         }
         shift = qhat_depth_shift(hat, depth);
         if (shift == 32) {
@@ -1528,23 +1541,24 @@ static void qhat_debug_print_dispatch_node(const qhat_t *hat, uint32_t flags,
             previous <<= shift;
         }
         qhat_debug_print_node(hat, flags, depth + 1, prefix | previous,
-                              value, (end - previous) == 1);
+                              value, (end - previous) == 1, stream);
     }
 }
 
 static void qhat_debug_print_compact_leaf(const qhat_t *hat, uint32_t flags,
                                           int depth, uint32_t prefix,
-                                          qhat_node_const_memory_t memory)
+                                          qhat_node_const_memory_t memory,
+                                          FILE *stream)
 {
     uint32_t count    = memory.compact->count;
     uint32_t previous = memory.compact->keys[0];
     uint32_t start    = previous;
     int printed       = 0;
 
-    qhat_debug_print_indent(depth, true);
-    fprintf(stderr, "+ ");
+    qhat_debug_print_indent(depth, true, stream);
+    fprintf(stream, "+ ");
     if (count == 0) {
-        fprintf(stderr, "(empty)\n");
+        fprintf(stream, "(empty)\n");
         return;
     }
     if ((flags & QHAT_PRINT_KEYS)) {
@@ -1552,16 +1566,16 @@ static void qhat_debug_print_compact_leaf(const qhat_t *hat, uint32_t flags,
             uint32_t key = memory.compact->keys[i];
             if (key != previous + 1) {
                 if (printed > 9) {
-                    fprintf(stderr, "\n");
-                    qhat_debug_print_indent(depth, true);
-                    fprintf(stderr, "+ ");
+                    fprintf(stream, "\n");
+                    qhat_debug_print_indent(depth, true, stream);
+                    fprintf(stream, "+ ");
                     printed = 0;
                 }
                 if (previous != start) {
-                    fprintf(stderr, "%x-%x, ", start, previous);
+                    fprintf(stream, "%x-%x, ", start, previous);
                     printed += 2;
                 } else {
-                    fprintf(stderr, "%x, ", previous);
+                    fprintf(stream, "%x, ", previous);
                     printed += 1;
                 }
                 start = key;
@@ -1569,20 +1583,20 @@ static void qhat_debug_print_compact_leaf(const qhat_t *hat, uint32_t flags,
             previous = key;
         }
         if (printed > 9) {
-            fprintf(stderr, "\n");
-            qhat_debug_print_indent(depth, true);
-            fprintf(stderr, "+ ");
+            fprintf(stream, "\n");
+            qhat_debug_print_indent(depth, true, stream);
+            fprintf(stream, "+ ");
         }
         if (previous != start) {
-            fprintf(stderr, "%x - %x\n", start, previous);
+            fprintf(stream, "%x - %x\n", start, previous);
         } else {
-            fprintf(stderr, "%x\n", previous);
+            fprintf(stream, "%x\n", previous);
         }
     } else
     if (count == 1) {
-        fprintf(stderr, "%x\n", memory.compact->keys[0]);
+        fprintf(stream, "%x\n", memory.compact->keys[0]);
     } else {
-        fprintf(stderr, "%x -> %x\n", memory.compact->keys[0],
+        fprintf(stream, "%x -> %x\n", memory.compact->keys[0],
                 memory.compact->keys[count - 1]);
     }
 }
@@ -1598,22 +1612,23 @@ bool qhat_debug_is_flat_default(const qhat_t *hat,
 
 static void qhat_debug_print_flat_leaf(const qhat_t *hat, uint32_t flags,
                                        int depth, uint32_t prefix,
-                                       qhat_node_const_memory_t memory)
+                                       qhat_node_const_memory_t memory,
+                                       FILE *stream)
 {
     uint32_t start = 0;
     bool     value = qhat_debug_is_flat_default(hat, memory, 0);
-    qhat_debug_print_indent(depth, true);
-    fprintf(stderr, "+ ");
+    qhat_debug_print_indent(depth, true, stream);
+    fprintf(stream, "+ ");
     if ((flags & QHAT_PRINT_KEYS)) {
         for (uint32_t i = 1; i < hat->desc->leaves_per_flat; i++) {
             bool new_value = qhat_debug_is_flat_default(hat, memory, i);
             if (new_value != value) {
                 if (value) {
                     if (i - start != 1) {
-                        fprintf(stderr, "%x - %x, ", prefix + start,
+                        fprintf(stream, "%x - %x, ", prefix + start,
                                 prefix + i - 1);
                     } else {
-                        fprintf(stderr, "%x, ", prefix + start);
+                        fprintf(stream, "%x, ", prefix + start);
                     }
                 }
                 start = i;
@@ -1622,59 +1637,67 @@ static void qhat_debug_print_flat_leaf(const qhat_t *hat, uint32_t flags,
         }
         if (value) {
             if (hat->desc->leaves_per_flat - start != 1) {
-                fprintf(stderr, "%x - %x\n", prefix + start,
+                fprintf(stream, "%x - %x\n", prefix + start,
                         (uint32_t)(prefix + hat->desc->leaves_per_flat - 1));
             } else {
-                fprintf(stderr, "%x\n", prefix + start);
+                fprintf(stream, "%x\n", prefix + start);
             }
         } else {
-            fprintf(stderr, "\n");
+            fprintf(stream, "\n");
         }
     } else {
-        fprintf(stderr, "%x -> %x\n", prefix,
+        fprintf(stream, "%x -> %x\n", prefix,
                (uint32_t)(prefix + hat->desc->leaves_per_flat - 1));
     }
 }
 
 static void qhat_debug_print_node(const qhat_t *hat, uint32_t flags,
                                   int depth, uint32_t prefix,
-                                  qhat_node_t node, bool pure)
+                                  qhat_node_t node, bool pure,
+                                  FILE *stream)
 {
     qhat_node_const_memory_t memory;
-    qhat_debug_print_indent(depth, false);
-    fprintf(stderr, "%s node %u: prefix=%x/%x",
+    qhat_debug_print_indent(depth, false, stream);
+    fprintf(stream, "%s node %u: prefix=%x/%x",
            (pure ? "Pure" : "Hybrid"), node.page, prefix,
            qhat_depth_prefix(hat, 0xffffffffu, depth - 1));
     if (node.leaf) {
-        fprintf(stderr, ", leaf");
+        fprintf(stream, ", leaf");
         if (node.compact) {
             memory.raw = qps_pg_deref(hat->qps, node.page);
-            fprintf(stderr, " (compact, %d entries, parent %x -> %x)\n",
+            fprintf(stream, " (compact, %d entries, parent %x -> %x)\n",
                     memory.compact->count, memory.compact->parent_left,
                     memory.compact->parent_right - 1);
-            qhat_debug_print_compact_leaf(hat, flags, depth, prefix, memory);
+            qhat_debug_print_compact_leaf(hat, flags, depth, prefix, memory,
+                                          stream);
         } else {
-            fprintf(stderr, " (flat)\n");
+            fprintf(stream, " (flat)\n");
             memory.raw = qps_pg_deref(hat->qps, node.page);
-            qhat_debug_print_flat_leaf(hat, flags, depth, prefix, memory);
+            qhat_debug_print_flat_leaf(hat, flags, depth, prefix, memory,
+                                       stream);
         }
     } else {
-        fprintf(stderr, "\n");
+        fprintf(stream, "\n");
         memory.raw = qps_pg_deref(hat->qps, node.page);
         qhat_debug_print_dispatch_node(hat, flags, depth, prefix,
-                                       memory.nodes, QHAT_COUNT);
+                                       memory.nodes, QHAT_COUNT, stream);
     }
 }
 
 #endif
 
-void qhat_debug_print(qhat_t *hat, uint32_t flags)
+void qhat_debug_print_stream(qhat_t *hat, uint32_t flags, FILE *stream)
 {
     qps_hptr_deref(hat->qps, &hat->root_cache);
-    fprintf(stderr, "Root: (%d)\n", hat->root_cache.handle);
+    fprintf(stream, "Root: (%d)\n", hat->root_cache.handle);
     qhat_debug_print_dispatch_node(hat, flags, 0, 0U, hat->root->nodes,
-                                   hat->desc->root_node_count);
-    fprintf(stderr, "\n");
+                                   hat->desc->root_node_count, stream);
+    fprintf(stream, "\n");
+}
+
+void qhat_debug_print(qhat_t *hat, uint32_t flags)
+{
+    qhat_debug_print_stream(hat, flags, stderr);
 }
 
 /* }}} */

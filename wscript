@@ -376,6 +376,7 @@ def build(ctx):
 
             'zchk-container.blk',
             'zchk-hat.blk',
+            'zchk-qps-bitmap.c',
             'zchk-iop.blk',
             'zchk-log.blk',
             'zchk-thrjob.blk',
