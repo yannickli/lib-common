@@ -378,35 +378,6 @@ void qps_bitmap_enumerator_go_to(qps_bitmap_enumerator_t *en, uint32_t row)
     }
 }
 
-static inline
-qps_bitmap_enumerator_t qps_bitmap_get_enumerator_at(qps_bitmap_t *map,
-                                                     uint32_t row)
-{
-    qps_bitmap_enumerator_t en;
-    qps_bitmap_key_t key;
-
-    p_clear(&en, 1);
-    en.map = map;
-    en.struct_gen = map->struct_gen;
-    qps_hptr_deref(map->qps, &map->root_cache);
-
-    en.is_nullable = en.map->root->is_nullable;
-    if (!en.is_nullable) {
-        en.value = 1;
-    }
-
-    key.key = row;
-    qps_bitmap_enumerator_find_dispatch(&en, key);
-    return en;
-}
-
-static inline
-qps_bitmap_enumerator_t qps_bitmap_get_enumerator(qps_bitmap_t *map)
-{
-    return qps_bitmap_get_enumerator_at(map, 0);
-}
-
-
 /* }}} */
 /* Non-nullable specialization {{{ */
 
@@ -591,9 +562,12 @@ void qps_bitmap_enumerator_go_to_nn(qps_bitmap_enumerator_t *en, uint32_t row)
     }
 }
 
+/* }}} */
+/* {{{ Enumerator builders. */
+
 static inline
-qps_bitmap_enumerator_t qps_bitmap_get_enumerator_at_nn(qps_bitmap_t *map,
-                                                        uint32_t row)
+qps_bitmap_enumerator_t qps_bitmap_get_enumerator_at(qps_bitmap_t *map,
+                                                     uint32_t row)
 {
     qps_bitmap_enumerator_t en;
     qps_bitmap_key_t key;
@@ -603,31 +577,32 @@ qps_bitmap_enumerator_t qps_bitmap_get_enumerator_at_nn(qps_bitmap_t *map,
     en.struct_gen = map->struct_gen;
     qps_hptr_deref(map->qps, &map->root_cache);
 
-    assert (!en.map->root->is_nullable);
-    en.is_nullable = false;
+    en.is_nullable = en.map->root->is_nullable;
     if (!en.is_nullable) {
         en.value = 1;
     }
 
     key.key = row;
-    qps_bitmap_enumerator_find_dispatch_nn(&en, key);
+    if (en.is_nullable) {
+        qps_bitmap_enumerator_find_dispatch(&en, key);
+    } else {
+        qps_bitmap_enumerator_find_dispatch_nn(&en, key);
+    }
     return en;
 }
 
 static inline
-qps_bitmap_enumerator_t qps_bitmap_get_enumerator_nn(qps_bitmap_t *map)
+qps_bitmap_enumerator_t qps_bitmap_get_enumerator(qps_bitmap_t *map)
 {
-    return qps_bitmap_get_enumerator_at_nn(map, 0);
+    return qps_bitmap_get_enumerator_at(map, 0);
 }
 
+/* }}} */
+/* {{{ For-each macros */
 
 #define qps_bitmap_for_each(en, map)                                         \
     for (qps_bitmap_enumerator_t en = qps_bitmap_get_enumerator(map);        \
          !en.end; qps_bitmap_enumerator_next(&en))
-
-#define qps_bitmap_for_each_nn(en, map)                                      \
-    for (qps_bitmap_enumerator_t en = qps_bitmap_get_enumerator_nn(map);     \
-         !en.end; qps_bitmap_enumerator_next_nn(&en))
 
 /* }}} */
 /* Debugging tools {{{ */
