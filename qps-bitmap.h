@@ -561,13 +561,9 @@ void qps_bitmap_enumerator_next_nn(qps_bitmap_enumerator_t *en)
 {
     qps_bitmap_key_t key = en->key;
 
-    if (en->is_nullable) {
-        en->current_word &= ~UINT64_C(3);
-        key.bit_null++;
-    } else {
-        en->current_word &= ~UINT64_C(1);
-        key.bit++;
-    }
+    assert(!en->is_nullable);
+    en->current_word &= ~UINT64_C(1);
+    key.bit++;
     qps_bitmap_enumerator_find_bit_nn(en, key);
 }
 
