@@ -15,6 +15,7 @@ none_LIBRARIES = libcommon libcommon-iop
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie ztst-mem-bench
+test_PROGRAMS += ztst-qps-bitmap-bench
 test_PROGRAMS += ztst-mem container-bench
 ifeq (,$(TOOLS_REPOSITORY))
 none_LIBRARIES += iop-snmp
@@ -262,6 +263,10 @@ ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \
+	$llibcommon.a
+
+ztst-qps-bitmap-bench_SOURCES = \
+	ztst-qps-bitmap-bench.c \
 	$llibcommon.a
 
 ztst-qpscheck_SOURCES = \
