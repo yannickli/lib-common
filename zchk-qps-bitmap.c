@@ -56,11 +56,11 @@ Z_GROUP_EXPORT(qps_bitmap) {
         for (uint32_t i = 0; i < 0x8000; i++) {
             qps_bitmap_key_t key = { .key = 0 };
 
-            qps_bitmap_enumerator_find_word(&en, key);
+            qps_bitmap_enumerator_find_word_nu(&en, key);
             Z_ASSERT_EQ(en.key.key, 0U);
 
             key.key = i;
-            qps_bitmap_enumerator_find_word(&en, key);
+            qps_bitmap_enumerator_find_word_nu(&en, key);
             Z_ASSERT_EQ(en.key.key, i);
         }
 

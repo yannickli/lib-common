@@ -73,7 +73,8 @@ static void z_qps_bitmap_scan(qps_bitmap_t *bitmap, bool is_nullable,
         /* Generic implementation. */
         BITMAP_SCAN(bitmap, qps_bitmap_enumerator_next, repeat);
     } else if (is_nullable) {
-        e_fatal("no specialized implementation of nullable enumerator");
+        /* Specialized nullable implementation. */
+        BITMAP_SCAN(bitmap, qps_bitmap_enumerator_next_nu, repeat);
     } else {
         /* Specialized non-nullable implementation. */
         BITMAP_SCAN(bitmap, qps_bitmap_enumerator_next_nn, repeat);
