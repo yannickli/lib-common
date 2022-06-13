@@ -46,7 +46,7 @@ Z_GROUP_EXPORT(qps_bitmap) {
         }
 
         count = 0;
-        qps_bitmap_for_each(enumeration, &bitmap) {
+        qps_bitmap_for_each_unsafe(enumeration, &bitmap) {
             Z_ASSERT_EQ(enumeration.key.key, count);
             count++;
         }
@@ -88,7 +88,7 @@ Z_GROUP_EXPORT(qps_bitmap) {
             Z_ASSERT_EQ(qps_bitmap_set(&bitmap, i), (uint32_t)QPS_BITMAP_NULL);
         }
 
-        qps_bitmap_enumerator_next(&en);
+        qps_bitmap_enumerator_next(&en, true);
         Z_ASSERT_EQ(en.key.key, 270101u);
 
         qps_bitmap_destroy(&bitmap);
@@ -108,28 +108,19 @@ Z_GROUP_EXPORT(qps_bitmap) {
         for (int i = 1; i < 100; i++) {
             qps_bitmap_set(&bitmap, i);
         }
+        /* Start the enumeration. */
         en = qps_bitmap_get_enumerator_at(&bitmap, 80);
+
+        /* Modify the bitmap. */
         for (int i = 100; i < 1025; i++) {
             qps_bitmap_set(&bitmap, i);
         }
 
+        /* Complete the enumeration. */
         for (uint32_t key = 80; key < 1025; key++) {
-            /* FIXME QPS bitmap enumerator is "safe" for changes that modify
-             * the structure of the bitmap (eg. when the structure generation
-             * "struct_gen" is changed), but not for small changes that keep
-             * the structure untouched.
-             *
-             * We should have a "safe" version of
-             * 'qps_bitmap_enumerator_next[_nn]() that would cope with those
-             * small changes.
-             */
-            if (key == 100) {
-                key = 128;
-            }
-
             Z_ASSERT(!en.end);
             Z_ASSERT_EQ(en.key.key, key);
-            qps_bitmap_enumerator_next_nn(&en);
+            qps_bitmap_enumerator_next_nn(&en, true);
         }
         Z_ASSERT(en.end);
     } Z_TEST_END;
@@ -158,7 +149,7 @@ Z_GROUP_EXPORT(qps_bitmap) {
             } else {
                 qps_bitmap_reset(&bitmap, 50);
             }
-            qps_bitmap_enumerator_next(&en);
+            qps_bitmap_enumerator_next(&en, true);
             Z_ASSERT_EQ(en.key.key, 51u);
         }
     } Z_TEST_END;

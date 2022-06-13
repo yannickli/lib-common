@@ -1022,7 +1022,7 @@ void qhat_enumerator_next(qhat_enumerator_t *en, bool safe)
 {
     if (en->is_nullable) {
         assert (!en->bitmap.map->root->is_nullable);
-        qps_bitmap_enumerator_next_nn(&en->bitmap);
+        qps_bitmap_enumerator_next_nn(&en->bitmap, safe);
         qhat_enumerator_catchup(en, false, safe);
     } else {
         qhat_tree_enumerator_next(&en->t, safe);
@@ -1075,7 +1075,7 @@ void qhat_enumerator_go_to(qhat_enumerator_t *en, uint32_t key, bool safe)
 {
     if (en->is_nullable) {
         assert (!en->bitmap.map->root->is_nullable);
-        qps_bitmap_enumerator_go_to_nn(&en->bitmap, key);
+        qps_bitmap_enumerator_go_to_nn(&en->bitmap, key, safe);
         qhat_enumerator_catchup(en, false, safe);
     } else {
         qhat_tree_enumerator_go_to(&en->t, key, safe);
