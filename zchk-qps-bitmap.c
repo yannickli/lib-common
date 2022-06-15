@@ -135,6 +135,35 @@ Z_GROUP_EXPORT(qps_bitmap) {
     } Z_TEST_END;
 
     /* }}} */
+    Z_TEST(remove_current_row, "") { /* {{{ */
+        bool is_nullable_v[] = { false, true };
+
+        Z_TEST_FLAGS("redmine_83666");
+
+        carray_for_each_entry(is_nullable, is_nullable_v) {
+            qps_handle_t hbitmap;
+            qps_bitmap_t bitmap;
+            qps_bitmap_enumerator_t en;
+
+            hbitmap = qps_bitmap_create(qps, is_nullable);
+            qps_bitmap_init(&bitmap, qps, hbitmap);
+
+            for (int i = 1; i < 100; i++) {
+                qps_bitmap_set(&bitmap, i);
+            }
+            en = qps_bitmap_get_enumerator_at(&bitmap, 50);
+            Z_ASSERT_EQ(en.key.key, 50u);
+            if (is_nullable) {
+                qps_bitmap_remove(&bitmap, 50);
+            } else {
+                qps_bitmap_reset(&bitmap, 50);
+            }
+            qps_bitmap_enumerator_next(&en);
+            Z_ASSERT_EQ(en.key.key, 51u);
+        }
+    } Z_TEST_END;
+
+    /* }}} */
 
     qps_close(&qps);
     MODULE_RELEASE(qps);
