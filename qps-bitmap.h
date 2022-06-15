@@ -83,7 +83,7 @@ typedef struct qps_bitmap_root_t {
     uint8_t  sig[16];
 
     /* Structure description */
-    bool is_nullable : 1;
+    bool is_nullable;
     qps_bitmap_node_t roots[QPS_BITMAP_ROOTS];
 } qps_bitmap_root_t;
 
