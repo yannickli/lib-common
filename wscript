@@ -425,6 +425,9 @@ def build(ctx):
     ctx.program(target='ztst-qps', features="c cprogram",
                 source='ztst-qps.blk', use='libcommon')
 
+    ctx.program(target='ztst-qps-bitmap-bench', features="c cprogram",
+                source='ztst-qps-bitmap-bench.c', use="libcommon")
+
     ctx.program(target='ztst-qpscheck', features="c cprogram",
                 source='ztst-qpscheck.blk', use='libcommon')
 
