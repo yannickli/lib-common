@@ -32,6 +32,7 @@ iopsq-t*
 /ztst-lzo
 /ztst-mem
 /ztst-qps
+/ztst-qps-bitmap-bench
 /ztst-qpscheck
 /ztst-sort
 /ztst-tpl
