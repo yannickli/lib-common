@@ -1342,7 +1342,7 @@ def options(ctx):
 
 def llvm_clang_configure(ctx):
     # Supported versions
-    llvm_supported_versions = (9, 14)
+    llvm_supported_versions = (9, 15)
 
     llvm_supported_versions = tuple(range(llvm_supported_versions[0],
                                           llvm_supported_versions[1] + 1))
