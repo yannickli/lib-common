@@ -60,3 +60,4 @@ test-data/snmp/*.iop.c
 /buildbot.supp
 
 /compile_commands.json
+/iop_compile_commands.json
