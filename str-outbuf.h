@@ -132,6 +132,12 @@ static inline int ob_reserve(outbuf_t *ob, unsigned len)
     return res;
 }
 
+/** adds a memory block (\p ptr, \p len) to the chunks referenced by \p ob.
+ *
+ * \param is_const: if false memory ownership is transfered to \p ob.
+ *
+ * XXX: if is_const is true, the pointed memory must live long enough until it
+ * is consumed, in more practical terms, it must outlive the \p ob object. */
 static inline
 void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool is_const)
 {
