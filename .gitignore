@@ -64,3 +64,6 @@ test-data/snmp/*.iop.c
 *.pxd
 *.pyx.c
 *.pyx.h
+
+/compile_commands.json
+/iop_compile_commands.json
