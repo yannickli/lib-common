@@ -806,10 +806,12 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
 {
     iopy_ic_client_t *client = container_of(ic, iopy_ic_client_t, ic);
 
-    if (evt == IC_EVT_CONNECTED) {
+    switch (evt) {
+    case IC_EVT_CONNECTED:
         client->connected = true;
-    } else
-    if (evt == IC_EVT_DISCONNECTED) {
+        break;
+
+    case IC_EVT_DISCONNECTED: {
         bool connected = client->connected;
 
         client->connected = false;
@@ -818,6 +820,12 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
             iopy_ic_py_client_on_disconnect(client, connected);
             iopy_el_mutex_lock(false);
         }
+        break;
+    }
+
+    case IC_EVT_ACT:
+    case IC_EVT_NOACT:
+        return;
     }
 
     if (client->in_connect) {
@@ -842,6 +850,8 @@ iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, sb_t *err)
     client->ic.tls_required = false;
     client->ic.on_event = &iopy_ic_client_on_event;
     client->ic.impl = &ic_no_impl;
+
+    ic_watch_activity(&client->ic, 10 * 1000, 0);
 
     qh_add(iopy_ic_client, &_G.clients, client);
 
