@@ -804,10 +804,12 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
 {
     iopy_ic_client_t *client = container_of(ic, iopy_ic_client_t, ic);
 
-    if (evt == IC_EVT_CONNECTED) {
+    switch (evt) {
+    case IC_EVT_CONNECTED:
         client->connected = true;
-    } else
-    if (evt == IC_EVT_DISCONNECTED) {
+        break;
+
+    case IC_EVT_DISCONNECTED: {
         bool connected = client->connected;
 
         client->connected = false;
@@ -816,6 +818,12 @@ static void iopy_ic_client_on_event(ichannel_t *ic, ic_event_t evt)
             iopy_ic_py_client_on_disconnect(client, connected);
             iopy_el_mutex_lock(false);
         }
+        break;
+    }
+
+    case IC_EVT_ACT:
+    case IC_EVT_NOACT:
+        return;
     }
 
     if (client->in_connect) {
@@ -830,6 +838,7 @@ iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, double no_act_timeout,
 {
     iopy_ic_client_t *client;
     sockunion_t su;
+    const int wa_soft = 10 * 1000;
 
     RETHROW_NP(load_su_from_uri(uri, &su, err));
 
@@ -845,7 +854,9 @@ iopy_ic_client_t *iopy_ic_client_create(lstr_t uri, double no_act_timeout,
     if (no_act_timeout > 0.0) {
         int wa = (int)(no_act_timeout * 1000.0);
 
-        ic_watch_activity(&client->ic, 0, wa);
+        ic_watch_activity(&client->ic, wa_soft, wa);
+    } else {
+        ic_watch_activity(&client->ic, wa_soft, 0);
     }
 
     qh_add(iopy_ic_client, &_G.clients, client);
