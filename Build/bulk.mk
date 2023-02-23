@@ -195,7 +195,7 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    -I 'qv_t qm_t qh_t IOP_RPC_IMPL IOP_RPC_CB' \
 	    --langmap=c:+.blk --langmap=c:+.h --langmap=c++:+.blkk \
 	    --regex-c='/^OBJ_CLASS(_NO_TYPEDEF)?\(+([^,]+),/\2_t/o,cclass/' \
-	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/x,cmethod/' \
+	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/X,cmethod/' \
 	    --langdef=iop --langmap=iop:.iop \
 	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s,struct/' \
 	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c,class/' \
