@@ -2113,8 +2113,8 @@ parse_function_stmt(iopc_parser_t *pp, qv_t(iopc_attr) *attrs,
     parse_function_desc(pp, IOP_F_ARGS, fun, &arg_chunks);
 
     /* XXX we use & to execute both function calls */
-    if ((!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks))
-    &   (!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks)))
+    if ((int)(!parse_function_desc(pp, IOP_F_RES,  fun, &arg_chunks))
+    &   (int)(!parse_function_desc(pp, IOP_F_EXN,  fun, &arg_chunks)))
     {
         info_loc("function %s may be a candidate for async-ness",
                  fun->loc, fun->name);
