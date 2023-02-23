@@ -194,15 +194,15 @@ __setup_buildsys_tags: | __setup_buildsys_trampoline
 	    --c-kinds=+p --c++-kinds=+p --fields=+liaS --extra=+q \
 	    -I 'qv_t qm_t qh_t IOP_RPC_IMPL IOP_RPC_CB' \
 	    --langmap=c:+.blk --langmap=c:+.h --langmap=c++:+.blkk \
-	    --regex-c='/^OBJ_CLASS(_NO_TYPEDEF)?\(+([^,]+),/\2_t/o, cclass/' \
-	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/x, cmethod/' \
+	    --regex-c='/^OBJ_CLASS(_NO_TYPEDEF)?\(+([^,]+),/\2_t/o,cclass/' \
+	    --regex-c='/^    .*\(\*+([^\ ]+)\)\([a-zA-Z_]+ /\1/x,cmethod/' \
 	    --langdef=iop --langmap=iop:.iop \
-	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s, struct/' \
-	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c, class/' \
-	    --regex-iop='/^union +([a-zA-Z]+)/\1/u, union/' \
-	    --regex-iop='/^enum +([a-zA-Z]+)/\1/e, enum/' \
-	    --regex-iop='/^typedef +[^;]+ +([a-zA-Z]+) *;/\1/t, typedef/' \
-	    --regex-iop='/^interface +([a-zA-Z]+)/\1/n, interface/' \
+	    --regex-iop='/^struct +([a-zA-Z]+)/\1/s,struct/' \
+	    --regex-iop='/^(abstract +)?(local +)?class +([a-zA-Z]+)/\3/c,class/' \
+	    --regex-iop='/^union +([a-zA-Z]+)/\1/u,union/' \
+	    --regex-iop='/^enum +([a-zA-Z]+)/\1/e,enum/' \
+	    --regex-iop='/^typedef +[^;]+ +([a-zA-Z]+) *;/\1/t,typedef/' \
+	    --regex-iop='/^interface +([a-zA-Z]+)/\1/n,interface/' \
 	    --exclude=".build*" --exclude="Build" --exclude="Config" \
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
