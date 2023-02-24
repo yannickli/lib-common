@@ -142,6 +142,27 @@ else
     fi
 fi
 
+# {{{ ASDF
+
+asdf_setup() {
+    asdf_tools="$(dirname "$0")/.tool-versions"
+
+    log "installing ASDF plugins…"
+    for asdf_plugin in $(awk '/^[^#]/ {print $1}' "$asdf_tools"); do
+        # Note: `asdf plugin add` returns 1 in case of error, 2 if the plugin
+        # is already up to date and 0 in case of successful install/update.
+        asdf plugin-add "$asdf_plugin" || [ $? != 1 ]
+    done
+
+    log "installing ASDF versions…"
+    asdf install
+}
+
+if [ -n "$ASDF_DIR" ]; then
+    asdf_setup
+fi
+
+# }}}
 # {{{ tools
 
 for tool in clang clang++ flex gperf xsltproc python; do
