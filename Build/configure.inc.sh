@@ -247,10 +247,13 @@ if command -v npm >/dev/null 2>&1; then
     # modify the package-lock.json.
     # For simplification, just the major version is checked, so
     # for npm >= 6.0.0, npm ci is used
-    if [ $(npm --version | cut -d. -f1) -ge 6 ]; then
-        setenv npminstall_BIN "npm ci"
-    else
-        setenv npminstall_BIN "npm install"
+    npm_version="$(npm --version 2>/dev/null | cut -d. -f1)"
+    if [ -n "$npm_version" ]; then
+        if [ "$npm_version" -ge 6 ]; then
+            setenv npminstall_BIN "npm ci"
+        else
+            setenv npminstall_BIN "npm install"
+        fi
     fi
 fi
 
