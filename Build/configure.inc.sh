@@ -229,7 +229,7 @@ if which "${python2_bin}-config" &> /dev/null; then
     python2_ENABLE=1
     setenv python2_ENABLE  1
     setenv python2_CFLAGS  "$(${python2_bin}-config --cflags | sed 's/\( \|^\)-[^I][^ ]*//g')"
-    setenv python2_LIBS    "$(${python2_bin}-config --ldflags)"
+    setenv python2_LIBS    "-L$(${python2_bin}-config --prefix)/lib $(${python2_bin}-config --ldflags)"
 fi
 
 if which "${python3_bin}-config" &> /dev/null; then
