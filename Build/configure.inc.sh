@@ -157,6 +157,27 @@ else
     export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)"
 fi
 
+# {{{ ASDF
+
+asdf_setup() {
+    asdf_tools="$(dirname "$0")/.tool-versions"
+
+    log "installing ASDF plugins…"
+    for asdf_plugin in $(awk '/^[^#]/ {print $1}' "$asdf_tools"); do
+        # Note: `asdf plugin add` returns 1 in case of error, 2 if the plugin
+        # is already up to date and 0 in case of successful install/update.
+        asdf plugin-add "$asdf_plugin" || [ $? != 1 ]
+    done
+
+    log "installing ASDF versions…"
+    asdf install
+}
+
+if [ -n "$ASDF_DIR" ]; then
+    asdf_setup
+fi
+
+# }}}
 # {{{ tools
 
 for tool in clang clang++ flex gperf xsltproc; do
@@ -228,7 +249,7 @@ if which "${python2_bin}-config" &> /dev/null; then
     python2_ENABLE=1
     setenv python2_ENABLE  1
     setenv python2_CFLAGS  "$(${python2_bin}-config --includes)"
-    setenv python2_LIBS    "$(${python2_bin}-config --ldflags)"
+    setenv python2_LIBS    "-L$(${python2_bin}-config --prefix)/lib $(${python2_bin}-config --ldflags)"
 fi
 
 if which "${python3_bin}-config" &> /dev/null; then
