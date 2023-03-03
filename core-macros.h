@@ -243,7 +243,7 @@
 #define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
 #define ROUND_UP(x, y)       (DIV_ROUND_UP(x, y) * (y))
 
-#define NEXTARG(argc, argv)  (argc--, *argv++)
+#define NEXTARG(argc, argv)  (argc--, (void)argc, *argv++)
 
 #define RETHROW(e)        \
     ({ typeof(e) __res = (e);                          \
