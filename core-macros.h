@@ -267,7 +267,7 @@
        __x - (__x & (__y - 1));                        \
     })
 
-#define NEXTARG(argc, argv)  (argc--, *argv++)
+#define NEXTARG(argc, argv)  (argc--, (void)argc, *argv++)
 
 /** RETHROW macros.
  *
