@@ -18,6 +18,8 @@ Contains the code needed for backend compilation.
 import os
 import re
 import copy
+import signal
+import sys
 from itertools import chain
 
 # pylint: disable = import-error
@@ -1216,6 +1218,13 @@ def configure(ctx):
     if ctx.env.USE_ASDF:
         ctx.msg('Using ASDF', 'yes')
         cmd = ['{0}/asdf_install.sh'.format(build_dir), str(ctx.srcnode)]
+        if sys.version_info < (3, ):
+            # Python 2.x is wrongly masking SIGPIPE which messes with the
+            # installation ASDF scripts. So when using Python 2.7 we have to
+            # apply the bellow workaround to make it work.
+            # Have a look at: https://bugs.python.org/issue1652
+            # and https://stackoverflow.com/a/39438276
+            signal.signal(signal.SIGPIPE, signal.SIG_DFL)
         if ctx.exec_command(cmd, stdout=None, stderr=None, cwd=ctx.srcnode):
             ctx.fatal('ASDF installation failed')
     else:
