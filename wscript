@@ -123,6 +123,9 @@ def configure(ctx):
     py_cflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--includes'])
     ctx.env.append_unique('CFLAGS_python2', py_cflags.strip().split(' '))
 
+    py_prefix = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--prefix'])
+    ctx.env.append_unique('LDFLAGS_python2',
+                          '-L{0}/lib'.format(py_prefix.strip()))
     py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--ldflags'])
     ctx.env.append_unique('LDFLAGS_python2', py_ldflags.strip().split(' '))
 
