@@ -18,11 +18,13 @@
 # pylint: disable = invalid-name, bad-continuation
 
 import os
+import os.path as osp
 import sys
 import shlex
+import shutil
 
 # pylint: disable = import-error
-from waflib import Logs, Errors
+from waflib import Logs, Errors, Options
 # pylint: enable = import-error
 
 waftoolsdir = os.path.join(os.getcwd(), 'build', 'waftools')
@@ -32,7 +34,13 @@ sys.path.insert(0, waftoolsdir)
 out = ".build-waf-%s" % os.environ.get('P', 'default')
 
 
-# {{{ options
+# {{{ helpers
+
+
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
 
 
 def load_tools(ctx):
@@ -51,6 +59,168 @@ def load_tools(ctx):
     ctx.load('md5_tstamp')
 
 
+# }}}
+# {{{ poetry
+
+
+def run_waf_with_poetry(ctx):
+    Logs.info('Waf: Run waf in poetry environment')
+
+    # Force POETRY_ACTIVE as older versions of poetry don't set it on
+    # `poetry run`, but set it on `poetry shell`.
+    os.environ['POETRY_ACTIVE'] = '1'
+
+    exit_code = ctx.exec_command(ctx.env.POETRY + ['run'] + sys.argv,
+                                 stdout=None, stderr=None)
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+    del os.environ['POETRY_ACTIVE']
+
+
+def poetry_fix_no_env_use(ctx):
+    py_short_version_lines = ctx.cmd_and_log(
+        ctx.env.POETRY + ["run", "python3", "-c",
+        (
+            "import sys;"
+            "print(f'{sys.version_info[0]}.{sys.version_info[1]}')"
+        )
+    ]).strip().split('\n')
+
+    if len(py_short_version_lines) == 1:
+        # Poetry environment is well defined or python default version is
+        # compatible with the poetry configuration, do nothing.
+        return
+
+    # Force using the python version in poetry environment already used for
+    # install.
+    # The last line of the output is the short python version we want to use.
+    py_short_version = py_short_version_lines[-1]
+    ctx.cmd_and_log(ctx.env.POETRY + ["env", "use", py_short_version])
+
+
+def poetry_no_srv_tools(ctx):
+    # Get python site packages from poetry
+    ctx.poetry_site_packages = ctx.cmd_and_log(
+        ctx.env.POETRY + ["run", "python3", "-c",
+        (
+            "import distutils.sysconfig; "
+            "print(distutils.sysconfig.get_python_lib())"
+        )
+    ]).strip()
+
+    # Write intersec no srv tools path file.
+    # We use a `.pth` that is automatically loaded by python.
+    # See https://docs.python.org/3/library/site.html
+    no_srv_tools_file = osp.join(ctx.poetry_site_packages,
+                                 '_intersec_no_srv_tools.pth')
+    with open(no_srv_tools_file, 'w') as f:
+        # Remove /srv/tools from sys.path. We don't want to depend on the
+        # outdated packages in /srv/tools.
+        f.write(
+            "import sys; sys.path = ["
+            "    x for x in sys.path if not x.startswith('/srv/tools')"
+            "]\n"
+        )
+
+
+def poetry_install(ctx):
+    before_poetry_install = getattr(ctx, 'before_poetry_install', None)
+    if before_poetry_install is not None:
+        before_poetry_install(ctx)
+
+    # Install poetry packages
+    if ctx.exec_command(ctx.env.POETRY + ['install'], stdout=None,
+                        stderr=None):
+        ctx.fatal('poetry install failed')
+
+    # Force poetry environment to the compatible version
+    poetry_fix_no_env_use(ctx)
+
+    # Remove /srv/tools from python path in poetry
+    poetry_no_srv_tools(ctx)
+
+    after_poetry_install = getattr(ctx, 'after_poetry_install', None)
+    if after_poetry_install is not None:
+        after_poetry_install(ctx)
+
+
+def rerun_waf_configure_with_poetry(ctx):
+    if ctx.get_env_bool('POETRY_ACTIVE'):
+        # Poetry is already activated, do nothing.
+        return
+
+    # Set _IN_WAF_POETRY to avoid doing the poetry configuration twice.
+    os.environ['_IN_POETRY_WAF_CONFIGURE'] = '1'
+
+    # Run waf with poetry.
+    run_waf_with_poetry(ctx)
+
+    # Get lockfile for waf in poetry environment.
+    poetry_waf_lockfile = ctx.cmd_and_log(
+        ctx.env.POETRY + ['run', 'python3', '-c',
+        (
+            "import sys; import os; "
+            "print(os.environ.get('WAFLOCK', "
+            "      '.lock-waf_%s_build' % sys.platform))"
+        )
+    ]).strip()
+
+    # If poetry_waf_lock_file is different from the current lockfile, we need
+    # to copy it.
+    if poetry_waf_lockfile != Options.lockfile:
+        shutil.copy(poetry_waf_lockfile, Options.lockfile)
+
+    # Do nothing more on configure.
+    sys.exit(0)
+
+
+def configure_with_poetry(ctx):
+    if ctx.path != ctx.srcnode and not getattr(ctx, 'use_poetry', False):
+        # The current project is not lib-common and Poetry is not used for the
+        # current project.
+        return
+
+    if ctx.get_env_bool('NO_POETRY'):
+        Logs.warn('Waf: Disabling poetry support')
+        return
+
+    ctx.find_program('poetry')
+
+    if not ctx.get_env_bool('_IN_POETRY_WAF_CONFIGURE'):
+        # We are not in waf run by Poetry, install Poetry
+        poetry_install(ctx)
+
+    ctx.env.HAVE_POETRY = True
+    rerun_waf_configure_with_poetry(ctx)
+
+
+def rerun_waf_build_with_poetry(ctx):
+    if ctx.get_env_bool('POETRY_ACTIVE'):
+        # Poetry is already activated, do nothing.
+        return
+
+    # Reset current directory to launch directory.
+    os.chdir(ctx.launch_dir)
+
+    # Run waf with poetry.
+    run_waf_with_poetry(ctx)
+
+    # Do nothing more on build.
+    sys.exit(0)
+
+
+def build_with_poetry(ctx):
+    if not ctx.env.HAVE_POETRY:
+        return
+
+    rerun_waf_build_with_poetry(ctx)
+
+
+# }}}
+# {{{ options
+
+
 def options(ctx):
     load_tools(ctx)
 
@@ -60,6 +230,7 @@ def options(ctx):
 
 
 def configure(ctx):
+    configure_with_poetry(ctx)
     load_tools(ctx)
 
     # Export includes
@@ -114,9 +285,13 @@ def configure(ctx):
     ctx.find_program('python3-config', var='PYTHON3_CONFIG',
                      value=py_config_path)
 
-    py_cflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--includes'])
-    py_cflags = shlex.split(py_cflags)
-    ctx.env.append_unique('CFLAGS_python3', py_cflags)
+    # We need to remove -I prefix to use Python include paths in INCLUDES
+    # variables.
+    py_includes = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--includes'])
+    py_includes = shlex.split(py_includes)
+    py_includes = [remove_prefix(x, '-I') for x in py_includes]
+    ctx.env.append_unique('INCLUDES_python3', py_includes)
+    ctx.env.append_unique('INCLUDES_python3_embed', py_includes)
 
     py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--ldflags'])
     py_ldflags = shlex.split(py_ldflags)
@@ -125,18 +300,8 @@ def configure(ctx):
     # pylint: disable=line-too-long
     # We need to '--embed' for python 3.8+ for standalone executables.
     # See https://docs.python.org/3/whatsnew/3.8.html#debug-build-uses-the-same-abi-as-release-build
-    # For python < 3.8, the cflags and ldflags are the same for both
-    # shared libraries and standalone executables.
-    try:
-        py_embed_cflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG +
-                                          ['--includes', '--embed'])
-    except Errors.WafError:
-        py_embed_cflags = py_cflags
-    else:
-        py_embed_cflags = shlex.split(py_embed_cflags)
-
-    ctx.env.append_unique('CFLAGS_python3_embed', py_embed_cflags)
-
+    # For python < 3.8, ldflags are the same for both shared libraries and
+    # standalone executables.
     try:
         py_embed_ldflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG +
                                            ['--ldflags', '--embed'])
@@ -229,6 +394,8 @@ def configure(ctx):
 
 
 def build(ctx):
+    build_with_poetry(ctx)
+
     # Declare 4 build groups:
     #  - one for generating the "version" source files
     #  - one for compiling farchc
