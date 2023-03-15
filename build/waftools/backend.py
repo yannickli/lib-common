@@ -24,6 +24,8 @@ import datetime
 import os
 import re
 import copy
+import signal
+import sys
 from itertools import chain
 
 # pylint: disable = import-error
