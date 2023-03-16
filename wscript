@@ -42,7 +42,6 @@ def remove_prefix(text, prefix):
     return text
 
 
-
 def load_tools(ctx):
     ctx.load('common', tooldir=waftoolsdir)
     ctx.load('backend', tooldir=waftoolsdir)
@@ -57,6 +56,14 @@ def load_tools(ctx):
     # Configure waf to re-evaluate hashes only when file timestamp/size
     # change. This is way faster on no-op builds.
     ctx.load('md5_tstamp')
+
+
+def pip_install_pkg(ctx, msg, pkg):
+    ctx.start_msg(msg)
+    cmd = ctx.env.PIP_BIN + ['install', pkg]
+    if ctx.exec_command(cmd, cwd=ctx.srcnode):
+        ctx.fatal('failed to install ' + pkg)
+    ctx.end_msg('done')
 
 
 # }}}
@@ -229,7 +236,30 @@ def options(ctx):
 # {{{ configure
 
 
+def configure_asdf(ctx):
+    if ctx.env.USE_ASDF:
+        ctx.msg('Using ASDF', 'yes')
+        build_dir = os.path.join(ctx.path.abspath(), 'build')
+        cmd = ['{0}/asdf_install.sh'.format(build_dir), str(ctx.srcnode)]
+        if ctx.exec_command(cmd, stdout=None, stderr=None, cwd=ctx.srcnode):
+            ctx.fatal('ASDF installation failed')
+
+        # ASDF users will have a local pip that we can use to install
+        # some dependencies
+        ctx.find_program('pip', var='PIP_BIN')
+        pip_install_pkg(ctx, 'Updating pip (if needed)', 'pip>=21')
+        pip_install_pkg(ctx, 'Installing poetry with pip', 'poetry==1.1.15')
+    else:
+        ctx.msg('Using ASDF', 'no')
+
+
 def configure(ctx):
+    # For ASDF users, we first ensure that all ASDF plugins and tool versions
+    # are installed before continuing the configuration.
+    ctx.env.USE_ASDF = 'ASDF_DIR' in os.environ
+    if not ctx.get_env_bool('_IN_POETRY_WAF_CONFIGURE'):
+        configure_asdf(ctx)
+
     configure_with_poetry(ctx)
     load_tools(ctx)
 
