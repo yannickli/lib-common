@@ -26,6 +26,7 @@ import re
 import copy
 import shlex
 import os.path as osp
+import time
 from itertools import chain
 
 # pylint: disable = import-error
@@ -271,24 +272,7 @@ def register_global_includes(self, includes):
 
 
 # }}}
-# {{{ Deploy targets / patch tasks to build targets in the source directory
-
-class DeployTarget(Task):
-    color = 'CYAN'
-
-    @classmethod
-    def keyword(cls):
-        return 'Deploying'
-
-    def __str__(self):
-        node = self.outputs[0]
-        return node.path_from(node.ctx.launch_node())
-
-    def run(self):
-        # Create a hardlink from source to target
-        out_node = self.outputs[0]
-        out_node.delete(evict=False)
-        os.link(self.inputs[0].abspath(), out_node.abspath())
+# {{{ Patch tasks to build targets in the source directory
 
 
 @TaskGen.feature('cprogram', 'cxxprogram')
@@ -298,6 +282,10 @@ def deploy_program(self):
     assert (len(self.link_task.outputs) == 1)
     node = self.link_task.outputs[0]
     self.link_task.outputs = [node.get_src()]
+
+    # Ensure the binaries are re-linked after running configure (in case the
+    # profile was changed)
+    self.link_task.hcode += str(self.env.CONFIGURE_TIME).encode('utf-8')
 
 
 @TaskGen.feature('cshlib')
@@ -310,6 +298,10 @@ def deploy_shlib(self):
     assert (node.name.startswith('lib'))
     tgt = node.parent.get_src().make_node(node.name[len('lib'):])
     self.link_task.outputs = [tgt]
+
+    # Ensure the shared libraries are re-linked after running configure (in
+    # case the profile was changed)
+    self.link_task.hcode += str(self.env.CONFIGURE_TIME).encode('utf-8')
 
 
 # }}}
@@ -1677,6 +1669,8 @@ PROFILES = {
 # }}}
 
 def configure(ctx):
+    ctx.env.CONFIGURE_TIME = time.time()
+
     # register_global_includes
     ConfigurationContext.register_global_includes = register_global_includes
 
