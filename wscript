@@ -118,8 +118,10 @@ def configure(ctx):
     ctx.env.append_unique('CFLAGS_python2', shlex.split(py_cflags))
 
     py_prefix = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--prefix'])
-    ctx.env.append_unique('LDFLAGS_python2',
-                          '-L{0}/lib'.format(py_prefix.strip()))
+    py_prefix_lib = py_prefix.strip() + '/lib'
+    ctx.env.append_unique('RPATH_python2', py_prefix_lib)
+    ctx.env.append_unique('LDFLAGS_python2', '-L' + py_prefix_lib)
+
     py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON2_CONFIG + ['--ldflags'])
     ctx.env.append_unique('LDFLAGS_python2', shlex.split(py_ldflags))
 
@@ -135,6 +137,10 @@ def configure(ctx):
         py_cflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--includes'])
         py_cflags = shlex.split(py_cflags)
         ctx.env.append_unique('CFLAGS_python3', py_cflags)
+
+        py_prefix = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--prefix'])
+        py_prefix_lib = py_prefix.strip() + '/lib'
+        ctx.env.append_unique('RPATH_python3', py_prefix_lib)
 
         py_ldflags = ctx.cmd_and_log(ctx.env.PYTHON3_CONFIG + ['--ldflags'])
         py_ldflags = shlex.split(py_ldflags)
@@ -163,6 +169,7 @@ def configure(ctx):
         else:
             py_embed_ldflags = shlex.split(py_embed_ldflags)
 
+        ctx.env.append_unique('RPATH_python3_embed', py_prefix_lib)
         ctx.env.append_unique('LDFLAGS_python3_embed', py_embed_ldflags)
 
     # }}}
