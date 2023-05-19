@@ -108,7 +108,6 @@ qhat_128_t  qhat_default_zero_g;
         bool __cond = (Cond);                                                \
                                                                              \
         if (unlikely(!__cond)) {                                             \
-            qhat_debug_print(hat, 0);                                        \
             e_panic("corrupted tree: %s", #Cond);                            \
         }                                                                    \
     } while (0)
