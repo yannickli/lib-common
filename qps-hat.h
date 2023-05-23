@@ -730,8 +730,14 @@ void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en,
 static ALWAYS_INLINE const void *
 qhat_tree_enumerator_get_value_unsafe(const qhat_tree_enumerator_t *en)
 {
+    /* FIXME The patch fixing this part has been undone as it
+     * uncovered a bug that caused some QHAT corruptions. It should be
+     * reestablished as soon as the root cause of the corruption is
+     * fixed. */
+#if 0
     /* The caller should probably have used the safe version. */
     assert(en->path.generation == en->path.hat->struct_gen);
+#endif
 
     /* If this assert fails, then it means that returned value isn't the value
      * associated to the current key, probably because of changes in the trie.

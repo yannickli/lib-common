@@ -1335,9 +1335,13 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
     uint32_t root = qhat_get_key_bits(hat, key, 0);
     ssize_t  i;
 
+    /* FIXME Redmine #94699: this generation update unveil a bug that still
+     * needs to be investigated. */
+#if 0
     /* We're going to refresh the whole path so the structure generation can
      * be updated. */
     en->path.generation = hat->struct_gen;
+#endif
 
     en->path.depth = 0;
     en->path.key   = 0;
