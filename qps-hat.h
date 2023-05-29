@@ -424,9 +424,37 @@ uint64_t qhat_compute_memory_overhead(qhat_t *hat)
     return memory;
 }
 
+typedef enum qhat_check_flags_t {
+    /* Do not 'panic' in case of error.
+     * Instead, log an error, print a backtrace with information about the
+     * corruption and let 'qhat_check_consistency()' return -1. */
+    QHAT_CHECK_FULL_SCAN = (1 << 0),
+
+    /* If set, then the content of the leafs (compacts and flats) will be
+     * checked as well. */
+    QHAT_CHECK_CONTENT = (1 << 1),
+
+    /* If set, then the function will try to repair the QHAT by removing its
+     * broken nodes.
+     *
+     * Note: it cannot repair a leaf for now: if there is an issue in a leaf,
+     * then the whole leaf is removed.
+     */
+    QHAT_CHECK_REPAIR_NODES = (1 << 2),
+} qhat_check_flags_t;
+
 /** Perform a check on the structure of the HAT-Trie.
+ *
+ * \param[in] flags  Combination of values from \p qhat_check_flags_t.
+ *
+ * \return A negative value if a critical error is detected.
  */
-bool qhat_check_consistency(qhat_t *hat) __leaf;
+int qhat_check_consistency_flags(qhat_t *hat, int flags,
+                                 bool *nullable is_suboptimal) __leaf;
+
+/** Same as running \p qhat_check_consistency_flags with flag
+ * \p QHAT_CHECK_CONTENT. */
+int qhat_check_consistency(qhat_t *hat, bool *nullable is_suboptimal) __leaf;
 
 /** Remove stored zeros from the trie.
  */
@@ -702,8 +730,14 @@ void qhat_tree_enumerator_find_node(qhat_tree_enumerator_t *en,
 static ALWAYS_INLINE const void *
 qhat_tree_enumerator_get_value_unsafe(const qhat_tree_enumerator_t *en)
 {
+    /* FIXME The patch fixing this part has been undone as it
+     * uncovered a bug that caused some QHAT corruptions. It should be
+     * reestablished as soon as the root cause of the corruption is
+     * fixed. */
+#if 0
     /* The caller should probably have used the safe version. */
     assert(en->path.generation == en->path.hat->struct_gen);
+#endif
 
     /* If this assert fails, then it means that returned value isn't the value
      * associated to the current key, probably because of changes in the trie.
@@ -915,12 +949,16 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
     /* The tree enumerator should only go forward. */
     assert(key >= en->key);
 
-    /* FIXME This check doesn't handle the case (with safe==true) where the
-     * current key was removed so it has to go the the next key. */
-    if (en->end || key <= en->key) {
+    if (en->end) {
         return;
     }
-    if (key == en->key + 1) {
+    if (key == en->key) {
+        if (!safe) {
+            /* The key is already the current one and the qhat is not supposed
+             * to have changed. Nothing to do. */
+            return;
+        }
+    } else if (key == en->key + 1) {
         qhat_tree_enumerator_next(en, safe);
         return;
     }
