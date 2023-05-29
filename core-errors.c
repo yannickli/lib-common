@@ -54,6 +54,8 @@ static bool should_dump_maps(void)
     return dump_maps;
 }
 
+static bool debug_stack_has_frames(void);
+
 void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
 {
     char  buf[256];
@@ -70,6 +72,11 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
     }
     if (xwrite(fd, buf, n) < 0) {
         return;
+    }
+
+    if (debug_stack_has_frames()) {
+        XWRITE("WARNING: additional user context available at the end of the "
+               "file\n\n");
     }
 
     bt = backtrace(arr, countof(arr));
@@ -241,6 +248,22 @@ void debug_stack_pop(data_t *nonnull data)
     qv_shrink(&debug_stack_g, 1);
 }
 
+static bool debug_stack_has_frames(void)
+{
+    return debug_stack_g.len > 0;
+}
+
+void debug_stack_dprint(int fd)
+{
+    tab_for_each_pos_rev(i, &debug_stack_g) {
+        const debug_info_t *info = &debug_stack_g.tab[i];
+
+        dprintf(fd, "\n[%d] in %s() from %s:%d\n",
+                i, info->func, info->file, info->line);
+        (info->cb)(fd, info->data);
+    }
+}
+
 int _debug_stack_print(const char *nonnull path)
 {
     int fd;
@@ -253,14 +276,7 @@ int _debug_stack_print(const char *nonnull path)
     fd = RETHROW(open(path, O_WRONLY | O_APPEND, 0600));
 
     dprintf(fd, "\nAdditional user context:\n");
-
-    tab_for_each_pos_rev(i, &debug_stack_g) {
-        const debug_info_t *info = &debug_stack_g.tab[i];
-
-        dprintf(fd, "\n[%d] in %s() from %s:%d\n",
-                i, info->func, info->file, info->line);
-        (info->cb)(fd, info->data);
-    }
+    debug_stack_dprint(fd);
 
     return p_close(&fd);
 }
