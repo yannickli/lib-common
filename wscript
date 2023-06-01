@@ -333,6 +333,11 @@ def build(ctx):
     ctx.stlib(target='zchk-iop-ressources', source='zchk-iop-ressources.c')
 
     ctx.program(target='zchk',
+        depends_on=[
+            'zchk-iop-plugin',
+            'zchk-tstiop-plugin',
+            'zchk-tstiop2-plugin',
+        ],
         source=[
             'zchk.c',
             'zchk-asn1-writer.c',
