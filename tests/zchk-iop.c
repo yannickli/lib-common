@@ -32,7 +32,6 @@
 
 #include "zchk-iop.h"
 #include "iop/tstiop.iop.h"
-#include "iop/tstiop2.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
 #include "iop/tstiop_backward_compat_deleted_struct_1.iop.h"
