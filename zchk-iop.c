@@ -28,7 +28,6 @@
 #include "iop-json.h"
 #include "iop-priv.h"
 #include "iop/tstiop.iop.h"
-#include "iop/tstiop2.iop.h"
 #include "ic.iop.h"
 #include "iop/tstiop_inheritance.iop.h"
 #include "iop/tstiop_backward_compat.iop.h"
