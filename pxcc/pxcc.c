@@ -30,7 +30,7 @@
 
 #define PXCC_MAJOR  1
 #define PXCC_MINOR  0
-#define PXCC_PATCH  0
+#define PXCC_PATCH  1
 
 #define PXCC_EXPORT_FILE_PREFIX    "pxcc_exported_file_"
 #define PXCC_EXPORT_TYPE_PREFIX    "pxcc_exported_type_"
@@ -114,8 +114,12 @@ static struct {
                 clang_getCString(_file_name), line, column, ##__VA_ARGS__);  \
     } while (0)
 
-#if CINDEX_VERSION_MAJOR > 1 || CINDEX_VERSION_MINOR >= 35
+#if CINDEX_VERSION >= CINDEX_VERSION_ENCODE(0, 35)
 #  define PXCC_HAS_ELABORATED_TYPE
+#endif
+
+#if CINDEX_VERSION >= CINDEX_VERSION_ENCODE(0, 63)
+#  define PXCC_IS_ELABORATED_TYPE_RESOLVE_UNCONST
 #endif
 
 static CXType resolve_unexposed_type(CXType type)
@@ -842,8 +846,9 @@ static void t_print_record_enum_field(CXType type, pxcc_print_field_t *ctx)
 static void t_print_field_type(CXType type, pxcc_print_field_t *ctx)
 {
     bool loop_prev_is_ptr = false;
+    bool is_elaborated_type_const = false;
 
-    for (;;) {
+    for (bool end_loop = false; !end_loop;) {
         bool prev_is_ptr = loop_prev_is_ptr;
 
         loop_prev_is_ptr = false;
@@ -852,11 +857,13 @@ static void t_print_field_type(CXType type, pxcc_print_field_t *ctx)
           case CXType_Char_U ... CXType_Complex:
           case CXType_Typedef:
             t_print_canonical_type(type, ctx);
-            return;
+            end_loop = true;
+            break;
 
           case CXType_Bool:
             t_print_bool_type(type, ctx);
-            return;
+            end_loop = true;
+            break;
 
           case CXType_Pointer:
             type = t_print_pointer_type(type, ctx);
@@ -884,18 +891,30 @@ static void t_print_field_type(CXType type, pxcc_print_field_t *ctx)
           case CXType_Record:
           case CXType_Enum:
             t_print_record_enum_field(type, ctx);
-            return;
+            end_loop = true;
+            break;
 
 #ifdef PXCC_HAS_ELABORATED_TYPE
           case CXType_Elaborated:
+#ifdef PXCC_IS_ELABORATED_TYPE_RESOLVE_UNCONST
+            if (clang_isConstQualifiedType(type)) {
+                is_elaborated_type_const = true;
+            }
+#endif /* PXCC_IS_ELABORATED_TYPE_RESOLVE_UNCONST */
             type = clang_Type_getNamedType(type);
             break;
-#endif
+#endif /* PXCC_HAS_ELABORATED_TYPE */
 
           default:
             fprintf(stderr, "unsupported type of kind %d\n", type.kind);
             assert (false);
+            end_loop = true;
+            break;
         }
+    }
+
+    if (is_elaborated_type_const) {
+        t_print_field_add_before(ctx, "const ");
     }
 }
 
