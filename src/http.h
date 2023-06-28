@@ -382,7 +382,7 @@ struct httpd_cfg_t {
 
     SSL_CTX * nullable ssl_ctx;
     dlist_t httpd_list;
-    dlist_t http2_list;
+    dlist_t http2_httpd_list; /* httpds backed http2 streams */
     const object_class_t * nullable httpd_cls;
     httpd_trigger_node_t  roots[HTTP_METHOD_DELETE + 1];
 };
@@ -394,6 +394,8 @@ int httpd_cfg_from_iop(httpd_cfg_t * nonnull cfg,
                        const struct core__httpd_cfg__t * nonnull iop_cfg);
 void httpd_cfg_wipe(httpd_cfg_t * nonnull cfg);
 DO_REFCNT(httpd_cfg_t, httpd_cfg);
+
+void httpd_cfg_set_ssl_ctx(httpd_cfg_t *nonnull cfg, SSL_CTX *nullable ctx);
 
 el_t nullable httpd_listen(sockunion_t * nonnull su, httpd_cfg_t * nonnull);
 void httpd_unlisten(el_t nullable * nonnull ev);
@@ -760,6 +762,8 @@ int httpc_cfg_from_iop(httpc_cfg_t * nonnull cfg,
 void httpc_cfg_wipe(httpc_cfg_t * nonnull cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
 
+void httpc_cfg_set_ssl_ctx(httpc_cfg_t *nonnull cfg, SSL_CTX *nullable ctx);
+
 __must_check__
 int httpc_cfg_tls_init(httpc_cfg_t * nonnull cfg, sb_t * nonnull err);
 void httpc_cfg_tls_wipe(httpc_cfg_t * nonnull cfg);
@@ -935,6 +939,12 @@ typedef enum httpc_status_t {
     HTTPC_STATUS_TIMEOUT    = -4,
     HTTPC_STATUS_EXP100CONT = -5,
 } httpc_status_t;
+
+/** Call this to get string associated to status.
+ *
+ * \param[in]  status      the status from which we want the string
+ */
+lstr_t httpc_status_to_str(httpc_status_t status);
 
 typedef struct httpc_qinfo_t {
     http_code_t  code;
