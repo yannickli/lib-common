@@ -74,4 +74,9 @@ EXPORT PyMODINIT_FUNC PyInit_iopy(void);
 #  pragma GCC diagnostic ignored "-Wcomma"
 #endif
 
+/* Disable Wunused-but-set-parameter for clang >= 15 */
+#if defined(__clang__) && __clang_major__ >= 15
+#  pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
+#endif
+
 #endif /* IS_IOPY_CYTHON_EXPORT_FIX_H */
