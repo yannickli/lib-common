@@ -729,7 +729,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_get_value_safe, "") { /* {{{ */
+    Z_TEST(enumerator_get_value_safe, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
@@ -792,7 +792,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_safe_single_removal, "") { /* {{{ */
+    Z_TEST(enumerator_safe_single_removal, "") { /* {{{ */
         t_scope;
         qps_handle_t htrie;
         qhat_t trie;
@@ -840,7 +840,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_next, "") { /* {{{ */
+    Z_TEST(enumerator_next, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
@@ -887,7 +887,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_next_after_zero, "") { /* {{{ */
+    Z_TEST(enumerator_next_after_zero, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
