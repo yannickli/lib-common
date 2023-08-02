@@ -1018,7 +1018,8 @@ int ssl_ctx_use_privatekey_lstr(SSL_CTX *ctx, lstr_t key)
  * \return ret if ret > 0, 0 on graceful exit, and -1 on error, with errno set
  *         to an appropriate value.
  */
-static inline int ssl_error_conv(SSL *ssl, int ret) {
+static inline int ssl_error_conv(SSL *ssl, int ret)
+{
     if (ret > 0) {
         return ret;
     }
@@ -1031,15 +1032,18 @@ static inline int ssl_error_conv(SSL *ssl, int ret) {
         errno = EAGAIN;
         return -1;
       case SSL_ERROR_SSL:
-        errno = EIO;
-        return -1;
+        break;
       case SSL_ERROR_SYSCALL:
         return -1;
       default:
-        assert (false);
-        errno = EIO;
-        return -1;
+        assert(false);
+        break;
     }
+
+    e_error("unexpected ssl error: %s",
+            ERR_error_string(ERR_peek_error(), NULL));
+    errno = EIO;
+    return -1;
 }
 
 ssize_t ssl_read(SSL *ssl, void *buf, size_t len)
