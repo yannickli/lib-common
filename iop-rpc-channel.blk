@@ -338,7 +338,16 @@ static int ic_initialize(void *arg)
     if (!_G.ssl_ctx) {
         logger_fatal(&_G.logger, "cannot initialize IC TLS context");
     }
+
     SSL_CTX_set_ecdh_auto(_G.ssl_ctx, 1);
+
+    /* Ignore unexpected EOF for OpenSSL >= 3.
+     * See https://www.openssl.org/docs/man3.0/man3/SSL_CTX_set_options.html#SSL_OP_IGNORE_UNEXPECTED_EOF
+     */
+#if OPENSSL_VERSION_IS(>=,3,0,0)
+    SSL_CTX_set_options(_G.ssl_ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif /* OpenSSL >= 3 */
+
     if (ssl_ctx_use_certificate_lstr(_G.ssl_ctx, tls_cert) < 0
     ||  !(_G.certificate = ssl_ctx_convert_certificate_lstr(tls_cert)))
     {
