@@ -21,6 +21,7 @@
 
 #include <lib-common/http.h>
 #include <lib-common/net/hpack.h>
+#include <lib-common/http2.h>
 
 #include <lib-common/iop.h>
 #include <lib-common/core/core.iop.h>
@@ -2754,11 +2755,14 @@ void httpc_close_gently(httpc_t *w)
     el_fd_set_mask(w->ev, POLLOUT);
 }
 
+static void httpc_http2_set_mask(httpc_t *w);
+
 static void httpc_set_mask(httpc_t *w)
 {
     int mask = POLLIN;
 
     if (w->connected_as_http2) {
+        httpc_http2_set_mask(w);
         return;
     }
     if (!ob_is_empty(&w->ob)) {
@@ -3169,93 +3173,6 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
 /* }}} */
 /* {{{ HTTP2 Framing & Multiplexing Layer */
-/* {{{ HTTP2 Constants */
-
-#define PS_NODATA               ps_init(NULL, 0)
-#define HTTP2_STREAM_ID_MASK    0x7fffffff
-
-static const lstr_t http2_client_preface_g =
-    LSTR_IMMED("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
-
-/* standard setting identifier values */
-typedef enum setting_id_t {
-    HTTP2_ID_HEADER_TABLE_SIZE      = 0x01,
-    HTTP2_ID_ENABLE_PUSH            = 0x02,
-    HTTP2_ID_MAX_CONCURRENT_STREAMS = 0x03,
-    HTTP2_ID_INITIAL_WINDOW_SIZE    = 0x04,
-    HTTP2_ID_MAX_FRAME_SIZE         = 0x05,
-    HTTP2_ID_MAX_HEADER_LIST_SIZE   = 0x06,
-} setting_id_t;
-
-/* special values for stream id field */
-enum {
-    HTTP2_ID_NO_STREAM              = 0,
-    HTTP2_ID_MAX_STREAM             = HTTP2_STREAM_ID_MASK,
-};
-
-/* length & size constants */
-enum {
-    HTTP2_LEN_FRAME_HDR             = 9,
-    HTTP2_LEN_NO_PAYLOAD            = 0,
-    HTTP2_LEN_PRIORITY_PAYLOAD      = 5,
-    HTTP2_LEN_RST_STREAM_PAYLOAD    = 4,
-    HTTP2_LEN_SETTINGS_ITEM         = 6,
-    HTTP2_LEN_PING_PAYLOAD          = 8,
-    HTTP2_LEN_GOAWAY_PAYLOAD_MIN    = 8,
-    HTTP2_LEN_WINDOW_UPDATE_PAYLOAD = 4,
-    HTTP2_LEN_CONN_WINDOW_SIZE_INIT = (1 << 16) - 1,
-    HTTP2_LEN_WINDOW_SIZE_INIT      = (1 << 16) - 1,
-    HTTP2_LEN_HDR_TABLE_SIZE_INIT   = 4096,
-    HTTP2_LEN_MAX_FRAME_SIZE_INIT   = 1 << 14,
-    HTTP2_LEN_MAX_FRAME_SIZE        = (1 << 24) - 1,
-    HTTP2_LEN_MAX_SETTINGS_ITEMS    = HTTP2_ID_MAX_HEADER_LIST_SIZE,
-    HTTP2_LEN_WINDOW_SIZE_LIMIT     = 0x7fffffff,
-    HTTP2_LEN_MAX_WINDOW_UPDATE_INCR= 0x7fffffff,
-};
-
-/* standard frame type values */
-typedef enum {
-    HTTP2_TYPE_DATA                 = 0x00,
-    HTTP2_TYPE_HEADERS              = 0x01,
-    HTTP2_TYPE_PRIORITY             = 0x02,
-    HTTP2_TYPE_RST_STREAM           = 0x03,
-    HTTP2_TYPE_SETTINGS             = 0x04,
-    HTTP2_TYPE_PUSH_PROMISE         = 0x05,
-    HTTP2_TYPE_PING                 = 0x06,
-    HTTP2_TYPE_GOAWAY               = 0x07,
-    HTTP2_TYPE_WINDOW_UPDATE        = 0x08,
-    HTTP2_TYPE_CONTINUATION         = 0x09,
-} frame_type_t;
-
-/* standard frame flag values */
-enum {
-    HTTP2_FLAG_NONE                 = 0x00,
-    HTTP2_FLAG_ACK                  = 0x01,
-    HTTP2_FLAG_END_STREAM           = 0x01,
-    HTTP2_FLAG_END_HEADERS          = 0x04,
-    HTTP2_FLAG_PADDED               = 0x08,
-    HTTP2_FLAG_PRIORITY             = 0x20,
-};
-
-/* standard error codes */
-typedef enum {
-    HTTP2_CODE_NO_ERROR             = 0x0,
-    HTTP2_CODE_PROTOCOL_ERROR       = 0x1,
-    HTTP2_CODE_INTERNAL_ERROR       = 0x2,
-    HTTP2_CODE_FLOW_CONTROL_ERROR   = 0x3,
-    HTTP2_CODE_SETTINGS_TIMEOUT     = 0x4,
-    HTTP2_CODE_STREAM_CLOSED        = 0x5,
-    HTTP2_CODE_FRAME_SIZE_ERROR     = 0x6,
-    HTTP2_CODE_REFUSED_STREAM       = 0x7,
-    HTTP2_CODE_CANCEL               = 0x8,
-    HTTP2_CODE_COMPRESSION_ERROR    = 0x9,
-    HTTP2_CODE_CONNECT_ERROR        = 0xa,
-    HTTP2_CODE_ENHANCE_YOUR_CALM    = 0xb,
-    HTTP2_CODE_INADEQUATE_SECURITY  = 0xc,
-    HTTP2_CODE_HTTP_1_1_REQUIRED    = 0xd,
-} err_code_t;
-
-/* }}} */
 /* {{{ Primary Types */
 
 /** Settings of HTTP2 framing layer as per RFC7540/RFC9113 */
@@ -3276,29 +3193,6 @@ static http2_settings_t http2_default_settings_g = {
     .initial_window_size = HTTP2_LEN_WINDOW_SIZE_INIT,
     .max_frame_size = HTTP2_LEN_MAX_FRAME_SIZE_INIT,
     .max_header_list_size = OPT_NONE,
-};
-
-/* Standard Stream State-Changer Events (cf. RFC9113 §5.1) */
-enum {
-    /* Standard Events */
-    HTTP2_STREAM_EV_1ST_HDRS = 1 << 0,
-    HTTP2_STREAM_EV_EOS_RECV = 1 << 1,
-    HTTP2_STREAM_EV_EOS_SENT = 1 << 2,
-    HTTP2_STREAM_EV_RST_RECV = 1 << 3,
-    HTTP2_STREAM_EV_RST_SENT = 1 << 4,
-    HTTP2_STREAM_EV_PSH_RECV = 1 << 5,
-    HTTP2_STREAM_EV_PSH_SENT = 1 << 6,
-    /* Extension */
-    HTTP2_STREAM_EV_CLOSED = 1 << 7,
-    /* Standard Combination(s) */
-    HTTP2_STREAM_EV_1ST_HDRS_EOS_RECV =
-        HTTP2_STREAM_EV_1ST_HDRS | HTTP2_STREAM_EV_EOS_RECV,
-    HTTP2_STREAM_EV_1ST_HDRS_EOS_SENT =
-        HTTP2_STREAM_EV_1ST_HDRS | HTTP2_STREAM_EV_EOS_SENT,
-    /* Masks */
-    HTTP2_STREAM_EV_MASK_PEER_CANT_WRITE = HTTP2_STREAM_EV_EOS_RECV
-                                          | HTTP2_STREAM_EV_RST_RECV
-                                          | HTTP2_STREAM_EV_CLOSED,
 };
 
 typedef struct http2_conn_t http2_conn_t;
@@ -3326,14 +3220,6 @@ static void http2_stream_wipe(http2_stream_t *stream);
 GENERIC_DELETE(http2_stream_t, http2_stream);
 
 qm_k32_t(qstream, http2_stream_t *);
-
-/** info parsed from the frame hdr */
-typedef struct http2_frame_info_t {
-    uint32_t    len;
-    uint32_t    stream_id;
-    uint8_t     type;
-    uint8_t     flags;
-} http2_frame_info_t;
 
 typedef struct http2_client_t http2_client_t;
 typedef struct http2_server_t http2_server_t;
@@ -3384,6 +3270,7 @@ typedef struct http2_conn_t {
     bool                is_shutdown_soon_recv: 1;
     bool                is_shutdown_soon_sent: 1;
     bool                is_shutdown_commanded : 1;
+    bool                want_write : 1;
 } http2_conn_t;
 
 /** Get effective HTTP2 settings */
@@ -3392,28 +3279,6 @@ static http2_settings_t http2_get_settings(http2_conn_t *w)
     return likely(w->is_settings_acked) ? w->settings
                                         : http2_default_settings_g;
 }
-
-typedef enum http2_header_info_flags_t {
-    HTTP2_HDR_FLAG_HAS_SCHEME               =  1 << 0,
-    HTTP2_HDR_FLAG_HAS_METHOD               =  1 << 1,
-    HTTP2_HDR_FLAG_HAS_PATH                 =  1 << 2,
-    HTTP2_HDR_FLAG_HAS_AUTHORITY            =  1 << 3,
-    HTTP2_HDR_FLAG_HAS_STATUS               =  1 << 4,
-    /* EXTRA: either unknown or duplicated or after a regular hdr */
-    HTTP2_HDR_FLAG_HAS_EXTRA_PSEUDO_HDR     =  1 << 5,
-    HTTP2_HDR_FLAG_HAS_REGULAR_HEADERS      =  1 << 6,
-    HTTP2_HDR_FLAG_HAS_CONTENT_LENGTH       =  1 << 7,
-} http2_header_info_flags_t;
-
-typedef struct http2_header_info_t {
-    http2_header_info_flags_t flags;
-    lstr_t scheme;
-    lstr_t method;
-    lstr_t path;
-    lstr_t authority;
-    lstr_t status;
-    lstr_t content_length;
-} http2_header_info_t;
 
 /* }}}*/
 /* {{{ Logging */
@@ -3926,6 +3791,8 @@ http2_stream_handle_events(http2_conn_t *w, http2_stream_t *stream,
 /* }}}*/
 /* {{{ Headers Packing/Unpacking (HPACK) */
 
+#define PS_NODATA ps_init(NULL, 0)
+
 static struct {
     lstr_t key;
     unsigned flag_seen;
@@ -4011,6 +3878,9 @@ t_http2_conn_decode_header_block(http2_conn_t *w, pstream_t in,
             if (lstr_ascii_iequal(key, LSTR_IMMED_V("content-length"))) {
                 info.flags |= HTTP2_HDR_FLAG_HAS_CONTENT_LENGTH;
                 info.content_length = val;
+            } else if (lstr_ascii_iequal(key, LSTR_IMMED_V("host"))) {
+                info.flags |= HTTP2_HDR_FLAG_HAS_HOST;
+                info.host = val;
             }
             buf->len += len;
         }
@@ -4622,8 +4492,7 @@ static int http2_conn_error_(http2_conn_t *w, uint32_t error_code,
     return http2_conn_send_error(w, error_code, debug);
 }
 
-__must_check__ static int
-http2_parse_frame_hdr(pstream_t *ps, http2_frame_info_t *frame)
+int http2_parse_frame_hdr(pstream_t *ps, http2_frame_info_t *frame)
 {
     const http2_frame_hdr_t *hdr;
 
@@ -4658,9 +4527,8 @@ http2_conn_consume_recv_window(http2_conn_t *w, int len)
     http2_conn_maintain_recv_window(w);
 }
 
-static int
-http2_payload_get_trimmed_chunk(pstream_t payload, int frame_flags,
-                                pstream_t *chunk)
+int http2_payload_get_trimmed_chunk(pstream_t payload, int frame_flags,
+                                    pstream_t *chunk)
 {
     if (frame_flags & HTTP2_FLAG_PADDED) {
         int padding_sz;
@@ -5527,8 +5395,9 @@ static void http2_conn_do_set_mask_and_watch(http2_conn_t *w)
     } else {
         el_fd_watch_activity(w->ev, POLLINOUT, 0);
     }
-    if (!ob_is_empty(&w->ob)) {
+    if (!ob_is_empty(&w->ob) || w->want_write) {
         mask |= POLLOUT;
+        w->want_write = false;
     }
     el_fd_set_mask(w->ev, mask);
 }
@@ -5773,6 +5642,7 @@ httpd_spawn_as_http2_stream(http2_server_t *server, uint32_t stream_id)
 
     w = obj_new_of_class(httpd, cfg->httpd_cls);
     w->cfg = httpd_cfg_retain(cfg);
+    cfg->nb_conns++;
     w->max_queries = 1;
     dlist_init(&w->httpd_link);
     w->http2_ctx = http2_ctx = httpd_http2_ctx_new();
@@ -5813,6 +5683,13 @@ static int httpd_unpack_http2_headers(httpd_t *w, http2_header_info_t *info,
         }
         sb_addf(ibuf, "%*pM %*pM HTTP/1.1\r\n", LSTR_FMT_ARG(info->method),
                 LSTR_FMT_ARG(info->path));
+        if (!(info->flags & HTTP2_HDR_FLAG_HAS_HOST)) {
+            /* Host: is missing, copy it from :authority. */
+            sb_addf(ibuf, "Host: %pL\r\n", &info->authority);
+        } else {
+            /* Host: is in headers: RFC9113 must equal to :authority. */
+            /* TODO: check for equality with normalization */
+        }
         sb_add_ps(ibuf, headerlines);
         switch (http_get_token_ps(ps_initlstr(&info->method))) {
         case HTTP_TK_POST:
@@ -6199,6 +6076,7 @@ typedef struct httpc_http2_ctx_t {
     int           http2_sync_mark;
     uint8_t       substate;
     bool          disconnect_cmd;
+    bool          first_set_ready_called;
 } httpc_http2_ctx_t;
 
 static httpc_http2_ctx_t *httpc_http2_ctx_init(httpc_http2_ctx_t *ctx)
@@ -6379,7 +6257,6 @@ static httpc_t *httpc_connect_as_http2(const sockunion_t *su,
     if (pool) {
         httpc_pool_attach(w, pool);
     }
-    obj_vcall(w, set_ready, true);
     return w;
 }
 
@@ -6504,6 +6381,11 @@ static void http2_stream_attach_httpc(http2_conn_t *w, httpc_t *httpc)
 static void http2_conn_stream_idle_httpc(http2_conn_t *w, httpc_t *httpc)
 {
     httpc_query_t *q;
+
+    if (!httpc->http2_ctx->first_set_ready_called) {
+        obj_vcall(httpc, set_ready, true);
+        httpc->http2_ctx->first_set_ready_called = true;
+    }
 
     if (dlist_is_empty(&httpc->query_list)) {
         if (httpc->connection_close)  {
@@ -6865,6 +6747,17 @@ void httpc_close_http2_pool(httpc_cfg_t *cfg)
         http2_conn_do_set_mask_and_watch(client->conn);
     }
     http2_pool_delete(&cfg->http2_pool);
+}
+
+static void httpc_http2_set_mask(httpc_t *w)
+{
+    if (!w->http2_ctx || !w->http2_ctx->conn) {
+        return;
+    }
+    if (!ob_is_empty(&w->ob)) {
+        w->http2_ctx->conn->want_write = true;
+    }
+    http2_conn_do_set_mask_and_watch(w->http2_ctx->conn);
 }
 
 /* }}} */
