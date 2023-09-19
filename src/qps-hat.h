@@ -149,10 +149,30 @@ typedef struct qhat_root_t {
     qps_handle_t bitmap;
 } qhat_root_t;
 
+typedef union qhat_gen_t {
+    struct {
+        /* Structure generation. Updated when the tree structure is modified
+         * (tree node inserted/removed for instance). */
+        uint32_t struct_gen;
+
+#ifndef NDEBUG
+
+        /* Write-access generation. Updated when attempting write-accesses
+         * like insertion, removal or updates in the tree.  It is incremented
+         * even when the write attempt have no effect on the QHAT because the
+         * purpose is to detect any dangerous unsafe access.
+         */
+        uint32_t write_access_gen;
+
+#endif /* NDEBUG */
+    } s;
+    uint64_t hat_gen;
+} qhat_gen_t;
+
 typedef struct qhat_t {
     qps_t       *qps;
     qps_bitmap_t bitmap;
-    uint32_t     struct_gen;
+    qhat_gen_t   gen;
 
     union {
         qhat_root_t *root;
@@ -168,7 +188,7 @@ typedef struct qhat_path_t {
     uint32_t    key;
 
     int         depth;
-    uint64_t    generation;
+    qhat_gen_t  gen;
 
     qhat_node_t path[QHAT_DEPTH_MAX];
 } qhat_path_t;
@@ -243,6 +263,31 @@ void qhat_path_init(qhat_path_t *path, qhat_t *hat, uint32_t row)
 #endif
 }
 
+/** Return 'false' if modifications in the QHAT made the path out of sync.
+ *
+ * In that case, the QHAT library will refresh it before use.
+ * This function is exposed for debugging and testing purpose.
+ */
+static inline bool qhat_path_is_sync(const qhat_path_t *path)
+{
+    return path->gen.s.struct_gen == path->hat->gen.s.struct_gen;
+}
+
+/** Increment the write access counter.
+ *
+ * Should be called after any write access in the QHAT, even if it had no
+ * effect. This allows us to detect when an unsafe access should have been
+ * safe: the problem is detected even when the QHAT struct was unchanged or
+ * when the access had no effect in the QHAT.
+ */
+static ALWAYS_INLINE void qhat_path_touch(qhat_path_t *path)
+{
+#ifndef NDEBUG
+    path->hat->gen.s.write_access_gen++;
+    path->gen = path->hat->gen;
+#endif /* NDEBUG */
+}
+
 /** Remove the value described by a path.
  *
  * \param[in,out] path Already resolved path to the key in the trie.
@@ -253,7 +298,11 @@ void qhat_path_init(qhat_path_t *path, qhat_t *hat, uint32_t row)
 static ALWAYS_INLINE
 bool qhat_remove_path(qhat_path_t *path, void *ptr)
 {
-    return (*path->hat->desc->removef)(path, ptr);
+    bool removed;
+
+    removed = (*path->hat->desc->removef)(path, ptr);
+    qhat_path_touch(path);
+    return removed;
 }
 
 /** Remove the slot associated to the given key.
@@ -289,7 +338,11 @@ bool qhat_remove(qhat_t *hat, uint32_t row, void *ptr)
 static ALWAYS_INLINE
 void *qhat_set_path(qhat_path_t *path)
 {
-    return (*path->hat->desc->setf)(path);
+    void *value_ptr;
+
+    value_ptr = (*path->hat->desc->setf)(path);
+    qhat_path_touch(path);
+    return value_ptr;
 }
 
 /** Get a read-only pointer to the value associated with a key.
@@ -317,6 +370,7 @@ static ALWAYS_INLINE
 void qhat_set0_path(qhat_path_t *path, void *ptr)
 {
     (*path->hat->desc->set0f)(path, ptr);
+    qhat_path_touch(path);
 }
 
 
@@ -534,18 +588,6 @@ typedef struct qhat_tree_enumerator_t {
 
     qhat_path_t path;
 
-    /* Position of the element in the current leaf of the trie (attribute
-     * "memory").
-     *
-     * If the current leaf is a "compact", it is both the index of the key
-     * in the key array and of the value in the value array (attribute
-     * "value_tab").
-     *
-     * If the current leaf is a "flat", it's only the index of the value as
-     * there is no key array.
-     */
-    uint32_t pos;
-
     /* Pointer on the value of the current leaf. It can be either a "compact"
      * or a "flat". If the enumerator is up-to-date, then the value associated
      * to the current key should be in 'en->value_tab', at index 'en->pos'.
@@ -556,11 +598,27 @@ typedef struct qhat_tree_enumerator_t {
      */
     const void *value_tab;
 
-    /* Only when the local array in memory is a "compact".
-     * Number of elements in the compact.
+    /* Position of the element in the current leaf of the trie (attribute
+     * "memory").
+     *
+     * If the current leaf is a "compact", it is both the index of the key
+     * in the key array and of the value in the value array (attribute
+     * "value_tab").
+     *
+     * If the current leaf is a "flat", it's only the index of the value as
+     * there is no key array.
+     */
+    uint16_t pos;
+
+    /* Number of elements in the compact leaf or capacity of the flat leaf.
      * May be unsynchronized with "memory.compact->count" if elements where
      * added or removed in the qhat. */
-    uint32_t count;
+    uint16_t count;
+
+    /* Set when we detect that the current key was removed from the compact
+     * that contained it. There is no other way to detect that it was removed.
+     */
+    bool key_was_removed;
 
     /* Current leaf of the enumerator, cached here for quicker access. */
     qhat_node_const_memory_t memory;
@@ -664,7 +722,19 @@ qhat_enumerator_t qhat_get_enumerator(qhat_t *trie);
  */
 void qhat_enumerator_go_to(qhat_enumerator_t *en, uint32_t key, bool safe);
 
-const void *qhat_enumerator_get_value(qhat_enumerator_t *en);
+/** Get the value associated to the current key.
+ *
+ * This function can only be used when the QHAT was left untouched since the
+ * last time the enumerator was used. Otherwise
+ * #qhat_enumerator_get_value_safe should be used instead.
+ */
+const void *qhat_enumerator_get_value_unsafe(qhat_enumerator_t *en);
+
+/** Get the value associated to the current key (safe).
+ *
+ * Detect when the enumerator has become out-of-sync and refresh the inner
+ * path before getting the value if needed.
+ */
 const void *qhat_enumerator_get_value_safe(qhat_enumerator_t *en);
 
 /** Get the 'qhat_path_t' associated to the current key. */

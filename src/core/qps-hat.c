@@ -33,14 +33,7 @@
 #define IS_ZERO64(Val)   ((Val) == 0)
 #define IS_ZERO128(Val)  ((Val).l == 0 && (Val).h == 0)
 
-#define SET_ZERO8(Val)    ((Val) = 0)
-#define SET_ZERO16(Val)   ((Val) = 0)
-#define SET_ZERO32(Val)   ((Val) = 0)
-#define SET_ZERO64(Val)   ((Val) = 0)
-#define SET_ZERO128(Val)  p_clear(&(Val), 1)
-
 #define IS_ZERO(Size, Val)   (IS_ZERO##Size(Val))
-#define SET_ZERO(Size, Val)  (SET_ZERO##Size(Val))
 
 //#define QHAT_CHECK_CONSISTENCY  1
 
@@ -57,8 +50,8 @@
     do {                                                                     \
         qhat_path_t *___path = (Path);                                       \
         qhat_t *___hat = ___path->hat;                                       \
-        ___hat->struct_gen++;                                                \
-        ___path->generation = ___path->hat->struct_gen;                      \
+        ___hat->gen.s.struct_gen++;                                          \
+        ___path->gen = ___path->hat->gen;                                    \
     } while (0)
 
 #define PATH_STRUCTURE_CHANGED(Name, Path)                                   \
@@ -444,7 +437,7 @@ qhat_node_check_consistency(qhat_t *hat, uint32_t key, uint32_t depth,
                      */
                     memory.nodes[pos] = QHAT_NULL_NODE;
                 }
-                hat->struct_gen++;
+                hat->gen.s.struct_gen++;
                 /* FIXME We should probably optimize the QHAT again because it
                  * may be suboptimal now. */
                 /* FIXME If the QHAT has stats then they are probably outdated
@@ -852,17 +845,28 @@ void qhat_split_leaf(qhat_path_t *path)
                           " changing parent pointers: [%u->%u] -> [%u->%u]",
                           split, prev_parent_start, prev_parent_end -1,
                           compact->parent_left, compact->parent_right - 1);
-            assert (compact->parent_left != prev_parent_start
-                || compact->parent_right != prev_parent_end);
+            assert (compact->parent_left != prev_parent_start ||
+                    compact->parent_right != prev_parent_end);
             assert (compact->parent_left < compact->parent_right);
             assert (compact->parent_left >= prev_parent_start);
             assert (compact->parent_right <= prev_parent_end);
 
-            if (path->depth == PATH_MAX - 1
-            && count > path->hat->desc->split_compact_threshold
-            && compact->parent_left == compact->parent_right + 1) {
-                PATH_STRUCTURE_CHANGED("trie/insert/split", path);
+            if (path->depth == QHAT_DEPTH_MAX - 1 &&
+                count > path->hat->desc->split_compact_threshold &&
+                compact->parent_left == compact->parent_right + 1)
+            {
+                /* FIXME This code was not reachable before fixing a
+                 * PATH_MAX/QHAT_DEPTH_MAX typo. As a consequence, enabling
+                 * the following line should be done with caution and maybe it
+                 * should just be removed.
+                 *
+                 * Anyway, missing the flattening there is very unlikely to
+                 * cause troubles, because the 'split_compact_threshold' is
+                 * set to 75% of the compact capacity, so we can wait for a
+                 * subsequent insertion to flatten that leaf. */
+#if 0
                 (*path->hat->desc->flattenf)(path);
+#endif
             }
         } else {
             uint32_t max = 0;
@@ -1218,8 +1222,8 @@ qps_handle_t qhat_create(qps_t *qps, uint32_t value_len, bool is_nullable)
 void qhat_init(qhat_t *hat, qps_t *qps, qps_handle_t handle)
 {
     p_clear(hat, 1);
-    hat->qps        = qps;
-    hat->struct_gen = 1;
+    hat->qps = qps;
+    hat->gen.s.struct_gen = 1;
     qps_hptr_init(qps, handle, &hat->root_cache);
     hat->desc = &qhat_descs_g[bsr32(hat->root->value_len) << 1
                               | hat->root->is_nullable];
@@ -1285,7 +1289,7 @@ void qhat_clear(qhat_t *hat)
     qhat_wipe_dispatch_node(hat, root, hat->desc->root_node_count);
     e_named_trace(3, "trie/clear", "wipe done  root");
     p_clear(hat->root->nodes, QHAT_ROOTS);
-    hat->struct_gen++;
+    hat->gen.s.struct_gen++;
 
     if (hat->root->is_nullable) {
         qps_bitmap_clear(&hat->bitmap);
@@ -1427,22 +1431,58 @@ void qhat_fix_stored0(qhat_t *hat)
 /* }}} */
 /* Enumerator {{{ */
 
+/** Re-synchronize the write access counter.
+ *
+ * The struct generation is meant to be already synchronized.
+ * This function has no effect out of DEBUG mode.
+ */
+static ALWAYS_INLINE void qhat_path_sync_write_access(qhat_path_t *path)
+{
+    /* This function should not be used when the path is out-of-sync in term
+     * of tree structure. */
+    assert(qhat_path_is_sync(path));
+#ifndef NDEBUG
+    path->gen.s.write_access_gen = path->hat->gen.s.write_access_gen;
+#endif
+}
+
+/** Return 'true' if the QHAT has changed or could have changed independently
+ * from the 'qhat_path_t' object. */
+static ALWAYS_INLINE bool qhat_path_is_fully_sync(const qhat_path_t *path)
+{
+    return path->gen.hat_gen == path->hat->gen.hat_gen;
+}
+
+/* Check if the current compact position matches the position of the current
+ * key. If it is not the case, then it means that the key was moved or removed
+ * from the compact. */
+static ALWAYS_INLINE bool
+qhat_tree_enumerator_compact_pos_is_valid(const qhat_tree_enumerator_t *en)
+{
+    assert(en->compact);
+    return en->pos < en->count &&
+        en->key == en->memory.compact->keys[en->pos];
+}
+
 const void *
 qhat_tree_enumerator_get_value_unsafe(const qhat_tree_enumerator_t *en)
 {
-    /* FIXME The patch fixing this part has been undone as it
-     * uncovered a bug that caused some QHAT corruptions. It should be
-     * reestablished as soon as the root cause of the corruption is
-     * fixed. */
-#if 0
-    /* The caller should probably have used the safe version. */
-    assert(en->path.generation == en->path.hat->struct_gen);
-#endif
+    if (en->key_was_removed || en->end) {
+        /* Unexpected to happen when the enumerator is synchronized with the
+         * path. */
+        assert(en->end || en->key != en->path.key);
+        return &qhat_default_zero_g;
+    }
 
-    /* If this assert fails, then it means that returned value isn't the value
-     * associated to the current key, probably because of changes in the trie.
-     * The caller should have used the 'safe' getter. */
-    assert(!en->compact || en->key == en->memory.compact->keys[en->pos]);
+    /* The caller should probably have used the safe version. */
+    assert(qhat_path_is_fully_sync(&en->path));
+
+    if (en->compact) {
+        /* If this assert fails, then it means that returned value isn't the
+         * value associated to the current key, probably because of changes in
+         * the trie. The caller should have used the 'safe' getter. */
+        assert(qhat_tree_enumerator_compact_pos_is_valid(en));
+    }
 
     return ((const byte *)en->value_tab) + en->pos * en->value_len;
 }
@@ -1457,9 +1497,7 @@ qhat_tree_enumerator_fixup_compact_pos(qhat_tree_enumerator_t *en)
 
     en->count = en->memory.compact->count;
 
-    if (en->pos <= en->count &&
-        en->key == en->memory.compact->keys[en->pos])
-    {
+    if (qhat_tree_enumerator_compact_pos_is_valid(en)) {
         /* Nothing to do.
          * The compact *might* have been modified but 'pos' is still right. */
         return 0;
@@ -1468,9 +1506,7 @@ qhat_tree_enumerator_fixup_compact_pos(qhat_tree_enumerator_t *en)
     /* The compact has been modified. Update the position. */
     en->pos = qhat_compact_lookup(en->memory.compact, 0, en->key);
 
-    if (en->pos >= en->count ||
-        en->key != en->memory.compact->keys[en->pos])
-    {
+    if (!qhat_tree_enumerator_compact_pos_is_valid(en)) {
         /* The key has been removed from the compact.
          * We're already at the next key. */
         return QHAT_TREE_EN_KEY_REMOVED;
@@ -1485,15 +1521,28 @@ qhat_tree_enumerator_get_value(qhat_tree_enumerator_t *en, bool safe)
     if (!safe) {
         return qhat_tree_enumerator_get_value_unsafe(en);
     }
-    if (unlikely(en->path.generation != en->path.hat->struct_gen)) {
+    if (unlikely(!qhat_path_is_sync(&en->path))) {
+        uint32_t key = en->key;
+
+        en->key_was_removed = false;
         qhat_tree_enumerator_refresh_path(en);
-        /* FIXME For consistency, we should return qhat_default_zero_g if the
-         * key was removed. */
-    } else if (en->compact &&
-               qhat_tree_enumerator_fixup_compact_pos(en) ==
-               QHAT_TREE_EN_KEY_REMOVED)
-    {
-        return &qhat_default_zero_g;
+
+        if (unlikely(en->key != key)) {
+            /* The key was removed and 'refresh_path' went to the next one,
+             * but the tree enumerator should not go forward when getting a
+             * value. Reestablish the key. */
+            en->key = key;
+            en->key_was_removed = true;
+        }
+    } else {
+        qhat_path_sync_write_access(&en->path);
+
+        if (en->compact &&
+            qhat_tree_enumerator_fixup_compact_pos(en) ==
+            QHAT_TREE_EN_KEY_REMOVED)
+        {
+            return &qhat_default_zero_g;
+        }
     }
 
     return qhat_tree_enumerator_get_value_unsafe(en);
@@ -1516,11 +1565,22 @@ static void qhat_tree_enumerator_find_entry(qhat_tree_enumerator_t *en)
         }
         next  = en->memory.compact->parent_right;
         next -= qhat_get_key_bits(hat, new_key, en->path.depth);
-    } else
-    if (en->pos < en->count) {
-        /* We're still in the current flat. We're done. */
-        en->key = en->path.key | en->pos;
-        return;
+    } else {
+        if (!en->is_nullable) {
+            /* Go to the first non-null flat element. */
+#define CASE(Size, Compact, Flat)                                            \
+            while (en->pos < en->count && IS_ZERO(Size, Flat[en->pos])) {    \
+                en->pos++;                                                   \
+            }
+            QHAT_VALUE_LEN_SWITCH(hat, en->memory, CASE);
+#undef CASE
+        }
+
+        if (en->pos < en->count) {
+            /* We're still in the current flat. We're done. */
+            en->key = en->path.key | en->pos;
+            return;
+        }
     }
 
     /* We're after the current compact/flat.
@@ -1610,15 +1670,17 @@ static void qhat_tree_enumerator_find_down_up(qhat_tree_enumerator_t *en,
 /* Similar to 'qhat_enumerator_next()' but only apply to the trie. */
 uint32_t qhat_tree_enumerator_next(qhat_tree_enumerator_t *en, bool safe)
 {
+    en->key_was_removed = false;
     if (safe) {
-        if (unlikely(en->path.generation != en->path.hat->struct_gen)) {
+        if (unlikely(!qhat_path_is_sync(&en->path))) {
             en->key++;
             qhat_tree_enumerator_refresh_path(en);
             return en->key;
         }
+        qhat_path_sync_write_access(&en->path);
     } else {
         /* The caller should probably have used the safe version. */
-        assert(en->path.generation == en->path.hat->struct_gen);
+        assert(qhat_path_is_fully_sync(&en->path));
     }
 
     if (safe && en->compact &&
@@ -1656,20 +1718,25 @@ void qhat_tree_enumerator_go_to(qhat_tree_enumerator_t *en, uint32_t key,
         qhat_tree_enumerator_next(en, safe);
         return;
     }
-    if (unlikely(safe && en->path.generation != en->path.hat->struct_gen)) {
-        qhat_tree_enumerator_find_up_down(en, key);
-    } else {
-        /* The caller should probably have used the safe version. */
-        assert(en->path.generation == en->path.hat->struct_gen);
+    en->key_was_removed = false;
+    if (safe) {
+        if (unlikely(!qhat_path_is_sync(&en->path))) {
+            qhat_tree_enumerator_find_up_down(en, key);
+            return;
+        }
 
-        if (safe && en->compact) {
+        if (en->compact) {
             /* Refresh the attributes 'pos' and 'count' so that
              * 'qhat_tree_enumerator_find_down_up()' can work properly. */
             qhat_tree_enumerator_fixup_compact_pos(en);
         }
-
-        qhat_tree_enumerator_find_down_up(en, key);
+        qhat_path_sync_write_access(&en->path);
+    } else {
+        /* The caller should probably have used the safe version. */
+        assert(qhat_path_is_fully_sync(&en->path));
     }
+
+    qhat_tree_enumerator_find_down_up(en, key);
 }
 
 /* Only for nullable QPS hats. */
@@ -1741,13 +1808,7 @@ void qhat_enumerator_go_to(qhat_enumerator_t *en, uint32_t key, bool safe)
     }
 }
 
-/** Get the value associated to the current key (safe).
- *
- * Same as #qhat_get_enumeration_value but it also supports when the QPS hat
- * was modifed during the lifetime of the enumerator.
- */
-static
-const void *qhat_enumerator_get_value_common(qhat_enumerator_t *en, bool safe)
+static const void *qhat_enumerator_get_value(qhat_enumerator_t *en, bool safe)
 {
     if (en->is_nullable) {
         if (!en->end && en->trie.key != en->key) {
@@ -1776,31 +1837,39 @@ const void *qhat_enumerator_get_value_common(qhat_enumerator_t *en, bool safe)
     }
 }
 
-const void *qhat_enumerator_get_value(qhat_enumerator_t *en)
+const void *qhat_enumerator_get_value_unsafe(qhat_enumerator_t *en)
 {
-    return qhat_enumerator_get_value_common(en, false);
+    return qhat_enumerator_get_value(en, false);
 }
 
 const void *qhat_enumerator_get_value_safe(qhat_enumerator_t *en)
 {
-    return qhat_enumerator_get_value_common(en, true);
+    return qhat_enumerator_get_value(en, true);
 }
 
 /** Get the 'qhat_path_t' associated to the current key. */
 qhat_path_t qhat_enumerator_get_path(const qhat_enumerator_t *en)
 {
     qhat_path_t p;
+    const qhat_tree_enumerator_t *tree_en;
 
-    if (en->is_nullable) {
-        if (!en->trie.end && en->key == en->trie.key) {
-            p = en->trie.path;
-        } else {
-            qhat_path_init(&p, en->trie.path.hat, en->key);
-        }
+    tree_en = en->is_nullable ? &en->trie : &en->t;
+    if (tree_en->end || en->key != tree_en->key) {
+        /* Conditions explanation:
+         *
+         * 1. The path in the tree enumerator is not guaranteed to be
+         *    valid when it is ended so it should not be given to the user.
+         *
+         * 2. Only for nullable QHATs: the path in the tree enumerator may not
+         *    match the enumerator key because the entries with null values
+         *    exist in the presence bitmap but not in the tree.
+         */
+        qhat_path_init(&p, tree_en->path.hat, en->key);
     } else {
-        p = en->t.path;
+        p = tree_en->path;
+        p.key = en->key;
     }
-    p.key = en->key;
+
     return p;
 }
 
@@ -1840,13 +1909,9 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
     uint32_t root = qhat_get_key_bits(hat, key, 0);
     ssize_t  i;
 
-    /* FIXME Redmine #94699: this generation update unveil a bug that still
-     * needs to be investigated. */
-#if 0
     /* We're going to refresh the whole path so the structure generation can
      * be updated. */
-    en->path.generation = hat->struct_gen;
-#endif
+    en->path.gen = hat->gen;
 
     en->path.depth = 0;
     en->path.key   = 0;
@@ -1867,7 +1932,7 @@ void qhat_tree_enumerator_find_root(qhat_tree_enumerator_t *en, uint32_t key)
             qhat_tree_enumerator_find_node(en, key);
         }
     } else {
-        en->end   = true;
+        en->end = true;
     }
 }
 
@@ -1883,7 +1948,7 @@ void qhat_tree_enumerator_dispatch_up(qhat_tree_enumerator_t *en, uint32_t key,
     uint32_t new_key_1 = qhat_get_key_bits(hat, new_key, 1);
 
     if (new_key <= key) {
-        en->end   = true;
+        en->end = true;
     } else
     if (key_0 != new_key_0) {
         qhat_tree_enumerator_find_root(en, new_key);
@@ -1942,9 +2007,9 @@ qhat_tree_enumerator_t qhat_get_tree_enumerator_at(qhat_t *trie,
     qhat_tree_enumerator_t en;
     qps_hptr_deref(trie->qps, &trie->root_cache);
     p_clear(&en, 1);
-    en.path.hat        = trie;
-    en.path.generation = trie->struct_gen;
-    en.value_len   = en.path.hat->desc->value_len;
+    en.path.hat = trie;
+    en.path.gen = trie->gen;
+    en.value_len = en.path.hat->desc->value_len;
     en.is_nullable = en.path.hat->root->is_nullable;
 
     qhat_tree_enumerator_find_up_down(&en, key);
