@@ -68,7 +68,7 @@ static int test_zeros(qps_t *qps, uint8_t size)
     qhat_for_each_unsafe(en, &trie) {
         const void *slot;
 
-        slot = qhat_enumerator_get_value(&en);
+        slot = qhat_enumerator_get_value_unsafe(&en);
         Z_ASSERT_EQ(en.key, count);
         Z_ASSERT_ZERO(memcmp(slot, &zero, size));
         count++;
@@ -83,7 +83,7 @@ static int test_zeros(qps_t *qps, uint8_t size)
     qhat_for_each_unsafe (en, &trie) {
         const void *slot;
 
-        slot = qhat_enumerator_get_value(&en);
+        slot = qhat_enumerator_get_value_unsafe(&en);
         Z_ASSERT_EQ(en.key, count + 1);
         Z_ASSERT_ZERO(memcmp(slot, &zero, size));
         count++;
@@ -133,7 +133,7 @@ static int test_128(qps_t *qps, bool null)
         qhat_for_each_unsafe(en, &trie) {
             const uint32_t *slot;
 
-            slot = qhat_enumerator_get_value(&en);
+            slot = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(en.key, pos + 0x40000000);
             Z_ASSERT_EQ(*slot, bswap32(0x800 - pos));
             pos++;
@@ -204,7 +204,7 @@ static int test_64(qps_t *qps, bool null)
         qhat_for_each_unsafe(en, &trie) {
             const uint64_t *slot;
 
-            slot = qhat_enumerator_get_value(&en);
+            slot = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(en.key, pos + 0x40000000);
             Z_ASSERT_EQ(*slot, bswap64(0x800 - pos));
             pos++;
@@ -263,7 +263,7 @@ static int test_32(qps_t *qps, bool null)
         qhat_for_each_unsafe(en, &trie) {
             const uint32_t *slot;
 
-            slot = qhat_enumerator_get_value(&en);
+            slot = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(en.key, pos + 0x40000000);
             Z_ASSERT_EQ(*slot, bswap32(0x800 - pos));
             pos++;
@@ -327,7 +327,7 @@ static int test_16(qps_t *qps, bool null)
         qhat_for_each_unsafe(en, &trie) {
             const uint16_t *slot;
 
-            slot = qhat_enumerator_get_value(&en);
+            slot = qhat_enumerator_get_value_unsafe(&en);
             if (en.key < 50) {
                 if (null) {
                     Z_ASSERT_NULL(slot);
@@ -384,7 +384,7 @@ static int test_8(qps_t *qps, bool null)
         qhat_for_each_unsafe(en, &trie) {
             const uint8_t *slot;
 
-            slot = qhat_enumerator_get_value(&en);
+            slot = qhat_enumerator_get_value_unsafe(&en);
             if (en.key < 50) {
                 if (null) {
                     Z_ASSERT_NULL(slot);
@@ -436,6 +436,164 @@ static void z_fill_nonnull_trie32(qhat_t *trie, int nb_entries,
 
     /* Check for unexpected collision. */
     assert(keys->len == nb_entries);
+}
+
+static int
+z_nr_en_val_after_rm(qps_t *qps, bool want_compact, bool want_struct_change)
+{
+    qps_handle_t htrie;
+    qhat_t trie;
+    qhat_enumerator_t en;
+    uint32_t rm_val;
+    const uint32_t *v;
+    int step;
+    int first_limit;
+    int second_limit;
+    uint32_t rm_key;
+
+    if (want_compact) {
+        /* Use a step to get sparse entries: sparse entries are more likely to
+         * be stored in a compact leaf. */
+        step = 20;
+        first_limit = 10000;
+        second_limit = 25000;
+        rm_key = 4000;
+    } else {
+        /* Keep close to each other so they can be stored in a flat leaf. */
+        step = 1;
+        first_limit = 5000;
+        second_limit = 8000;
+        rm_key = 500;
+    }
+
+    /* Init the tree. */
+    htrie = qhat_create(qps, 4, false);
+    qhat_init(&trie, qps, htrie);
+
+    /* Fill the tree. */
+    for (int i = 0; i < first_limit; i += step) {
+        *(uint32_t *)qhat_set(&trie, i) = i;
+    }
+
+    en = qhat_get_enumerator_at(&trie, rm_key);
+    Z_ASSERT_EQ(en.t.compact, want_compact,
+                "unexpected leaf type for the key to remove");
+
+    /* Remove the element pointed by the enumerator. */
+    Z_ASSERT(qhat_remove(&trie, rm_key, &rm_val));
+    Z_ASSERT_EQ(rm_val, rm_key);
+
+    if (want_struct_change) {
+        /* Add keys until the hat structure changes. */
+        for (int i = first_limit; i < second_limit; i += step) {
+            *(uint32_t *)qhat_set(&trie, i) = i;
+        }
+        Z_ASSERT(en.t.path.gen.s.struct_gen != trie.gen.s.struct_gen,
+                 "hat structure unchanged");
+    }
+
+    /* {{{ First attempt. */
+
+    v = qhat_enumerator_get_value_safe(&en);
+    Z_ASSERT_EQ(*v, 0u);
+    Z_ASSERT_EQ(en.key, rm_key);
+
+    /* }}} */
+    /* {{{ Second attempt. */
+
+    Z_ASSERT(en.t.path.gen.s.struct_gen == trie.gen.s.struct_gen,
+             "hat structure unexpectedly updated after "
+             "'qhat_enumerator_get_value_safe()'");
+
+    v = qhat_enumerator_get_value_safe(&en);
+
+    Z_ASSERT_EQ(*v, 0u);
+    Z_ASSERT_EQ(en.key, rm_key);
+
+    qhat_enumerator_go_to(&en, rm_key, true);
+    Z_ASSERT_EQ(en.key, rm_key + step,
+                "the enumerator did not reach the next key after "
+                "go_to(rm_key)");
+
+    /* }}} */
+
+    qhat_destroy(&trie);
+    Z_HELPER_END;
+}
+
+typedef int (z_qhat_test_f)(qhat_t *hat);
+
+/* Run a test with all QHAT sizes, nullable or not. */
+static int z_run_qhat_test(qps_t *qps, z_qhat_test_f *test_f)
+{
+    for (uint32_t value_len = 1; value_len <= 16; value_len *= 2) {
+        for (int is_nullable = 0; is_nullable <= 1; is_nullable++) {
+            qps_handle_t htrie;
+            qhat_t trie;
+
+            htrie = qhat_create(qps, value_len, !!is_nullable);
+            qhat_init(&trie, qps, htrie);
+
+            Z_HELPER_RUN((*test_f)(&trie),
+                         "test failed with value_len=%u, is_nullable=%s",
+                         value_len, is_nullable ? "true" : "false");
+
+            qhat_destroy(&trie);
+        }
+    }
+
+    Z_HELPER_END;
+}
+
+static int z_test_qhat_gen(qhat_t *hat)
+{
+    /* The field 'write_access_gen' does not exist out of debug mode. */
+#ifndef NDEBUG
+    qhat_gen_t gen;
+    void *ptr;
+    const char value[16] = "0123456789abcdef";
+
+    gen = hat->gen;
+    ptr = qhat_set(hat, 10);
+    memcpy(ptr, value, hat->root->value_len);
+    Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                "generation unchanged after qhat_set() (new row)");
+
+    gen = hat->gen;
+    ptr = qhat_set(hat, 10);
+    memcpy(ptr, value, hat->root->value_len);
+    Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                "generation unchanged after qhat_set() (existing row)");
+
+    if (hat->root->is_nullable) {
+        gen = hat->gen;
+        qhat_set0(hat, 50, NULL);
+        Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                    "generation unchanged after qhat_set0()");
+    }
+
+    gen = hat->gen;
+    Z_ASSERT(qhat_remove(hat, 10, NULL));
+    Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                "generation unchanged after qhat_remove()");
+
+    gen = hat->gen;
+    Z_ASSERT(!qhat_remove(hat, 100, NULL));
+    Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                "generation unchanged after qhat_remove() of a row that "
+                "did not exist");
+
+    if (hat->root->is_nullable) {
+        gen = hat->gen;
+        qhat_remove(hat, 50, NULL);
+        Z_ASSERT_NE(hat->gen.s.write_access_gen, gen.s.write_access_gen,
+                    "generation unchanged after qhat_remove() (zero value)");
+    }
+#else
+    Z_ASSERT(true);
+#endif /* NDEBUG */
+
+    Z_HELPER_END;
 }
 
 /* }}} */
@@ -627,7 +785,7 @@ Z_GROUP_EXPORT(qps_hat) {
 
             Z_ASSERT(!en.end);
             Z_ASSERT_EQ(en.key, key);
-            value = qhat_enumerator_get_value(&en);
+            value = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(*value, key);
             qhat_enumerator_next(&en, true);
         }
@@ -641,7 +799,7 @@ Z_GROUP_EXPORT(qps_hat) {
             qhat_enumerator_go_to(&en, key, true);
             Z_ASSERT(!en.end);
             Z_ASSERT_EQ(en.key, key);
-            value = qhat_enumerator_get_value(&en);
+            value = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(*value, key);
         }
 
@@ -678,7 +836,7 @@ Z_GROUP_EXPORT(qps_hat) {
             qhat_enumerator_go_to(&en, key, true);
             Z_ASSERT(!en.end);
             Z_ASSERT_EQ(en.key, key);
-            value = qhat_enumerator_get_value(&en);
+            value = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(*value, key);
 
             if (remove_current) {
@@ -734,7 +892,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_get_value_safe, "") { /* {{{ */
+    Z_TEST(enumerator_get_value_safe, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
@@ -784,7 +942,7 @@ Z_GROUP_EXPORT(qps_hat) {
         /* Get the value after the trie structure has changed. */
         en = qhat_get_enumerator_at(&trie, 80);
         for (int i = 100;; i++) {
-            if (en.t.path.generation != trie.struct_gen) {
+            if (!qhat_path_is_sync(&en.t.path)) {
                 /* The trie structure has changed. Stop now. */
                 break;
             }
@@ -797,7 +955,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_safe_single_removal, "") { /* {{{ */
+    Z_TEST(enumerator_safe_single_removal, "") { /* {{{ */
         t_scope;
         qps_handle_t htrie;
         qhat_t trie;
@@ -830,14 +988,8 @@ Z_GROUP_EXPORT(qps_hat) {
             }
 
             qhat_enumerator_next(&en, true);
-            /* FIXME The patch fixing this part has been undone as it
-             * uncovered a bug that caused some QHAT corruptions. It should be
-             * reestablished as soon as the root cause of the corruption is
-             * fixed. */
-#if 0
-            Z_ASSERT(en.t.path.generation == en.t.path.hat->struct_gen,
+            Z_ASSERT(qhat_path_is_sync(&en.t.path),
                      "enumerator still out-of-sync after 'next'");
-#endif
         }
 
         Z_ASSERT(en.end);
@@ -845,7 +997,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_next, "") { /* {{{ */
+    Z_TEST(enumerator_next, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
@@ -866,7 +1018,7 @@ Z_GROUP_EXPORT(qps_hat) {
 
         /* Keep adding entries until the structure of the trie changes. */
         for (int i = 100;; i++) {
-            if (en.t.path.generation != trie.struct_gen) {
+            if (!qhat_path_is_sync(&en.t.path)) {
                 /* The trie structure has changed. Stop now. */
                 break;
             }
@@ -883,7 +1035,7 @@ Z_GROUP_EXPORT(qps_hat) {
             qhat_enumerator_next(&en, true);
             Z_ASSERT(!en.end, "end reached too early, key(%u) < max_key(%u)",
                      key, max_key);
-            value = qhat_enumerator_get_value(&en);
+            value = qhat_enumerator_get_value_unsafe(&en);
             Z_ASSERT_EQ(*value, key);
             Z_ASSERT_EQ(en.key, key);
         }
@@ -892,7 +1044,7 @@ Z_GROUP_EXPORT(qps_hat) {
     } Z_TEST_END;
 
     /* }}} */
-    Z_TEST(enumeration_next_after_zero, "") { /* {{{ */
+    Z_TEST(enumerator_next_after_zero, "") { /* {{{ */
         qps_handle_t htrie;
         qhat_t trie;
         qhat_enumerator_t en;
@@ -916,12 +1068,12 @@ Z_GROUP_EXPORT(qps_hat) {
         /* Start the enumeration at element [50], check that the value is
          * right. */
         en = qhat_get_enumerator_at(&trie, 50);
-        value = qhat_enumerator_get_value(&en);
+        value = qhat_enumerator_get_value_unsafe(&en);
         Z_ASSERT(value == (const void *)&qhat_default_zero_g);
 
         /* Check that the enumerator goes to the next element without bug. */
         qhat_enumerator_next(&en, false);
-        value = qhat_enumerator_get_value(&en);
+        value = qhat_enumerator_get_value_unsafe(&en);
         Z_ASSERT_EQ(*value, 51u);
 
         qhat_destroy(&trie);
@@ -962,6 +1114,151 @@ Z_GROUP_EXPORT(qps_hat) {
         Z_ASSERT_N(qhat_check_consistency_flags(&trie, QHAT_CHECK_FULL_SCAN,
                                                 NULL));
         qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(nr_stat_update_after_rm_from_flat, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_path_t path;
+        qhat_node_t leaf;
+        uint16_t val;
+
+        Z_TEST_FLAGS("redmine_94699");
+
+        htrie = qhat_create(qps, 2, false);
+        qhat_init(&trie, qps, htrie);
+        qhat_compute_counts(&trie, true);
+        for (int i = 0; i < 2000; i++) {
+            uint16_t *v;
+
+            v = qhat_set(&trie, i);
+            *v = mem_hash32(&i, sizeof(i));
+        }
+
+        qhat_path_init(&path, &trie, 700);
+        qhat_get_path(&path);
+        leaf = path.path[path.depth];
+
+        /* We expect the entry 700 to be in a flatten leaf otherwise we are
+         * not testing what we should be testing. */
+        assert(leaf.leaf);
+        assert(!leaf.compact);
+
+        /* Check stats before removal. */
+        Z_ASSERT_EQ(trie.root->entry_count, 2000u);
+        Z_ASSERT_EQ(trie.root->zero_stored_count, 48u);
+
+        /* Remove the entry with key 700 and check the removed value. */
+        Z_ASSERT(qhat_remove(&trie, 700, &val));
+        Z_ASSERT_EQ(val, 53804);
+
+        /* Check stats after removal. */
+        Z_ASSERT_EQ(trie.root->entry_count, 1999u);
+        Z_ASSERT_EQ(trie.root->zero_stored_count, 49u);
+
+        /* Check that the removal should remove nothing this time. */
+        Z_ASSERT(!qhat_remove(&trie, 700, &val));
+        Z_ASSERT_EQ(val, 0);
+
+        qhat_destroy(&trie);
+    } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(nr_bad_en_value_after_rm, "") { /* {{{ */
+        Z_TEST_FLAGS("redmine_94699");
+        Z_HELPER_RUN(z_nr_en_val_after_rm(qps, true, true));
+        Z_HELPER_RUN(z_nr_en_val_after_rm(qps, true, false));
+        Z_HELPER_RUN(z_nr_en_val_after_rm(qps, false, true));
+        Z_HELPER_RUN(z_nr_en_val_after_rm(qps, false, false));
+    } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(generation, "") { /* {{{ */
+        Z_HELPER_RUN(z_run_qhat_test(qps, &z_test_qhat_gen));
+    } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(nr_94699, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_enumerator_t en;
+        qhat_path_t path;
+        int16_t *v;
+        const int16_t *cv;
+        int16_t removed_val;
+
+        /* Reproduce the crash case obtained with a DB stress test tool. */
+        Z_TEST_FLAGS("redmine_94699");
+        htrie = qhat_create(qps, 2, false);
+        qhat_init(&trie, qps, htrie);
+        for (uint32_t k = 1; k <= 6205; k += 3) {
+            *(int16_t *)qhat_set(&trie, k) = k;
+        }
+
+        /* Enumerate the QHAT until the end. That should let us with an
+         * enumerator pointing to the last element in the QHAT. */
+        en = qhat_get_enumerator(&trie);
+        while (!en.end) {
+            qhat_enumerator_next(&en, false);
+        }
+        Z_ASSERT_EQ(en.key, 6205u);
+
+        /* The crash happened because the path attribute in the enumerator is
+         * not guaranteed to be usable when the enumerator was ended: the node
+         * list did not end with a leaf. */
+        path = qhat_enumerator_get_path(&en);
+
+        /* Setting an element with the broken path would compromise the QHAT
+         * (in release mode) or trigger an assertion (in debug mode). */
+        v = qhat_set_path(&path);
+        *v = 6205;
+
+        /* Check the whole qhat content now. */
+        for (int k = 0; k < 6300; k++) {
+            cv = qhat_get(&trie, k);
+            if (k > 6205 || k % 3 != 1) {
+                Z_ASSERT_NULL(cv,
+                              "unexpected entry [%d] -> %d", k, cv ? *cv : 0);
+            } else {
+                Z_ASSERT(cv, "missing entry for key [%d]", k);
+                Z_ASSERT_EQ(*cv, k,
+                            "unexpected entry value [%d] -> %d", k, *cv);
+            }
+        }
+
+        /* Now try it on an element we just removed. */
+        en = qhat_get_enumerator_at(&trie, 4);
+        Z_ASSERT(qhat_remove(&trie, 4, &removed_val), "missing entry [4]");
+        cv = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT_ZERO(*cv, "unexpected value for removed entry");
+        path = qhat_enumerator_get_path(&en);
+        v = qhat_set_path(&path);
+        *v = 100;
+        cv = qhat_get(&trie, 4);
+        Z_ASSERT_EQ(*cv, 100, "unexpected value for entry [4]");
+    } Z_TEST_END;
+
+    /* }}} */
+    Z_TEST(nr_97147, "") { /* {{{ */
+        qps_handle_t htrie;
+        qhat_t trie;
+        qhat_enumerator_t en;
+        const uint32_t *v;
+
+        Z_TEST_FLAGS("redmine_97147");
+        htrie = qhat_create(qps, 4, false);
+        qhat_init(&trie, qps, htrie);
+        *(int16_t *)qhat_set(&trie, 1) = 1;
+        *(int16_t *)qhat_set(&trie, 2) = 2;
+        en = qhat_get_enumerator_at(&trie, 2);
+        /* XXX The bug happens only with compacts. */
+        Z_ASSERT(en.t.compact);
+        /* Remove the last value. */
+        qhat_remove(&trie, 2, NULL);
+        v = qhat_enumerator_get_value_safe(&en);
+        Z_ASSERT(en.t.compact);
+        Z_ASSERT_EQ(*v, 0u);
     } Z_TEST_END;
 
     /* }}} */
