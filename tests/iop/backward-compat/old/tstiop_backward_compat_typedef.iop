@@ -16,32 +16,82 @@
 /*                                                                         */
 /***************************************************************************/
 
-/* This file is used to test the fixups between DSOs.
- * It references the file tstiop.
- */
-package tstiop2;
+package tstiop_backward_compat_typedef;
 
-struct MyStruct {
-    tstiop.MyStructA a;
+struct StructNotChanged {
+    int a;
 };
 
-typedef tstiop.BasicStruct RemoteStruct;
-typedef tstiop.MyParent RemoteClass;
-typedef tstiop.ExternalEnum RemoteEnum;
-typedef tstiop.SmallClassTypedef RemoteTypedefClass;
-
-struct StructWithTypedefsFromExt {
-    RemoteStruct tdefS;
-    int i1;
-    RemoteClass tdefC;
-    int i2;
-    RemoteEnum tdefE;
-    int i3;
+struct HashV2 {
+    bool?  b;
+    long[] i;
+    string s;
 };
 
-struct StructWithExtTypedef {
-    int i1;
-    RemoteTypedefClass c;
-    int i2;
+union MyUnionA {
+    int    ua;
+    byte   ub;
+    string us;
 };
 
+struct VoidStruct {
+};
+
+@(test:gen1, 1)
+enum MyEnumA {
+    @(test:gen2, 2.2)
+    @alias(A_ALIAS)
+    A = 0x0,
+    B = 0x1,
+    @alias(C_ALIAS_1)
+    @alias(C_ALIAS_2)
+    C = 0x2,
+    @alias(D_ALIAS)
+    D = 0x10,
+};
+
+@strict
+enum MyEnumB {
+    A,
+    B,
+    C,
+};
+
+class MyClass1 : 1 {
+    @(test:gen1, 1)
+    int int1;
+};
+
+class MyClass2 : 2 : MyClass1 {
+    int int2;
+};
+
+class MyClass3 : 3 : MyClass2 {
+    int int3;
+    bool bool1;
+    string? string1;
+    MyClass1? nextClass;
+    MyClass1? nextClass2;
+};
+
+class MyClass2Bis : 4 : MyClass1 {
+    int int2;
+};
+
+@private
+class MyClass2Priv : 5 : MyClass2 {
+};
+
+abstract class MyClass2Abstract : 6 : MyClass2 {
+};
+
+class MyClass1After : 1 {
+    int int1;
+};
+
+class MyClassEmpty : 5 : MyClass1After {
+};
+
+class MyClass2After : 2 : MyClassEmpty {
+    int int2;
+};

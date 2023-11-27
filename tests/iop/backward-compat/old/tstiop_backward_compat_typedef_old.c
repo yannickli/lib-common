@@ -16,32 +16,9 @@
 /*                                                                         */
 /***************************************************************************/
 
-/* This file is used to test the fixups between DSOs.
- * It references the file tstiop.
- */
-package tstiop2;
+#include <lib-common/iop.h>
+#include "tstiop_backward_compat_typedef.iop.h"
 
-struct MyStruct {
-    tstiop.MyStructA a;
-};
-
-typedef tstiop.BasicStruct RemoteStruct;
-typedef tstiop.MyParent RemoteClass;
-typedef tstiop.ExternalEnum RemoteEnum;
-typedef tstiop.SmallClassTypedef RemoteTypedefClass;
-
-struct StructWithTypedefsFromExt {
-    RemoteStruct tdefS;
-    int i1;
-    RemoteClass tdefC;
-    int i2;
-    RemoteEnum tdefE;
-    int i3;
-};
-
-struct StructWithExtTypedef {
-    int i1;
-    RemoteTypedefClass c;
-    int i2;
-};
-
+IOP_EXPORT_PACKAGES_COMMON;
+IOP_USE_EXTERNAL_PACKAGES;
+IOP_EXPORT_PACKAGES(&tstiop_backward_compat_typedef__pkg);
