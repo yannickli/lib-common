@@ -25,7 +25,6 @@
 #include <lib-common/iop-yaml.h>
 #include <lib-common/iop-json.h>
 #include "iop/tstiop.iop.h"
-#include "iop/tstiop2.iop.h"
 
 /* {{{ IOP testing helpers */
 
@@ -1011,58 +1010,6 @@ Z_GROUP_EXPORT(iop_yaml)
         TST(&tstiop__my_struct_a_opt__s, "w: true", "w: ~");
         TST(&tstiop__my_struct_a_opt__s, "w: { a: 2 }", "w: ~");
         TST(&tstiop__my_struct_a_opt__s, "w: [1, 2]", "w: ~");
-
-        /* unpacking a typedef class should work */
-        TST(&tstiop__struct_with_mandatory_object__s,
-            "i1: 12\n"
-            "c:\n"
-            "  i: 42\n"
-            "i2: 24",
-            NULL);
-        TST(&tstiop__struct_with_typedef__s,
-            "i1: 12\n"
-            "c:\n"
-            "  i: 42\n"
-            "i2: 24",
-            NULL);
-        TST(&tstiop__struct_with_optional_object__s,
-            "i1: 12\n"
-            "c:\n"
-            "  i: 42\n"
-            "i2: 24",
-            NULL);
-        TST(&tstiop__struct_with_optional_object__s,
-            "i1: 12\n"
-            "i2: 24",
-            NULL);
-        TST(&tstiop__struct_with_child_class__s,
-            "myClass:\n"
-            "  i: 1\n"
-            "  d: 3.1000000000000041",
-            NULL);
-        TST(&tstiop__struct_with_child_inherit_typedef__s,
-            "myClass:\n"
-            "  i: 1\n"
-            "  d: 3.1000000000000041",
-            NULL);
-
-        /* unpacking a remote typedef class should work */
-        TST(&tstiop2__struct_with_typedefs_from_ext__s,
-            "tdefS:\n"
-            "  i: 11\n"
-            "i1: 12\n"
-            "tdefC:\n"
-            "  i: 42\n"
-            "i2: 24\n"
-            "tdefE: A\n"
-            "i3: 48",
-            NULL);
-        TST(&tstiop2__struct_with_ext_typedef__s,
-            "i1: 12\n"
-            "c:\n"
-            "  i: 43\n"
-            "i2: 14",
-            NULL);
 
 #undef TST
     } Z_TEST_END;

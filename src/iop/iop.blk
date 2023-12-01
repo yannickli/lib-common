@@ -6140,10 +6140,15 @@ static const qv_t(iop_obj) *iop_get_objs(lstr_t fullname)
     return iop_get_objs_env(fullname, &_G.env);
 }
 
-static const iop_struct_t *
-iop_get_class_by_fullname_(const iop_struct_t *st, lstr_t fullname)
+const iop_struct_t *
+iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
 {
     const qv_t(iop_obj) *objs;
+
+    assert (iop_struct_is_class(st));
+    while (st->class_attrs->parent) {
+        st = st->class_attrs->parent;
+    }
 
     objs = RETHROW_P(iop_get_objs(fullname));
 
@@ -6152,26 +6157,10 @@ iop_get_class_by_fullname_(const iop_struct_t *st, lstr_t fullname)
         &&  obj->ancestor == st)
         {
             return obj->desc.st;
-        } else if (obj->type == IOP_OBJ_TYPE_TYPEDEF &&
-                   obj->desc.td->type == IOP_T_STRUCT)
-        {
-            return iop_get_class_by_fullname_(
-                st, obj->desc.td->ref_struct->fullname);
         }
     }
 
     return NULL;
-}
-
-const iop_struct_t *
-iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
-{
-    assert (iop_struct_is_class(st));
-    while (st->class_attrs->parent) {
-        st = st->class_attrs->parent;
-    }
-
-    return iop_get_class_by_fullname_(st, fullname);
 }
 
 const iop_struct_t *
@@ -6384,9 +6373,6 @@ static const char *iop_obj_type_to_str(const iop_obj_t *obj)
       case IOP_OBJ_TYPE_ENUM:
         return "enum";
 
-      case IOP_OBJ_TYPE_TYPEDEF:
-        return "typedef";
-
       case IOP_OBJ_TYPE_PKG:
         return "package";
     }
@@ -6435,8 +6421,6 @@ iop_register_obj(lstr_t fullname, iop_obj_t obj, unsigned flags,
     (iop_obj_t){ .desc = { .st = _st }, .type = IOP_OBJ_TYPE_ST }
 #define IOP_OBJ_ENUM(_en)  \
     (iop_obj_t){ .desc = { .en = _en }, .type = IOP_OBJ_TYPE_ENUM }
-#define IOP_OBJ_TD(_td)  \
-    (iop_obj_t){ .desc = { .td = _td }, .type = IOP_OBJ_TYPE_TYPEDEF }
 #define IOP_OBJ_PKG(_pkg)  \
     (iop_obj_t){ .desc = { .pkg = _pkg }, .type = IOP_OBJ_TYPE_PKG }
 
@@ -6465,13 +6449,6 @@ iop_register_enum(const iop_enum_t *en, unsigned flags, iop_env_t *env,
                   sb_t *err)
 {
     return iop_register_obj(en->fullname, IOP_OBJ_ENUM(en), flags, env, err);
-}
-
-static int
-iop_register_typedef(const iop_typedef_t *td, unsigned flags, iop_env_t *env,
-                     sb_t *err)
-{
-    return iop_register_obj(td->fullname, IOP_OBJ_TD(td), flags, env, err);
 }
 
 static int
@@ -6507,13 +6484,6 @@ static int iop_register_package_env(const iop_pkg_t *pkg, iop_dso_t *dso,
         const iop_enum_t *desc = *it;
 
         RETHROW(iop_register_enum(desc, flags, env, err));
-    }
-
-    /* Register its typedefs. */
-    for (const iop_typedef_t *const *it = pkg->typedefs; *it; it++) {
-        const iop_typedef_t *desc = *it;
-
-        RETHROW(iop_register_typedef(desc, flags, env, err));
     }
 
     /* Register its dependencies. */
@@ -6559,15 +6529,9 @@ const iop_enum_t *iop_get_enum(lstr_t fullname)
 {
     const iop_obj_t *obj = RETHROW_P(iop_get_obj(fullname));
 
-    switch (obj->type) {
-    case IOP_OBJ_TYPE_ENUM:
-        return obj->desc.en;
-    case IOP_OBJ_TYPE_TYPEDEF:
-        THROW_NULL_IF(obj->desc.td->type != IOP_T_ENUM);
-        return obj->desc.td->ref_enum;
-    default:
-        return NULL;
-    }
+    THROW_NULL_IF(obj->type != IOP_OBJ_TYPE_ENUM);
+
+    return obj->desc.en;
 }
 
 static const iop_obj_t *iop_get_obj_env(lstr_t fullname, const iop_env_t *env)
@@ -6648,11 +6612,6 @@ static int iop_unregister_enum(const iop_enum_t *en)
     return iop_unregister_obj(en->fullname, IOP_OBJ_ENUM(en));
 }
 
-static int iop_unregister_typedef(const iop_typedef_t *td)
-{
-    return iop_unregister_obj(td->fullname, IOP_OBJ_TD(td));
-}
-
 void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
 {
     SB_1k(err);
@@ -6682,13 +6641,6 @@ void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
             const iop_enum_t *desc = *it;
 
             iop_unregister_enum(desc);
-        }
-
-        /* Unregister its typedef. */
-        for (const iop_typedef_t *const *it = pkg->typedefs; *it; it++) {
-            const iop_typedef_t *desc = *it;
-
-            iop_unregister_typedef(desc);
         }
     }
 
@@ -6789,7 +6741,6 @@ struct iop_compat_ctx_t {
     sb_t err_ctx;
     qv_t(i32) err_ctx_offs;
     int indent_lvl;
-    const iop_pkg_t * nullable pkg2;
 };
 
 static iop_compat_ctx_t *iop_compat_ctx_init(iop_compat_ctx_t *ctx)
@@ -7118,20 +7069,12 @@ get_parents_until_id(const iop_struct_t *st, const uint16_t *class_id,
 }
 
 static const iop_struct_t *
-get_parents_until_name(const iop_pkg_t *pkg, const iop_struct_t *st,
-                       const lstr_t *name, qv_t(iop_struct) *vec)
+get_parents_until_name(const iop_struct_t *st, const lstr_t *name,
+                       qv_t(iop_struct) *vec)
 {
-    iop_dso_t *dso = iop_dso_get_from_pkg(pkg);
-
     while ((st = st->class_attrs->parent)) {
         if (name && lstr_equal(st->fullname, *name)) {
-            return st;
-        } else if (name && dso) {
-            iop_struct_t const *st_in_dso = iop_dso_find_type(dso, *name);
-
-            if (st_in_dso == st) {
-                return st;
-            }
+            break;
         }
         qv_append(vec, st);
     }
@@ -7234,8 +7177,7 @@ check_parent_classes(const iop_struct_t *st1, const iop_struct_t *st2,
         if (st1->class_attrs->parent) {
             class_name = &st1->class_attrs->parent->fullname;
         }
-        st2_parent_json = get_parents_until_name(ctx->pkg2, st2, class_name,
-                                                 &parents);
+        st2_parent_json = get_parents_until_name(st2, class_name, &parents);
         if (class_name && !st2_parent_json
         &&  (!are_all_parents_empty(st1) || !are_all_parents_empty(st2)))
         {
@@ -7482,11 +7424,10 @@ __iop_struct_check_backward_compat(const iop_struct_t *st1,
             res = -1;
         }
         if (flags & IOP_COMPAT_JSON
-        && !(lstr_equal(st1->fullname, st2->fullname) ||
-            (st2 == iop_get_class_by_fullname(st2, st1->fullname))))
+        &&  !lstr_equal(st1->fullname, st2->fullname))
         {
-            iop_compat_add_err(ctx, "class fullname changed "
-                               "(`%*pM` != `%*pM`)",
+            iop_compat_add_err(ctx,
+                               "class fullname changed (`%*pM` != `%*pM`)",
                                LSTR_FMT_ARG(st1->fullname),
                                LSTR_FMT_ARG(st2->fullname));
             res = -1;
@@ -7798,27 +7739,6 @@ static BUILD_GET_BY_NAME(iop_pkg_get_mod_by_name,    iop_mod_t,    mods)
 
 #undef BUILD_GET_BY_NAME
 
-static const iop_struct_t *
-iop_pkg_get_struct_by_typedef_name(const iop_pkg_t *pkg, lstr_t name)
-{
-    for (const iop_typedef_t *const *it = pkg->typedefs; *it; it++) {
-        const iop_typedef_t *obj = *it;
-
-        switch (obj->type) {
-        case IOP_T_STRUCT:
-        case IOP_T_UNION:
-            if (lstr_equal(iop_get_name_from_fullname(obj->fullname), name)) {
-                return obj->ref_struct;
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-    return NULL;
-}
-
 int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
                                       const iop_pkg_t *pkg2,
                                       iop_compat_ctx_t *ctx,
@@ -7829,7 +7749,6 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
     assert (flags & IOP_COMPAT_BIN || flags & IOP_COMPAT_JSON);
 
     ctx->err = err;
-    ctx->pkg2 = pkg2;
 
     iop_compat_push_err_ctx(ctx, "pkg `%*pM`:", LSTR_FMT_ARG(pkg2->name));
 
@@ -7850,9 +7769,7 @@ int iop_pkg_check_backward_compat_ctx(const iop_pkg_t *pkg1,
             what = "struct";
         }
 
-        st2 = iop_pkg_get_struct_by_name(pkg2, name);
-        st2 = st2 ?: iop_pkg_get_struct_by_typedef_name(pkg2, name);
-        if (!st2) {
+        if (!(st2 = iop_pkg_get_struct_by_name(pkg2, name))) {
             iop_compat_add_err(ctx, "%s `%*pM` does not exist anymore",
                                what, LSTR_FMT_ARG(st1->fullname));
             res = -1;
