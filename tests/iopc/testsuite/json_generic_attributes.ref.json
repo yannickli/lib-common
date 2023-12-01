@@ -7,6 +7,12 @@
 			"fullName": "json_generic_attributes.VoiceEvent",
 			"type": "class",
 			"isAbstract": false,
+			"statics": {
+				"category": {
+					"type": "string",
+					"default": "voice"
+				}
+			},
 			"genAttrs": {
 				"scenario:label": {
 					"type": "object",
@@ -51,6 +57,18 @@
 			"fullName": "json_generic_attributes.DataEvent",
 			"type": "class",
 			"isAbstract": false,
+			"statics": {
+				"category": {
+					"type": "string",
+					"default": "data",
+					"genAttrs": {
+						"test:gen": {
+							"type": "string",
+							"value": "test"
+						}
+					}
+				}
+			},
 			"genAttrs": {
 				"scenario:label": {
 					"type": "object",

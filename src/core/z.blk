@@ -27,6 +27,7 @@
 #include <lib-common/thr.h>
 #include <lib-common/container-qhash.h>
 #include <lib-common/iop-json.h>
+#include <lib-common/iop-yaml.h>
 #include <lib-common/datetime.h>
 #include <lib-common/parseopt.h>
 #include <lib-common/log.h>
@@ -273,7 +274,7 @@ void z_todo_start(const char *reason, ...)
 void z_todo_end(void)
 {
     NOT_IN_TEST;
-    lstr_copyc(&_G.grp.skip_reason, LSTR_NULL_V);
+    lstr_copyc(&_G.grp.todo_reason, LSTR_NULL_V);
 }
 
 /* }}} */
@@ -471,12 +472,12 @@ static void sb_adduc_escaped(sb_t *sb, int c)
  *
  * The color will apply until the color is reset.
  *
- * \param[in] color_fmt  Color codes separated by ';'.
+ * \param[in] color  Color sequence (see TERM_COLOR_*).
  */
-static void z_sb_set_color(sb_t *sb, const char *color_fmt)
+static void z_sb_set_color(sb_t *sb, const char *color)
 {
     if (is_fancy_fd(STDERR_FILENO)) {
-        sb_addf(sb, "\e[%sm", color_fmt);
+        sb_addf(sb, TERM_COLOR_SET("%s"), color);
     }
 }
 
@@ -484,6 +485,21 @@ static void z_sb_set_color(sb_t *sb, const char *color_fmt)
 static void z_sb_reset_color(sb_t *sb)
 {
     z_sb_set_color(sb, "");
+}
+
+static lstr_t t_z_colored_lstr(lstr_t s, const char *color_fmt)
+{
+    if (!is_fancy_fd(STDERR_FILENO)) {
+        return s;
+    }
+
+    return t_lstr_fmt(TERM_COLOR_FMT("%*pM"),
+                      TERM_COLOR_FMT_ARG(color_fmt, LSTR_FMT_ARG(s)));
+}
+
+static const char *t_z_colored_str(const char *s, const char *color_fmt)
+{
+    return t_z_colored_lstr(LSTR(s), color_fmt).s;
 }
 
 static void z_sb_add_char(sb_t *sb, int c, bool full_hex, bool printable,
@@ -540,11 +556,11 @@ static void z_sb_add_lstr(sb_t *sb, lstr_t s, int first_diff_pos,
         c = z_ps_get_char(&ps, full_hex, &printable);
 
         if (!highlighting_done && ps.s - s.s > first_diff_pos) {
-            /* Use a bold character with a red background. */
+            /* Use a bold/bright character with a red background. */
             /* TODO Implement Myers diff algorithm and print a colored diff
              * instead of highlighting only the first different
              * character/byte. */
-            color = "1;41";
+            color = TERM_COLOR_BRIGHTER(TERM_COLOR_RED_BG);
             highlighting_done = true;
         }
 
@@ -636,8 +652,78 @@ bool _z_assert_lstrequal(const char *file, int lno, bool use_hex,
     return false;
 }
 
+static int z_diff(lstr_t left, lstr_t right, sb_t *diff)
+{
+    t_scope;
+    const char *lfile;
+    const char *rfile;
+    const char *sed_color = "";
+    const char *diff_file;
+    char *dtemp;
+    SB_1k(cmd);
+    int ret;
+
+    /* The diff command takes files as input so we have to write files.
+     * Put all of them in a single temporary directory.
+     * We do not mind letting the temporary directory exist after this call as
+     * the files it contains may be useful for debugging. */
+    dtemp = t_fmt("%*pMdiff-XXXXXX", LSTR_FMT_ARG(z_tmpdir_g));
+    RETHROW_PN(mkdtemp(dtemp));
+
+    /* Write the two files. */
+    lfile = t_fmt("%s/left", dtemp);
+    rfile = t_fmt("%s/right", dtemp);
+    RETHROW(xwrite_file(lfile, left.s, left.len));
+    RETHROW(xwrite_file(rfile, right.s, right.len));
+
+    if (is_fancy_fd(STDERR_FILENO)) {
+        sed_color = " | sed '"
+            /* Removals: lines that start with '-'. */
+            "s/^-/\\x1b[" TERM_COLOR_PURPLE "m-/;"
+
+            /* Additions: lines that start with '+'. */
+            "s/^+/\\x1b[" TERM_COLOR_BRIGHTER(TERM_COLOR_CYAN) "m+/;"
+
+            /* Line/column number information. */
+            "s/^@/\\x1b[" TERM_COLOR_YELLOW "m@/;"
+
+            /* Reset color at EOL. */
+            "s/$/\\x1b[0m/"
+
+            "'";
+    }
+
+    /* Run diff with a system command and write it in a diff file. */
+    diff_file = t_fmt("%s/diff", dtemp);
+    sb_setf(&cmd, "/bin/bash -c "
+            "\"set -o pipefail; diff -urNw %s %s%s >%s\"",
+            lfile, rfile, sed_color, diff_file);
+    ret = system(cmd.data);
+    THROW_ERR_IF(WEXITSTATUS(ret) != 0 && WEXITSTATUS(ret) != 1);
+
+    /* Load the diff from the diff file. */
+    RETHROW(sb_read_file(diff, diff_file));
+
+    return 0;
+}
+
+static int z_iop_diff(const iop_struct_t *st, const void *l, const void *r,
+                      sb_t *diff)
+{
+    t_scope;
+    SB_1k(lbuf);
+    SB_1k(rbuf);
+
+    t_iop_sb_ypack(&lbuf, st, l, NULL);
+    sb_adds(&lbuf, "\n");
+    t_iop_sb_ypack(&rbuf, st, r, NULL);
+    sb_adds(&rbuf, "\n");
+
+    return z_diff(LSTR_SB_V(&lbuf), LSTR_SB_V(&rbuf), diff);
+}
+
 bool _z_assert_iopequal(const char *file, int lno,
-                        const struct iop_struct_t *st,
+                        const iop_struct_t *st,
                         const char *lhs, const void *lh,
                         const char *rhs, const void *rh,
                         const char *fmt, ...)
@@ -653,11 +739,8 @@ bool _z_assert_iopequal(const char *file, int lno,
                 file, lno, lhs, rhs);
         iop_first_diff_desc(st, lh, rh, &diff_desc);
         sb_addf(&sb, " %*pM\n", SB_FMT_ARG(&diff_desc));
-        sb_addf(&sb, " %s:\n  ", lhs);
-        iop_sb_jpack(&sb, st, lh, IOP_JPACK_MINIMAL);
-        sb_addf(&sb, "\n %s:\n  ", rhs);
-        iop_sb_jpack(&sb, st, rh, IOP_JPACK_MINIMAL);
         sb_adds(&sb, "\n");
+        z_iop_diff(st, lh, rh, &sb);
         _z_add_extra(sb, fmt);
         lstr_transfer_sb(&_G.grp.t_fail_reason, &sb, false);
         if (_G.abort_on_fail) {
@@ -814,50 +897,57 @@ static void do_fail_comment(void)
     }
 }
 
+static void print_test_summary(const char *outcome, const char *color)
+{
+    t_scope;
+    lstr_t name;
+
+    if (color) {
+        outcome = t_z_colored_str(outcome, color);
+    }
+    name = t_z_colored_lstr(_G.grp.t_name,
+                            TERM_COLOR_BRIGHTER(TERM_COLOR_WHITE));
+    printf("%*d %s %*pM # (%ld.%06lds)", _G.grp.n_total_digits,
+           _G.grp.t_idx, outcome, LSTR_FMT_ARG(name),
+           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec);
+}
+
 static void do_skip(void)
 {
     _G.grp.t_skipped++;
-    printf("%*d skip %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
-           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
-           LSTR_FMT_ARG(_G.grp.t_skip_reason));
+    print_test_summary("skip", TERM_COLOR_BRIGHTER(TERM_COLOR_YELLOW));
+    printf(" %*pM\n", LSTR_FMT_ARG(_G.grp.t_skip_reason));
     fflush(stdout);
 }
 
 static void do_passed(void)
 {
     _G.grp.t_passed++;
-    printf("%*d pass %*pM\t# (%ld.%06lds) %d assertions\n",
-           _G.grp.n_total_digits, _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
-           _G.grp.t_asserts);
+    print_test_summary("pass", TERM_COLOR_BRIGHTER(TERM_COLOR_GREEN));
+    printf(" %d assertions\n", _G.grp.t_asserts);
     fflush(stdout);
 }
 
 static void do_failed(void)
 {
     _G.grp.t_failed++;
-    printf("%*d fail %*pM # (%ld.%06lds)\n", _G.grp.n_total_digits,
-           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name), _G.grp.tv_diff.tv_sec,
-           (long)_G.grp.tv_diff.tv_usec);
+    print_test_summary("fail", TERM_COLOR_BRIGHTER(TERM_COLOR_RED));
+    printf("\n");
     do_fail_comment();
 }
 
 static void do_todo_passed(void)
 {
     _G.grp.t_todo_passed++;
-    printf("%*d todo-pass %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
-           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),  _G.grp.tv_diff.tv_sec,
-           (long)_G.grp.tv_diff.tv_usec, LSTR_FMT_ARG(_G.grp.t_todo_reason));
+    print_test_summary("todo-pass", TERM_COLOR_GREEN);
+    printf(" %*pM\n", LSTR_FMT_ARG(_G.grp.t_todo_reason));
 }
 
 static void do_todo_failed(void)
 {
     _G.grp.t_todo_failed++;
-    printf("%*d todo-fail %*pM # (%ld.%06lds) %*pM\n", _G.grp.n_total_digits,
-           _G.grp.t_idx, LSTR_FMT_ARG(_G.grp.t_name),
-           _G.grp.tv_diff.tv_sec, (long)_G.grp.tv_diff.tv_usec,
-           LSTR_FMT_ARG(_G.grp.t_todo_reason));
+    print_test_summary("todo-fail", TERM_COLOR_RED);
+    printf(" %*pM\n", LSTR_FMT_ARG(_G.grp.t_todo_reason));
     do_fail_comment();
 }
 

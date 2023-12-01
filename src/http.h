@@ -25,6 +25,7 @@
 #include <lib-common/net.h>
 #include <lib-common/container-qhash.h>
 #include <lib-common/ssl.h>
+#include <lib-common/core/core.iop.h>
 
 #if __has_feature(nullability)
 #pragma GCC diagnostic push
@@ -57,54 +58,9 @@ typedef enum http_method_t {
 } http_method_t;
 extern lstr_t const http_method_str[HTTP_METHOD__MAX];
 
-typedef enum http_code_t {
-    HTTP_CODE_CONTINUE                 = 100,
-    HTTP_CODE_SWITCHING_PROTOCOL       = 101,
+/* Definition moved in core.iop */
+typedef http_code__t http_code_t;
 
-    HTTP_CODE_OK                       = 200,
-    HTTP_CODE_CREATED                  = 201,
-    HTTP_CODE_ACCEPTED                 = 202,
-    HTTP_CODE_NON_AUTHORITATIVE        = 203,
-    HTTP_CODE_NO_CONTENT               = 204,
-    HTTP_CODE_RESET_CONTENT            = 205,
-    HTTP_CODE_PARTIAL_CONTENT          = 206,
-
-    HTTP_CODE_MULTIPLE_CHOICES         = 300,
-    HTTP_CODE_MOVED_PERMANENTLY        = 301,
-    HTTP_CODE_FOUND                    = 302,
-    HTTP_CODE_SEE_OTHER                = 303,
-    HTTP_CODE_NOT_MODIFIED             = 304,
-    HTTP_CODE_USE_PROXY                = 305,
-    HTTP_CODE_TEMPORARY_REDIRECT       = 307,
-
-    HTTP_CODE_BAD_REQUEST              = 400,
-    HTTP_CODE_UNAUTHORIZED             = 401,
-    HTTP_CODE_PAYMENT_REQUIRED         = 402,
-    HTTP_CODE_FORBIDDEN                = 403,
-    HTTP_CODE_NOT_FOUND                = 404,
-    HTTP_CODE_METHOD_NOT_ALLOWED       = 405,
-    HTTP_CODE_NOT_ACCEPTABLE           = 406,
-    HTTP_CODE_PROXY_AUTH_REQUIRED      = 407,
-    HTTP_CODE_REQUEST_TIMEOUT          = 408,
-    HTTP_CODE_CONFLICT                 = 409,
-    HTTP_CODE_GONE                     = 410,
-    HTTP_CODE_LENGTH_REQUIRED          = 411,
-    HTTP_CODE_PRECONDITION_FAILED      = 412,
-    HTTP_CODE_REQUEST_ENTITY_TOO_LARGE = 413,
-    HTTP_CODE_REQUEST_URI_TOO_LARGE    = 414,
-    HTTP_CODE_UNSUPPORTED_MEDIA_TYPE   = 415,
-    HTTP_CODE_REQUEST_RANGE_UNSAT      = 416,
-    HTTP_CODE_EXPECTATION_FAILED       = 417,
-    /* the status 429 was introduced in rfc 6585 $4 */
-    HTTP_CODE_TOO_MANY_REQUESTS        = 429,
-
-    HTTP_CODE_INTERNAL_SERVER_ERROR    = 500,
-    HTTP_CODE_NOT_IMPLEMENTED          = 501,
-    HTTP_CODE_BAD_GATEWAY              = 502,
-    HTTP_CODE_SERVICE_UNAVAILABLE      = 503,
-    HTTP_CODE_GATEWAY_TIMEOUT          = 504,
-    HTTP_CODE_VERSION_NOT_SUPPORTED    = 505,
-} http_code_t;
 __attribute__((pure))
 lstr_t http_code_to_str(http_code_t code);
 
@@ -348,14 +304,27 @@ typedef void (httpd_trigger_auth_f)(httpd_trigger_t * nonnull cb,
 struct httpd_trigger_t {
     unsigned              refcnt;
     lstr_t                auth_realm;
+
+    /* Called before main callback with authentication information. */
     httpd_trigger_auth_f * nullable auth;
     const object_class_t * nullable query_cls;
 
+    /* Main callback, called each time the path fragment is queried. */
     void (* nonnull cb)(httpd_trigger_t * nonnull,
                         struct httpd_query_t * nonnull,
                         const httpd_qinfo_t * nonnull);
+
+    /* Called when trigger is destroyed for cleaning purpose. */
     void (* nullable destroy)(httpd_trigger_t * nonnull);
+
+    /* Called after each query on the path fragment for cleaning purpose. */
     void (* nullable on_query_wipe)(struct httpd_query_t * nonnull q);
+
+    /* Callback on http query exception, it can modify the HTTP error code. */
+    void (* nullable on_query_exn)(struct httpd_query_t * nonnull q,
+                                   const iop_struct_t * nullable st,
+                                   const void * nullable exn,
+                                   http_code_t * nonnull code);
 };
 
 struct httpd_trigger_node_t {
@@ -382,7 +351,7 @@ struct httpd_cfg_t {
 
     SSL_CTX * nullable ssl_ctx;
     dlist_t httpd_list;
-    dlist_t http2_list;
+    dlist_t http2_httpd_list; /* httpds backed http2 streams */
     const object_class_t * nullable httpd_cls;
     httpd_trigger_node_t  roots[HTTP_METHOD_DELETE + 1];
 };
@@ -394,6 +363,8 @@ int httpd_cfg_from_iop(httpd_cfg_t * nonnull cfg,
                        const struct core__httpd_cfg__t * nonnull iop_cfg);
 void httpd_cfg_wipe(httpd_cfg_t * nonnull cfg);
 DO_REFCNT(httpd_cfg_t, httpd_cfg);
+
+void httpd_cfg_set_ssl_ctx(httpd_cfg_t *nonnull cfg, SSL_CTX *nullable ctx);
 
 el_t nullable httpd_listen(sockunion_t * nonnull su, httpd_cfg_t * nonnull);
 void httpd_unlisten(el_t nullable * nonnull ev);
@@ -744,6 +715,8 @@ typedef struct httpc_cfg_t {
     unsigned     on_data_threshold;
     unsigned     header_line_max;
     unsigned     header_size_max;
+    lstr_t       client_tls_cert;
+    lstr_t       client_tls_key;
 
     SSL_CTX      * nullable ssl_ctx;
     http2_pool_t * nullable http2_pool;
@@ -759,6 +732,8 @@ int httpc_cfg_from_iop(httpc_cfg_t * nonnull cfg,
                        const struct core__httpc_cfg__t * nonnull iop_cfg);
 void httpc_cfg_wipe(httpc_cfg_t * nonnull cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
+
+void httpc_cfg_set_ssl_ctx(httpc_cfg_t *nonnull cfg, SSL_CTX *nullable ctx);
 
 __must_check__
 int httpc_cfg_tls_init(httpc_cfg_t * nonnull cfg, sb_t * nonnull err);
@@ -904,6 +879,20 @@ static inline void httpc_pool_delete(httpc_pool_t * nullable * nonnull hpcp,
 void httpc_pool_detach(httpc_t * nonnull w);
 void httpc_pool_attach(httpc_t * nonnull w, httpc_pool_t * nonnull pool);
 httpc_t * nullable httpc_pool_launch(httpc_pool_t * nonnull pool);
+
+/** Get a ready to use connection.
+ *
+ * Return the first ready to use httpc_t connection.
+ *
+ * In case no connection is available and limits are not reached, create a new
+ * connection. Since the connection is establishing, it will remain busy
+ * until it is connected, so this function will return NULL.
+ * \see on_ready callback to be notified when a connection gets ready.
+ *
+ * \param[in] pool a httpc_pool_t
+ *
+ * \return httpc_t connection ready to use or NULL if no httpc_t available.
+ */
 httpc_t * nullable httpc_pool_get(httpc_pool_t * nonnull pool);
 
 /** Check if the pool has a connection ready.
@@ -935,6 +924,12 @@ typedef enum httpc_status_t {
     HTTPC_STATUS_TIMEOUT    = -4,
     HTTPC_STATUS_EXP100CONT = -5,
 } httpc_status_t;
+
+/** Call this to get string associated to status.
+ *
+ * \param[in]  status      the status from which we want the string
+ */
+lstr_t httpc_status_to_str(httpc_status_t status);
 
 typedef struct httpc_qinfo_t {
     http_code_t  code;

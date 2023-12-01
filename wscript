@@ -15,7 +15,7 @@
 # limitations under the License.                                          #
 #                                                                         #
 ###########################################################################
-# pylint: disable = invalid-name, bad-continuation
+# pylint: disable = invalid-name
 
 import os
 import os.path as osp
@@ -124,7 +124,7 @@ def poetry_no_srv_tools(ctx):
     # See https://docs.python.org/3/library/site.html
     no_srv_tools_file = osp.join(ctx.poetry_site_packages,
                                  '_intersec_no_srv_tools.pth')
-    with open(no_srv_tools_file, 'w') as f:
+    with open(no_srv_tools_file, 'w', encoding='utf-8') as f:
         # Remove /srv/tools from sys.path. We don't want to depend on the
         # outdated packages in /srv/tools.
         f.write(
@@ -280,7 +280,8 @@ def configure_asdf(ctx):
         # some dependencies
         ctx.find_program('pip', var='PIP_BIN', path_list=[ctx.env.ASDF_SHIMS])
         pip_install_pkg(ctx, 'Updating pip (if needed)', 'pip>=21')
-        pip_install_pkg(ctx, 'Installing poetry with pip', 'poetry==1.1.15')
+        pip_install_pkg(ctx, 'Installing poetry 1.5.1 with pip',
+                        'poetry==1.5.1')
     else:
         ctx.msg('Using ASDF', 'no')
 

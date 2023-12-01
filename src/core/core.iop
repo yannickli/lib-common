@@ -148,7 +148,7 @@ class LogFileConfiguration {
     bool compress = true;
 };
 
-/** Full address.
+/** Full network address.
  *
  * Addresses can be of the following forms:
  *
@@ -161,12 +161,16 @@ class LogFileConfiguration {
 @nonEmpty @(cfg:fullAddr, true)
 typedef string FullAddr;
 
-/** Address.
+/** Network address.
  *
  * Same as \ref FullAddr except that the port can be omitted.
  */
 @nonEmpty @(cfg:addr, true)
 typedef string Addr;
+
+/** Network port. */
+@(cfg:port, true)
+typedef int Port;
 
 /** A certificate and its private key for TLS.
  *
@@ -245,6 +249,27 @@ struct HttpcCfg {
      * (mandatory with tlsOn = true).
      */
     string? tlsCert;
+
+    /** Certificate and private key of client.
+     *
+     * This is required to support mTLS. In mTLS, the server will request
+     * client certificate and validate it.
+     * If the client does not provide a valid certificate, the connection
+     * will be refused.
+     * The client certificate must be signed by a CA trusted by the server.
+     */
+    TlsCfg? tlsClient;
+
+   /** Use the http2 transport to send requests.
+    *
+    * If \p tlsOn, h2 protocol is negotiated through the ALPN extension. */
+   bool    useHttp2            = false;
+
+   /* TODO:
+   /** Fallback to http1.1 protocol if \p use_http2 is true.
+    *  Relevant only if \p tlsOn is true.
+    bool    fallbackToHttp1    = false;
+    */
 };
 
 enum IopHttpMethod {
@@ -259,6 +284,61 @@ enum IopHttpMethod {
     DELETE  = 5,
     TRACE   = 6,
     CONNECT = 7,
+};
+
+@ctype(http_code__t)
+enum HttpCode {
+    /*-- Informational --*/
+    CONTINUE                 = 100,
+    SWITCHING_PROTOCOL       = 101,
+
+    /*-- Success --*/
+    OK                       = 200,
+    CREATED                  = 201,
+    ACCEPTED                 = 202,
+    NON_AUTHORITATIVE        = 203,
+    NO_CONTENT               = 204,
+    RESET_CONTENT            = 205,
+    PARTIAL_CONTENT          = 206,
+
+    /*-- Redirection --*/
+    MULTIPLE_CHOICES         = 300,
+    MOVED_PERMANENTLY        = 301,
+    FOUND                    = 302,
+    SEE_OTHER                = 303,
+    NOT_MODIFIED             = 304,
+    USE_PROXY                = 305,
+    TEMPORARY_REDIRECT       = 307,
+
+    /*-- Client errors --*/
+    BAD_REQUEST              = 400,
+    UNAUTHORIZED             = 401,
+    PAYMENT_REQUIRED         = 402,
+    FORBIDDEN                = 403,
+    NOT_FOUND                = 404,
+    METHOD_NOT_ALLOWED       = 405,
+    NOT_ACCEPTABLE           = 406,
+    PROXY_AUTH_REQUIRED      = 407,
+    REQUEST_TIMEOUT          = 408,
+    CONFLICT                 = 409,
+    GONE                     = 410,
+    LENGTH_REQUIRED          = 411,
+    PRECONDITION_FAILED      = 412,
+    REQUEST_ENTITY_TOO_LARGE = 413,
+    REQUEST_URI_TOO_LARGE    = 414,
+    UNSUPPORTED_MEDIA_TYPE   = 415,
+    REQUEST_RANGE_UNSAT      = 416,
+    EXPECTATION_FAILED       = 417,
+    /* the status 429 was introduced in rfc 6585 $4 */
+    TOO_MANY_REQUESTS        = 429,
+
+    /*-- Server errors --*/
+    INTERNAL_SERVER_ERROR    = 500,
+    NOT_IMPLEMENTED          = 501,
+    BAD_GATEWAY              = 502,
+    SERVICE_UNAVAILABLE      = 503,
+    GATEWAY_TIMEOUT          = 504,
+    VERSION_NOT_SUPPORTED    = 505,
 };
 
 /** Sub-file (un)packed with the IOP-Json @include feature. */

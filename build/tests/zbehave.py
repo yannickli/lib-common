@@ -21,11 +21,13 @@
 
 import sys
 import os
-import behave.model
+import behave.model  # pylint: disable=import-error
 import zpycore.util
 
-from behave.formatter.base import Formatter
-from behave.__main__ import main as behave_main
+from behave.formatter.base import Formatter  # pylint: disable=import-error
+
+from behave.__main__ import main as behave_main  # pylint: disable=import-error
+
 
 try:
     from behave.formatter._registry import register as behave_register
@@ -120,10 +122,10 @@ class ZFormatter(Formatter):
         self.__scenario = scenario
         self.__status = "skip"
 
-    def result(self, step_result):
+    def result(self, step):
         self.__steps += 1
 
-        status = step_result.status
+        status = step.status
         if not isinstance(status, str):
             status = status.name
 
@@ -139,7 +141,7 @@ class ZFormatter(Formatter):
             step_name, self.basename, step.line, step.duration))
         self.stream.flush()
         if status == "fail":
-            self.__exn    = step_result.error_message
+            self.__exn    = step.error_message
             self.__status = "fail"
 
     def step(self, step):
