@@ -2746,12 +2746,14 @@ static httpc_t *httpc_init(httpc_t *w)
 }
 
 static void httpc_disconnect_as_http2(httpc_t *w);
+static void httpc_http2_ctx_delete(httpc_http2_ctx_t **ctx);
 
 static void httpc_wipe(httpc_t *w)
 {
     if (w->ev || w->http2_ctx) {
         obj_vcall(w, disconnect);
     }
+    httpc_http2_ctx_delete(&w->http2_ctx);
     sb_wipe(&w->ibuf);
     http_zlib_wipe(w);
     ob_wipe(&w->ob);
@@ -6883,6 +6885,7 @@ static httpc_t *httpc_connect_as_http2(const sockunion_t *su,
     if (pool) {
         httpc_pool_attach(w, pool);
     }
+    el_fd_set_mask(client->conn->ev, POLLINOUT);
     return w;
 }
 
@@ -7015,7 +7018,6 @@ static void http2_conn_stream_idle_httpc(http2_conn_t *w, httpc_t *httpc)
 
     if (dlist_is_empty(&httpc->query_list)) {
         if (httpc->connection_close)  {
-            httpc_http2_ctx_delete(&httpc->http2_ctx);
             obj_delete(&httpc);
         }
         return;
@@ -7110,7 +7112,6 @@ static void http2_stream_reset_httpc(http2_conn_t *w, http2_stream_t *stream,
     sb_reset(&httpc->ibuf);
     dlist_move_tail(&ctx->idle_httpcs, &http2_ctx->http2_link);
     if (httpc->connection_close)  {
-        httpc_http2_ctx_delete(&httpc->http2_ctx);
         obj_delete(&httpc);
     } else if (httpc->http2_ctx->disconnect_cmd) {
         httpc_http2_ctx_delete(&httpc->http2_ctx);
