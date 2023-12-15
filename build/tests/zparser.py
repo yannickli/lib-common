@@ -37,8 +37,8 @@ STATUS = ("pass", "fail", "skip",  "todo-pass", "todo-fail")
 EXTENDED_STATUS = STATUS + ("missing", "bad-number")
 
 RE_SUITE = re.compile(
-    r".*starting suite (|\.\/)(?P<suite>(?P<product>[a-zA-Z0-9_-]*)"
-    r"(\/.*)?)\.\.\.") # cannot anchor due to shell colors
+    r".*starting suite (?:\.\/)?(?P<suite>(?P<product>[a-zA-Z0-9_\-\.]*)"
+    r"(?:\/.*)?)\.\.\.") # cannot anchor due to shell colors
 RE_DONE_SUITE = re.compile(
     r"(\S*(done )|.*(TEST SUITE (?P<suite>.*) (?P<status>FAILED) ))"
     r"\((?P<time>\d+) seconds\)") # cannot anchor due to shell colors
@@ -127,7 +127,8 @@ class Result:
         return id(self)
 
     def time_as_str(self):
-        return "{:0>8}".format(datetime.timedelta(seconds=int(self.time)))
+        t = int(self.time)
+        return "{:0>8}".format(str(datetime.timedelta(seconds=t)))
 
 
 class Step:
@@ -143,7 +144,7 @@ class Step:
     def __str__(self):
         return "{0:<2} {1:<5} {2:>6.3f} {3} {4}:{5}".format(
             self.number, self.status, self.time, self.name,
-            self.filename, self.line).encode('utf-8')
+            self.filename, self.line)
 
 
 class Test:
@@ -159,7 +160,7 @@ class Test:
     def __str__(self):
         return "{0:<5} {1:<5} {2:>10.6f} {3} {4}".format(
             self.number, self.status, self.time, self.name,
-            self.comment.strip()).encode('utf-8')
+            self.comment.strip())
 
 
 class Group(Result):
@@ -183,14 +184,14 @@ class Group(Result):
         results = dict.fromkeys(EXTENDED_STATUS, 0)
         for test in self.tests.values():
             results[test.status] += 1
-        self.skipped_nb = results['skip']
-        self.passed_nb = results['pass'] + results['todo-pass']
-        self.failed_nb = (results['fail'] + results['todo-fail'] +
+        self.skipped_nb = results['skip'] + results['todo-fail']
+        self.passed_nb = results['pass']
+        self.failed_nb = (results['fail'] + results['todo-pass'] +
                           results['missing'] + results['bad-number'])
 
     def __str__(self):
         return "{0} ({1}% passed)   {2}s".format(
-            self.name, self.passed, self.time).encode('utf-8')
+            self.name, self.passed, self.time)
 
 
 class Suite(Result):
@@ -218,7 +219,7 @@ class Suite(Result):
 
     def __str__(self):
         return "suite {0} passed {1}% skipped {2}% failed {3}%".format(
-            self.name, self.passed, self.skipped, self.failed).encode('utf-8')
+            self.name, self.passed, self.skipped, self.failed)
 
     def __repr__(self):
         return self.__str__()
@@ -239,7 +240,7 @@ class Product(Result):
 
     def __str__(self):
         return "product {0} passed {1}% skipped {2}% failed {3}%".format(
-            self.name, self.passed, self.skipped, self.failed).encode('utf-8')
+            self.name, self.passed, self.skipped, self.failed)
 
 
 class Global(Result):
@@ -336,7 +337,6 @@ class Global(Result):
             trace = error.z_trace()
             if trace:
                 res.append(trace)
-            res.append('')
         res.append("{0}: {1}".format(previous_suite, "error"))
         return "\n".join(res)
 
@@ -480,7 +480,7 @@ class StreamParser(object):
                         self.group.append_test(test)
                     self.group_len = 0
                 self.context = FIXED_LIST()
-                _, self.suite_fullname, name, _ = r.groups()
+                self.suite_fullname, name = r.groups()
                 self.product = self.res.products.setdefault(
                     name, Product(name))
                 self.suite = Suite(self.suite_fullname, self.product.name)
@@ -534,7 +534,7 @@ class StreamParser(object):
 
                     do_err = True
                     for grp in self.suite.groups:
-                        if any([t.status == 'fail'
+                        if any([t.status == 'fail' or t.status == 'todo-pass'
                                 for t in grp.tests.values()]):
                             do_err = False
                             break
@@ -593,7 +593,7 @@ class StreamParser(object):
                     self.steps = []
                 self.context.append((self.last_stream, line))
 
-                if test.status == "fail" or test.status == "todo-fail":
+                if test.status == "fail" or test.status == "todo-pass":
                     self.error = Error(
                         self.product.name, self.suite_fullname,
                         self.group.name, test.name, self.context, test.status)
@@ -666,8 +666,7 @@ def main():
     rept = stream_parser.gen_report()
     print(rept.z_report())
     if rept.errors:
-        if not all([e.status.startswith('todo') for e in rept.errors]):
-            return -1
+        return -1
     return 0
 
 
