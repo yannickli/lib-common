@@ -38,8 +38,8 @@ STATUS = ("pass", "fail", "skip",  "todo-pass", "todo-fail")
 EXTENDED_STATUS = STATUS + ("missing", "bad-number")
 
 RE_SUITE = re.compile(
-    r".*starting suite (|\.\/)(?P<suite>(?P<product>[a-zA-Z0-9_-]*)"
-    r"(\/.*)?)\.\.\.") # cannot anchor due to shell colors
+    r".*starting suite (?:\.\/)?(?P<suite>(?P<product>[a-zA-Z0-9_\-\.]*)"
+    r"(?:\/.*)?)\.\.\.") # cannot anchor due to shell colors
 RE_DONE_SUITE = re.compile(
     r"(\S*(done )|.*(TEST SUITE (?P<suite>.*) (?P<status>FAILED) ))"
     r"\((?P<time>\d+) seconds\)") # cannot anchor due to shell colors
@@ -481,7 +481,7 @@ class StreamParser(object):
                         self.group.append_test(test)
                     self.group_len = 0
                 self.context = FIXED_LIST()
-                _, self.suite_fullname, name, _ = r.groups()
+                self.suite_fullname, name = r.groups()
                 self.product = self.res.products.setdefault(
                     name, Product(name))
                 self.suite = Suite(self.suite_fullname, self.product.name)
