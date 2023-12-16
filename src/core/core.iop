@@ -199,7 +199,13 @@ union TlsCfg {
      */
     string keyname;
 
-    /** The certificate and key of the server.
+    /** Contents of SSL key and certificate.
+     *
+     * Certificate can be a standalone certificate (even if it is a link of a
+     * chain) or a section of certificate chain.
+     * If a chain certificate is used, private key has to correspond to the
+     * lowest level certificate (cf HttpdCfg or HttpcCfg doc for more
+     * explanation).
      */
     TlsCertAndKey data;
 };
@@ -223,8 +229,97 @@ struct HttpdCfg {
     uint    headerLineMax    = 1024;
     /** Maximum total size for headers */
     uint    headerSizeMax    = 64 << 10;
-    /** TLS data: certificate and private key. */
+    /** TLS data: certificate and private key.
+     *
+     * Certificate can be a standalone certificate (even if it is a link of a
+     * chain) or a section of certificate chain.
+     * The validation of the certificate will depend on the contents of this
+     * certificate, the contents of the system SSL default paths and what's in
+     * the client system.
+     * If a chain certificate is used, private key has to correspond to the
+     * lowest level certificate.
+     *
+     * Indeed, in order to validate a certificate, a CA authority is required.
+     * For example, if a certificate is generated from another one, the
+     * parent certificate will be your certification.
+     * There are default paths where SSL stores certificates (see 'OPENSSLDIR'
+     * on 'openssl version -a' command).
+     *
+     * All the contents of the certificate will be used for the validation. If
+     * all the chain is in it, only the root certification will be necessary
+     * on the client side. But, if just a part of the chain is in your
+     * certificate with all other parts that are in the server SSL default
+     * paths, then all the chain will be sent to the client again.
+     * If one link of your chain missed, only the certificate will be sent and
+     * the client system needs to have other links to validate the
+     * certificate.
+     *
+     * For example, lets say you have this chain certificate A -> B -> C,
+     * with B signed by A and C signed y B.
+     * If the certificate contains A, B and C, then only A is necessary on
+     * the client side (all the chain will be sent to the client).
+     * If the certificate contains only C, but A and B are stored in the
+     * system SSL default paths, then only A is necessary on client side again
+     * (all the chain will be sent to the client).
+     * If the certificate contains only C, and only A is stored in the system
+     * SSL default paths, then A and B are necessary on the client side
+     * (just C will be sent to the client).
+     */
     TlsCfg? tls;
+
+    /** Contents of a trusted certificate file.
+     *
+     * Used only if checkClientCert is set to true.
+     *
+     * In order to validate a certificate, a CA authority is required.
+     * For example, if a certificate is generated from another one, the
+     * parent certificate will be your certification.
+     *
+     * There are default paths where SSL stores the certificates
+     * (see 'OPENSSLDIR' on 'openssl version -a' command).
+     *
+     * If caFile is not set, all certificates present on these default paths
+     * will be used to validate the client certificate.
+     * If this field has a value, only this certificate will be used to
+     * validate the client certificate.
+     *
+     * If a chain of certificates is used by the client, it is necessary to
+     * have all certificates (in this field if set or in your defaults paths;
+     * see previous paragraph) from the parent certificate of the one used in
+     * your client to the root of the chain.
+     *
+     * For example, lets say we have this chain A -> B -> C, with B
+     * certificate signed by A and C signed by B.
+     * If only C is given on client side (and A and B unknown even on SSL
+     * default server paths), then A and B will be necessary on server side
+     * (either in caFile field or in default paths) (only C will be
+     * given to the server during handshake).
+     * But, if B is also given on client side (or B is stored on SSL default
+     * client paths), then, just A will be necessary (because B and C will be
+     * given to the server during handshake).
+     */
+    string? caFile;
+
+   /** Activate client certificate check.
+    *
+    * Activating this will activate mutual TLS authentication (mTLS) feature:
+    * server and client will check each other's certificate.
+    *
+    * If set to true, server will retrieve the client certificate and check
+    * its validity. If this check failed, handshake will be refused.
+    * If set to false, server will not check the client certificate but it
+    * will accept the handshake (that can still be refused by client).
+    */
+    bool checkClientCert = false;
+
+    /** Set max intermediate CA.
+
+     * Defines the maximum number of intermediate CA in order to validate the
+     * client certificate. If the number of intermediate CA is bigger than
+     * the maximum defined in checkCertDepth, the handshake will fail.
+     * If not set, SSL default value is used: 100.
+     */
+    int? checkCertDepth;
 };
 
 struct HttpcCfg {
@@ -241,12 +336,40 @@ struct HttpcCfg {
     /** Maximum total size for headers */
     uint    headerSizeMax    = 64 << 10;
 
-    /** TLS */
+    /** If true, https is used instead of http.
+     */
     bool    tlsOn            = false;
 
-    /** Trusted certificate.
+    /** Contents of a trusted certificate file.
      *
-     * (mandatory with tlsOn = true).
+     * Used only if checkServerCert is set to true.
+     *
+     * In order to validate a certificate, a CA authority is required.
+     * For example, if a certificate is generated from another one, the
+     * parent certificate will be your certification.
+     *
+     * There are default paths where SSL stores the certificates
+     * (see 'OPENSSLDIR' on 'openssl version -a' command).
+     *
+     * If tlsCert is not set, all certificates present on these default paths
+     * will be used to validate the server certificate.
+     * If this field has a value, only this certificate will be used to
+     * validate the server certificate.
+     *
+     * If a chain of certificates is used by the server, it is necessary to
+     * have all certificates (in this field if set or in your defaults paths;
+     * see previous paragraph) from the parent certificate of the one used in
+     * your server to the root of the chain.
+     *
+     * For example, lets say we have this chain A -> B -> C, with B
+     * certificate signed by A and C signed by B.
+     * If only C is given on server side (and A and B unknown even on SSL
+     * default server paths), then A and B will be necessary on client side
+     * (either in tlsCert field or in default paths) (only C will be
+     * given to the client during handshake).
+     * But, if B is also given on server side (or B is stored on SSL default
+     * server paths), then, just A will be necessary (because B and C will be
+     * given to the client during handshake).
      */
     string? tlsCert;
 
@@ -270,6 +393,24 @@ struct HttpcCfg {
     *  Relevant only if \p tlsOn is true.
     bool    fallbackToHttp1    = false;
     */
+
+   /** Activate server certificate check.
+
+    * If set to true, client will retrieve server certificate and check its
+    * validity. If this check fails, handshake will be refused.
+    * If set to false, client will not check server certificate but it will
+    * accept the handshake (that can still be refused by server).
+    */
+    bool checkServerCert = true;
+
+    /** Set max intermediate CA.
+
+     * Defines the maximum number of intermediate CA in order to validate the
+     * server certificate. If the number of intermediate CA is bigger than
+     * the maximum defined in checkCertDepth, the handshake will fail.
+     * If not set, SSL default value is used: 100.
+     */
+    int? checkCertDepth;
 };
 
 enum IopHttpMethod {

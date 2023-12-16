@@ -717,6 +717,7 @@ typedef struct httpc_cfg_t {
     unsigned     header_size_max;
     lstr_t       client_tls_cert;
     lstr_t       client_tls_key;
+    bool         check_server_cert;
 
     SSL_CTX      * nullable ssl_ctx;
     http2_pool_t * nullable http2_pool;
@@ -740,7 +741,6 @@ int httpc_cfg_tls_init(httpc_cfg_t * nonnull cfg, sb_t * nonnull err);
 void httpc_cfg_tls_wipe(httpc_cfg_t * nonnull cfg);
 int
 httpc_cfg_tls_add_verify_file(httpc_cfg_t * nonnull cfg, lstr_t cert_path);
-
 void httpc_close_http2_pool(httpc_cfg_t *nonnull cfg);
 
 struct httpc_t;
