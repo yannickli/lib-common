@@ -16,6 +16,7 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include <sys/file.h>
 #include <lib-common/unix.h>
 #include <lib-common/datetime.h>
 
@@ -26,6 +27,8 @@
 #include <lib-common/iop.h>
 #include <lib-common/core/core.iop.h>
 
+#include <lib-common/file.h>
+
 #include <openssl/ssl.h>
 
 #include "httptokens.h"
@@ -33,9 +36,13 @@
 static struct {
     logger_t logger;
     unsigned http2_conn_count;
+    int      ssl_keylog_fd;
+    char    *ssl_keylog_file_path;
 } http_g = {
 #define _G  http_g
     .logger = LOGGER_INIT_INHERITS(NULL, "http"),
+    .ssl_keylog_fd = -1,
+    .ssl_keylog_file_path = NULL,
 };
 
 /*
@@ -452,6 +459,91 @@ http_clength_patch(outbuf_t *ob, char s[static CLENGTH_RESERVE], unsigned len)
 {
     (sprintf)(s, "%10d\r", len);
     s[CLENGTH_RESERVE - 1] = '\n';
+}
+
+/* }}} */
+/* HTTPS helpers {{{ */
+
+ALWAYS_INLINE static int ssl_add_verify_file(SSL_CTX *ctx, lstr_t path)
+{
+    return SSL_CTX_load_verify_locations(ctx, path.s, NULL) == 1 ? 0 : -1;
+}
+
+#if OPENSSL_VERSION_IS(>,1,1,0)
+
+static int ssl_open_keylog_file(void)
+{
+    if (_G.ssl_keylog_fd >= 0) {
+        return 0;
+    }
+
+    /* Give read and write permission for user only. */
+    _G.ssl_keylog_fd = open(_G.ssl_keylog_file_path,
+                            O_CREAT | O_WRONLY | O_APPEND,
+                            S_IRUSR | S_IWUSR);
+
+    if (_G.ssl_keylog_fd < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static void ssl_keylog_cb(const SSL *ssl, const char *line)
+{
+    /* This callback is called when TLS key is generated or received, so it is
+     * for example called systematically at handshake. It will store the key
+     * for debugging purposes allowing us to decode exchanges. */
+
+    /* If _G.ssl_keylog_file_path is NULL, ssl_keylog_cb is not called. */
+    assert(_G.ssl_keylog_file_path);
+
+    if (ssl_open_keylog_file() < 0) {
+        logger_trace(&_G.logger, 1, "error when trying to open file from "
+                     "env var 'SSLKEYLOGFILE' value '%s': %m",
+                     _G.ssl_keylog_file_path);
+        return;
+    }
+
+    if (flock(_G.ssl_keylog_fd, LOCK_EX) < 0) {
+        logger_trace(&_G.logger, 1, "error when locking SSL key log file: "
+                     " `%m`");
+        return;
+    }
+
+    if ((write(_G.ssl_keylog_fd, line, strlen(line)) < 0) ||
+        (write(_G.ssl_keylog_fd, "\n", 1) < 0))
+    {
+        logger_trace(&_G.logger, 1, "error when writing SSL key: `%m`");
+    }
+
+    flock(_G.ssl_keylog_fd, LOCK_UN);
+}
+
+static void set_ssl_keylog_cb(SSL_CTX *ssl_ctx)
+{
+    if (!_G.ssl_keylog_file_path) {
+        return;
+    }
+
+    if (ssl_open_keylog_file() < 0) {
+        logger_error(&_G.logger, "error when trying to open file from "
+                     "env var 'SSLKEYLOGFILE' value '%s': %m",
+                     _G.ssl_keylog_file_path);
+        return;
+    }
+
+    SSL_CTX_set_keylog_callback(ssl_ctx, ssl_keylog_cb);
+}
+
+#endif
+
+static void close_ssl_keylog_file(void)
+{
+    if (p_close(&_G.ssl_keylog_fd) < 0) {
+        logger_error(&_G.logger, "error when closing file `%s`: `%m`",
+                     _G.ssl_keylog_file_path);
+    }
 }
 
 /* }}} */
@@ -1492,6 +1584,15 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     return cfg;
 }
 
+static void httpd_cfg_tls_wipe(httpd_cfg_t *cfg)
+{
+    if (cfg->ssl_ctx) {
+        close_ssl_keylog_file();
+        SSL_CTX_free(cfg->ssl_ctx);
+        cfg->ssl_ctx = NULL;
+    }
+}
+
 static int
 httpd_ssl_alpn_select_protocol_cb(SSL *ssl, const unsigned char **out,
                                   unsigned char *outlen,
@@ -1563,6 +1664,7 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
         SSL_CTX *ctx;
         core__tls_cert_and_key__t *data;
         SB_1k(errbuf);
+        int flags;
 
         data = IOP_UNION_GET(core__tls_cfg, iop_cfg->tls, data);
         if (!data) {
@@ -1571,12 +1673,53 @@ int httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
             logger_panic(&_G.logger, "TLS data are not provided");
         }
 
+        flags = iop_cfg->check_client_cert ? SSL_VERIFY_PEER |
+           SSL_VERIFY_FAIL_IF_NO_PEER_CERT: SSL_VERIFY_NONE;
+
         ctx = ssl_ctx_new_tls(TLS_server_method(), data->key, data->cert,
-                              SSL_VERIFY_NONE, NULL, &errbuf);
+                              flags, NULL, &errbuf);
         httpd_cfg_set_ssl_ctx(cfg, ctx);
         if (!cfg->ssl_ctx) {
             logger_fatal(&_G.logger, "couldn't initialize SSL_CTX: %*pM",
                          SB_FMT_ARG(&errbuf));
+        }
+
+        if (iop_cfg->check_client_cert) {
+            if (iop_cfg->ca_file.s) {
+                char path[PATH_MAX] = "/tmp/tls-cert-XXXXXX";
+                int ret;
+
+                ret = write_in_tmp_file(path, iop_cfg->ca_file.s,
+                                        iop_cfg->ca_file.len, &errbuf);
+                if (ret < 0) {
+                    httpd_cfg_tls_wipe(cfg);
+                    logger_error(&_G.logger,
+                                 "tls: failed to dump certificate: %*pM",
+                                 SB_FMT_ARG(&errbuf));
+                    return -1;
+                }
+
+                ret = ssl_add_verify_file(cfg->ssl_ctx, LSTR(path));
+                unlink(path);
+
+                if (ret < 0) {
+                    httpd_cfg_tls_wipe(cfg);
+                    logger_error(&_G.logger,
+                                 "tls: failed to load certificate");
+                    return -1;
+                }
+            } else {
+                SSL_CTX_set_default_verify_paths(cfg->ssl_ctx);
+            }
+        }
+
+#if OPENSSL_VERSION_IS(>,1,1,0)
+        set_ssl_keylog_cb(cfg->ssl_ctx);
+#endif
+
+        if (OPT_ISSET(iop_cfg->check_cert_depth)) {
+            SSL_CTX_set_verify_depth(cfg->ssl_ctx,
+                                     OPT_VAL(iop_cfg->check_cert_depth));
         }
     }
 
@@ -1588,19 +1731,15 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
     for (int i = 0; i < countof(cfg->roots); i++) {
         httpd_trigger_node_wipe(&cfg->roots[i]);
     }
-    if (cfg->ssl_ctx) {
-        SSL_CTX_free(cfg->ssl_ctx);
-        cfg->ssl_ctx = NULL;
-    }
+    httpd_cfg_tls_wipe(cfg);
     assert (dlist_is_empty(&cfg->httpd_list));
     assert (dlist_is_empty(&cfg->http2_httpd_list));
 }
 
 void httpd_cfg_set_ssl_ctx(httpd_cfg_t *nonnull cfg, SSL_CTX *nullable ctx)
 {
-    if (cfg->ssl_ctx) {
-        SSL_CTX_free(cfg->ssl_ctx);
-    }
+    httpd_cfg_tls_wipe(cfg);
+
     cfg->ssl_ctx = ctx;
     if (ctx) {
         SSL_CTX_set_alpn_select_cb(cfg->ssl_ctx,
@@ -2483,11 +2622,14 @@ static int (*httpc_parsers[])(httpc_t *w, pstream_t *ps) = {
 int httpc_cfg_tls_init(httpc_cfg_t *cfg, sb_t *err)
 {
     SSL_CTX *ctx;
+    int flags;
 
     assert (cfg->ssl_ctx == NULL);
 
+    flags = cfg->check_server_cert ? SSL_VERIFY_PEER: SSL_VERIFY_NONE;
     ctx = ssl_ctx_new_tls(TLS_client_method(), cfg->client_tls_key,
-                          cfg->client_tls_cert, SSL_VERIFY_PEER, NULL, err);
+                          cfg->client_tls_cert, flags, NULL, err);
+
     httpc_cfg_set_ssl_ctx(cfg, ctx);
     return cfg->ssl_ctx ? 0 : -1;
 }
@@ -2495,6 +2637,7 @@ int httpc_cfg_tls_init(httpc_cfg_t *cfg, sb_t *err)
 void httpc_cfg_tls_wipe(httpc_cfg_t *cfg)
 {
     if (cfg->ssl_ctx) {
+        close_ssl_keylog_file();
         SSL_CTX_free(cfg->ssl_ctx);
         cfg->ssl_ctx = NULL;
     }
@@ -2502,8 +2645,7 @@ void httpc_cfg_tls_wipe(httpc_cfg_t *cfg)
 
 int httpc_cfg_tls_add_verify_file(httpc_cfg_t *cfg, lstr_t path)
 {
-    return SSL_CTX_load_verify_locations(cfg->ssl_ctx, path.s, NULL) == 1
-         ? 0 : -1;
+    return ssl_add_verify_file(cfg->ssl_ctx, path);
 }
 
 httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg)
@@ -2536,15 +2678,7 @@ int httpc_cfg_from_iop(httpc_cfg_t *cfg, const core__httpc_cfg__t *iop_cfg)
 
     if (iop_cfg->tls_on) {
         SB_1k(err);
-        char path[PATH_MAX] = "/tmp/tls-cert-XXXXXX";
-        int fd;
-        int ret;
         core__tls_cert_and_key__t *data;
-
-        if (!iop_cfg->tls_cert.s) {
-            logger_error(&_G.logger, "tls: no certificate provided");
-            return -1;
-        }
 
         if (iop_cfg->tls_client) {
             data = IOP_UNION_GET(core__tls_cfg, iop_cfg->tls_client, data);
@@ -2557,32 +2691,47 @@ int httpc_cfg_from_iop(httpc_cfg_t *cfg, const core__httpc_cfg__t *iop_cfg)
             cfg->client_tls_key = lstr_dup(data->key);
         }
 
+        cfg->check_server_cert = iop_cfg->check_server_cert;
+
         if (httpc_cfg_tls_init(cfg, &err) < 0) {
             logger_error(&_G.logger, "tls: init: %*pM", SB_FMT_ARG(&err));
             return -1;
         }
 
-        if ((fd = mkstemp(path)) < 0) {
-            logger_error(&_G.logger, "tls: failed to create a temporary path "
-                         "to dump certificate: %m");
-            return -1;
+        if (cfg->check_server_cert) {
+            if (iop_cfg->tls_cert.s) {
+                char path[PATH_MAX] = "/tmp/tls-cert-XXXXXX";
+                int ret;
+
+                ret = write_in_tmp_file(path, iop_cfg->tls_cert.s,
+                                             iop_cfg->tls_cert.len, &err);
+                if (ret < 0) {
+                    httpc_cfg_tls_wipe(cfg);
+                    logger_error(&_G.logger, "tls: failed to dump certificate: "
+                                 "%*pM", SB_FMT_ARG(&err));
+                    return -1;
+                }
+
+                ret = ssl_add_verify_file(cfg->ssl_ctx, LSTR(path));
+                unlink(path);
+
+                if (ret < 0) {
+                    httpc_cfg_tls_wipe(cfg);
+                    logger_error(&_G.logger, "tls: failed to load certificate");
+                    return -1;
+                }
+            } else {
+                SSL_CTX_set_default_verify_paths(cfg->ssl_ctx);
+            }
         }
 
-        ret = xwrite(fd, iop_cfg->tls_cert.s, iop_cfg->tls_cert.len);
-        p_close(&fd);
-        if (ret < 0) {
-            logger_error(&_G.logger, "tls: failed to dump certificate in "
-                         "temporary file `%s`: %m", path);
-            unlink(path);
-            return -1;
-        }
+#if OPENSSL_VERSION_IS(>,1,1,0)
+        set_ssl_keylog_cb(cfg->ssl_ctx);
+#endif
 
-        ret = httpc_cfg_tls_add_verify_file(cfg, LSTR(path));
-        unlink(path);
-        if (ret < 0) {
-            httpc_cfg_tls_wipe(cfg);
-            logger_error(&_G.logger, "tls: failed to load certificate");
-            return -1;
+        if (OPT_ISSET(iop_cfg->check_cert_depth)) {
+            SSL_CTX_set_verify_depth(cfg->ssl_ctx,
+                                     OPT_VAL(iop_cfg->check_cert_depth));
         }
     }
 
@@ -2975,6 +3124,7 @@ static int httpc_on_connect(el_t evh, int fd, short events, data_t priv)
         if (w->cfg->ssl_ctx) {
             w->ssl = SSL_new(w->cfg->ssl_ctx);
             assert (w->ssl);
+            SSL_set_tlsext_host_name(w->ssl, w->pool->host.s);
             SSL_set_fd(w->ssl, fd);
             SSL_set_connect_state(w->ssl);
             el_fd_set_hook(evh, &httpc_tls_handshake);
@@ -7410,11 +7560,19 @@ static void httpd_http2_set_mask(httpd_t *w)
 
 static int http_initialize(void *arg)
 {
+    const char *ssl_keylog_file_path = getenv("SSLKEYLOGFILE");
+
+    if (ssl_keylog_file_path && strlen(ssl_keylog_file_path)) {
+        _G.ssl_keylog_file_path = strdup(ssl_keylog_file_path);
+    }
+
     return 0;
 }
 
 static int http_shutdown(void)
 {
+    p_delete(&_G.ssl_keylog_file_path);
+
     return 0;
 }
 
