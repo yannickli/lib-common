@@ -69,6 +69,7 @@ struct z_export *z_exports_g;
 
 static struct {
     bool          stopping;
+    bool          do_fancy_output;
     int           res;
     char         *wd;
     struct z_grp  grp;
@@ -473,7 +474,7 @@ static void sb_adduc_escaped(sb_t *sb, int c)
  */
 static void z_sb_set_color(sb_t *sb, const char *color_fmt)
 {
-    if (is_fancy_fd(STDERR_FILENO)) {
+    if (_G.do_fancy_output) {
         sb_addf(sb, "\e[%sm", color_fmt);
     }
 }
@@ -1243,6 +1244,9 @@ int z_setup(int argc, char **argv)
             e_warning("cannot create %s: %m", _G.tmp_dir);
         }
     }
+
+    /* Fancy output */
+    _G.do_fancy_output = (is_fancy_fd(STDERR_FILENO) && !getenv("Z_HARNESS"));
 
     /* Specific tests to run. */
     for (int i = 0; i < argc; i++) {
