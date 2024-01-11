@@ -16,10 +16,14 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_BUF_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_BUF_H
 #define IS_LIB_COMMON_STR_BUF_H
+
+#include "stdlib.h"
+#include "mem.h"
+#include "str-conv.h"
+#include "str-ctype.h"
+#include "str-l.h"
 
 /* sb_t is a wrapper type for a reallocatable byte array.  Its internal
  * representation is accessible to client code but care must be exercised to

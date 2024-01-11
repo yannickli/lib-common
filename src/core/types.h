@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_TYPES_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_TYPES_H
 #define IS_LIB_COMMON_CORE_TYPES_H
+
+#include "stdinc.h"
+#include "macros.h"
 
 /* Spinlock {{{ */
 
@@ -240,4 +241,4 @@ CORE_CMP_BLOCK(cstr, const char * nonnull);
 
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_TYPES_H */

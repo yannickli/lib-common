@@ -16,10 +16,15 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_L_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_L_H
 #define IS_LIB_COMMON_STR_L_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "mem.h"
+#include "mem-stack.h"
+#include "str-conv.h"
+#include "str-ctype.h"
 
 /** \brief representation of a string with length.
  *
@@ -828,4 +833,4 @@ lstr_t lstr_trim_pkcs7_padding(lstr_t padded);
 #define t_lstr_vfmt(fmt, va)  mp_lstr_vfmt(t_pool(), fmt, va)
 
 /* }}} */
-#endif
+#endif /* IS_LIB_COMMON_STR_L_H */

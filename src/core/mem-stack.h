@@ -16,12 +16,13 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MEM_STACK_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_MEM_STACK_H
 #define IS_LIB_COMMON_CORE_MEM_STACK_H
 
 #include <lib-common/container-dlist.h>
+
+#include "macros.h"
+#include "mem.h"
 
 /*
  * Stacked memory allocator
@@ -365,4 +366,4 @@ class TScope {
     TScope PFX_LINE(t_scope_because_cpp_sucks_donkeys_)
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_MEM_STACK_H */

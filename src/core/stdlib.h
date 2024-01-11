@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_STDLIB_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_STDLIB_H
 #define IS_LIB_COMMON_CORE_STDLIB_H
+
+#include "stdinc.h"
+#include "macros.h"
 
 /*----- core-havege.c -----*/
 
@@ -100,4 +101,4 @@ extern int core_deps_revision_nb_g;
 void core_push_dep_revision(const char * nonnull dep_name,
                             const char * nonnull dep_revision);
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_STDLIB_H */

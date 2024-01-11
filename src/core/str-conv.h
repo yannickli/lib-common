@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_CONV_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_CONV_H
 #define IS_LIB_COMMON_STR_CONV_H
+
+#include "stdinc.h"
+#include "macros.h"
 
 extern uint8_t const __str_digit_value[128 + 256];
 extern char const __str_digits_upper[36];

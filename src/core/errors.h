@@ -16,12 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_ERRORS_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_ERRORS_H
 #define IS_LIB_COMMON_CORE_ERRORS_H
 
-#include <syslog.h>
+#include "stdinc.h"
+#include "macros.h"
+#include "types.h"
 
 typedef void (e_handler_f)(int, const char * nonnull, va_list)
     __attr_printf__(2, 0);

@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_BIHACKS_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_BIHACKS_H
 #define IS_LIB_COMMON_CORE_BIHACKS_H
+
+#include "stdinc.h"
+#include "macros.h"
 
 #if (SIZE_MAX == UINT32_MAX)
 #  define DO_SZ(f)  f##32
@@ -166,4 +167,4 @@ size_t membitcount_ssse3(const void * nonnull ptr, size_t n);
 size_t membitcount_popcnt(const void * nonnull ptr, size_t n);
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_BIHACKS_H */

@@ -16,10 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_IPRINTF_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_IPRINTF_H
 #define IS_LIB_COMMON_STR_IPRINTF_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "mem.h"
 
 int iprintf(const char * nonnull format, ...)
         __leaf __attr_printf__(1, 2);
@@ -203,5 +205,6 @@ ssize_t formatter_write(FILE * nullable stream,
                         char * nullable buf, size_t buf_len,
                         const char * nonnull s, size_t len);
 
+/* }}} */
 
 #endif /* IS_LIB_COMMON_STR_IPRINTF_H */

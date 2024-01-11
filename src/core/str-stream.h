@@ -16,10 +16,14 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_STREAM_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_STREAM_H
 #define IS_LIB_COMMON_STR_STREAM_H
+
+#include "macros.h"
+#include "mem-stack.h"
+#include "str-buf.h"
+#include "str-l.h"
+#include "str-num.h"
 
 /*
  * pstream_t's are basically a pointer and a length
@@ -957,4 +961,4 @@ static inline void sb_add_ps(sb_t * nonnull sb, pstream_t ps)
     sb_add(sb, ps.s, ps_len(&ps));
 }
 
-#endif
+#endif /* IS_LIB_COMMON_STR_STREAM_H */

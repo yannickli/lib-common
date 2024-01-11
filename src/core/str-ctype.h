@@ -16,10 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_CTYPE_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_CTYPE_H
 #define IS_LIB_COMMON_STR_CTYPE_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "mem.h"
 
 /* @typedef ctype_desc_t
  * @brief is an array of 256 bits which represents in
@@ -116,4 +118,4 @@ static inline void ctype_desc_invert(ctype_desc_t * nonnull d)
         d->tab[i] = ~(d->tab[i]);
 }
 
-#endif
+#endif /* IS_LIB_COMMON_STR_CTYPE_H */

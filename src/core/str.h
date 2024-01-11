@@ -16,10 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_STR__H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_STR_H
 #define IS_LIB_COMMON_CORE_STR_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "str-l.h"
 
 /* Simple helpers {{{ */
 

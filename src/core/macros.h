@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MACROS_H)
-# error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_MACROS_H
 #define IS_LIB_COMMON_CORE_MACROS_H
+
+#include "stdinc.h"
+#include "os-features.h"
 
 /** \defgroup generic_macros Intersec Generic Macros.
  * \{
@@ -710,4 +711,4 @@ typedef unsigned char byte;
 
 /* }}} */
 /** \} */
-#endif
+#endif /* IS_LIB_COMMON_CORE_MACROS_H */

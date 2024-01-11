@@ -16,10 +16,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_BLOCKS_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_BLOCKS_H
 #define IS_LIB_COMMON_CORE_BLOCKS_H
+
+#include "stdinc.h"
+#include "macros.h"
 
 #ifdef __BLOCKS__
 #   define __has_blocks
@@ -59,4 +60,4 @@ static inline void block_run_and_release(void * nonnull blk_)
 
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_BLOCKS_H */

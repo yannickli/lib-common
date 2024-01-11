@@ -16,10 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_STR_NUM_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_STR_NUM_H
 #define IS_LIB_COMMON_STR_NUM_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "mem-stack.h"
 
 /* Wrappers to fix constness issue in strtol() */
 __attr_nonnull__((1))
@@ -184,4 +186,4 @@ static inline double memtod(const void * nonnull s, int len,
     return strtod((const char *)s, (char **)endptr);
 }
 
-#endif
+#endif /* IS_LIB_COMMON_STR_NUM_H */

@@ -16,10 +16,13 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MEM_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_MEM_H
 #define IS_LIB_COMMON_CORE_MEM_H
+
+#include "stdinc.h"
+#include "macros.h"
+#include "errors.h"
+#include "bithacks.h"
 
 /* Memory Copy/Move {{{ */
 /**************************************************************************/
@@ -1026,4 +1029,4 @@ void mem_tool_freelike(const void * nullable mem, size_t len, size_t rz);
 
 /* }}} */
 
-#endif
+#endif /* IS_LIB_COMMON_CORE_MEM_H */

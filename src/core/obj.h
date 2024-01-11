@@ -16,12 +16,12 @@
 /*                                                                         */
 /***************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_OBJ_H)
-#  error "you must include core.h instead"
-#else
+#ifndef IS_LIB_COMMON_CORE_OBJ_H
 #define IS_LIB_COMMON_CORE_OBJ_H
 
-#include <lib-common/core.h>
+#include "stdinc.h"
+#include "macros.h"
+#include "mem.h"
 
 /** \defgroup lc_obj Intersec Object Oriented C
  *
@@ -807,4 +807,4 @@ object_reference_scope_wipe(object_reference_scope_t *nonnull scope)
 /* }}} */
 
 /**\}*/
-#endif
+#endif /* IS_LIB_COMMON_CORE_OBJ_H */
