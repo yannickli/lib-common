@@ -401,6 +401,26 @@ class PylintClass(BuildContext):
 
 
 # }}}
+# {{{ doxygen
+
+
+def run_doxygen(ctx):
+    if ctx.cmd != 'doxygen':
+        return
+
+    # Run doxygen after everything is compiled
+    with ctx.UseGroup(ctx, 'doxygen'):
+        # Create the doxygen rule
+        ctx(rule='doxygen', cwd=ctx.srcnode, shell=True,
+            stdout=None, stderr=None, always=True)
+
+
+class DoxygenClass(BuildContext):
+    '''run doxygen doc generation'''
+    cmd = 'doxygen'
+
+
+# }}}
 
 # {{{ configure
 
@@ -430,6 +450,7 @@ def build(ctx):
     # Register pre/post functions
     ctx.add_pre_fun(add_scan_in_signature)
     ctx.add_pre_fun(run_pylint)
+    ctx.add_pre_fun(run_doxygen)
     ctx.add_post_fun(run_checks)
 
 

@@ -450,8 +450,9 @@ def build(ctx):
     #  - one for compiling clang-rewrite-blocks
     #  - one for compiling farchc
     #  - one for compiling iopc
-    #  - one for compiling pxc (used in the tools repository)
+    #  - one for compiling pxcc (used in the tools repository)
     #  - one for generating/compiling code after then.
+    #  - one for doxygen after everything as been compiled.
     #
     # This way we are sure farchc is generated before iopc (needed because it
     # uses a farch file), and iopc is generated before building the IOP files.
@@ -462,6 +463,7 @@ def build(ctx):
     ctx.add_group('iopc')
     ctx.add_group('pxcc')
     ctx.add_group('code_compiling')
+    ctx.add_group('doxygen')
 
     load_tools(ctx)
 
