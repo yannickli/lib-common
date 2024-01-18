@@ -26,5 +26,8 @@ mem.fifo.data.*
 *.pyx.c
 *.pyx.h
 
+# doxygen
+/docs/doxygen/*
+
 /compile_commands.json
 /iop_compile_commands.json
