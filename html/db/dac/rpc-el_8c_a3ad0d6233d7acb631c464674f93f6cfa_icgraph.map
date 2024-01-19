@@ -1,0 +1,7 @@
+<map id="ic_el_client_sync_connect_locked" name="ic_el_client_sync_connect_locked">
+<area shape="rect" id="Node000001" title="Synchronously connect the client with the el mutex locked." alt="" coords="227,23,400,64"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#ad2091c7b6c6d08d767130403a26c4230" title="Synchronously call an RPC with the IC EL client." alt="" coords="18,5,166,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="211,34,166,29,166,24,211,29"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a09e1f75cc8dc9524e55a885d25b7f03d" title="Synchronously connect the IC EL client." alt="" coords="5,55,179,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="212,57,180,61,179,55,211,52"/>
+</map>

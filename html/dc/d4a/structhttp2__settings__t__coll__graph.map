@@ -1,0 +1,5 @@
+<map id="http2_settings_t" name="http2_settings_t">
+<area shape="rect" id="Node000001" title="Settings of HTTP2 framing layer as per RFC7540/RFC9113." alt="" coords="5,169,189,294"/>
+<area shape="rect" id="Node000002" href="$d1/d20/structopt__u32__t.html" title=" " alt="" coords="47,5,148,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,90,100,152,95,152,95,90"/>
+</map>

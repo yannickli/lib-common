@@ -1,0 +1,13 @@
+<map id="z_create_tmp_subdir" name="z_create_tmp_subdir">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,147,56"/>
+<area shape="rect" id="Node000002" href="$d6/dd2/unix_8blk.html#ac44e57bb00251727d89cfcd888ca95c2" title="Create a directory path as mkdir &#45;p." alt="" coords="195,31,262,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,41,179,41,179,46,147,46"/>
+<area shape="rect" id="Node000003" href="$d6/dd2/unix_8blk.html#a9b10656439b069ad3a4d42e31e582cb1" title="Create a subdirectory path as mkdir &#45;p." alt="" coords="310,31,388,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,41,295,41,295,46,263,46"/>
+<area shape="rect" id="Node000004" href="$d9/d9a/mem_8h.html#a2802b921775732b82e8bdd44313fe24a" title=" " alt="" coords="436,5,509,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="388,33,420,26,421,31,389,38"/>
+<area shape="rect" id="Node000005" href="$d9/d9a/mem_8h.html#ac6666dfc404402cb2de833e453df3a60" title="Copies the string pointed to by src to the buffer dest of size bytes." alt="" coords="441,55,504,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="389,48,426,56,425,61,388,54"/>
+<area shape="rect" id="Node000006" href="$d9/d9a/mem_8h.html#a65a75486be9aedadf3b957fbd5fdc146" title="Copies at n characters from the string pointed to by src to the buffer dest of size bytes." alt="" coords="557,55,649,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="505,65,541,65,541,70,505,70"/>
+</map>

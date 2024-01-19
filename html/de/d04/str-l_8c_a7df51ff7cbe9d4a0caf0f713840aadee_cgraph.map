@@ -1,0 +1,5 @@
+<map id="lstr_match_ctype" name="lstr_match_ctype">
+<area shape="rect" id="Node000001" title="Checks if the input string has only characters in the given ctype." alt="" coords="5,5,126,31"/>
+<area shape="rect" id="Node000002" href="$dd/def/str-ctype_8h.html#ae0cf190bab0c8d79a8562678e7661aad" title=" " alt="" coords="174,5,317,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="126,16,158,16,158,21,126,21"/>
+</map>

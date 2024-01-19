@@ -1,0 +1,17 @@
+<map id="iop_value_to_ptr" name="iop_value_to_ptr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,105,122,131"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#af16bda4ccce06ee6cfd01f2b0e366ee0" title=" " alt="" coords="170,68,304,94"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,103,158,95,160,100,123,108"/>
+<area shape="rect" id="Node000007" href="$df/d0a/str-l_8h.html#a6a200ca09358f19b13a8e297cda34869" title="returns a constant copy of \v s." alt="" coords="200,129,274,155"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="123,124,185,132,184,138,122,129"/>
+<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a766d8c1f5a9d3e12bba0150208905df0" title=" " alt="" coords="364,5,487,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="277,65,351,40,368,34,370,39,353,45,279,70"/>
+<area shape="rect" id="Node000005" href="$d3/d40/iop_8h.html#aefeceb12938118fa0e6a7ec4beed0049" title=" " alt="" coords="352,55,498,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="304,73,336,71,337,76,304,79"/>
+<area shape="rect" id="Node000006" href="$d0/d2d/iop_8blk.html#af138a610122e2e92f0bad6e5c05432bd" title="Return whether the IOP type is scalar or not." alt="" coords="361,104,489,130"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="305,91,346,99,345,104,304,96"/>
+<area shape="rect" id="Node000004" href="$d3/d40/iop_8h.html#a07f21da2d3381b98dd6f6bbd642d2130" title=" " alt="" coords="546,5,680,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="487,16,531,16,531,21,487,21"/>
+<area shape="rect" id="Node000008" href="$df/d0a/str-l_8h.html#a3b4dbe9c4cc70340cba0787574dc1c5e" title=" " alt="" coords="390,153,460,179"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="275,144,375,157,374,162,274,149"/>
+</map>

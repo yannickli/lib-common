@@ -1,0 +1,7 @@
+<map id="qps_map_pg_snapshot" name="qps_map_pg_snapshot">
+<area shape="rect" id="Node000001" title=" " alt="" coords="327,5,482,31"/>
+<area shape="rect" id="Node000002" href="$d0/df7/qps_8blk.html#afb6083a9f26277bd316462514efabd75" title=" " alt="" coords="156,5,279,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="312,21,279,21,279,16,312,16"/>
+<area shape="rect" id="Node000003" href="$d0/df7/qps_8blk.html#a913ee1fd5c281f44c36b47e9c7bfd7dd" title="take a qps snapshot." alt="" coords="5,5,108,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="140,21,108,21,108,16,140,16"/>
+</map>

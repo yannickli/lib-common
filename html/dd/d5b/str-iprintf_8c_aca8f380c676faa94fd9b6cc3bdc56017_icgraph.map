@@ -1,0 +1,11 @@
+<map id="iprintf_register_formatter" name="iprintf_register_formatter">
+<area shape="rect" id="Node000001" title="Register a formatter for the provided modifier." alt="" coords="479,31,642,56"/>
+<area shape="rect" id="Node000002" href="$da/d15/json_8blk.html#a0550cb32d9359615696bd011bc0c5693" title=" " alt="" coords="335,5,431,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="463,32,431,28,432,22,464,27"/>
+<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#a88cd2aeefcd61b9fa99e631290c46997" title=" " alt="" coords="338,55,429,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="464,59,430,64,429,59,463,54"/>
+<area shape="rect" id="Node000004" href="$d0/d2d/iop_8blk.html#a95bd9efc9a7e7d477e6db0a82e383fde" title=" " alt="" coords="150,55,287,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="322,70,287,70,287,65,322,65"/>
+<area shape="rect" id="Node000005" href="$d7/df8/log_8c.html#a083b2e840cc4afee2f08f66c46f4d64d" title=" " alt="" coords="5,55,102,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="134,70,102,70,102,65,134,65"/>
+</map>

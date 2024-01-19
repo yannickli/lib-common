@@ -1,0 +1,21 @@
+<map id="bs_get_bs_bit_and_skip" name="bs_get_bs_bit_and_skip">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,167,56"/>
+<area shape="rect" id="Node000002" href="$d8/d1b/bit-stream_8h.html#a9314cf527c89c282a39950c0ef72b97f" title=" " alt="" coords="226,5,306,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,29,210,23,211,29,167,35"/>
+<area shape="rect" id="Node000004" href="$d8/d1b/bit-stream_8h.html#a7fb146ea885ade7249ffe19b5465bd31" title=" " alt="" coords="215,55,317,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="167,52,200,56,199,61,167,57"/>
+<area shape="rect" id="Node000003" href="$d8/d1b/bit-stream_8h.html#ac7c3f7fc264c42a4d53cf5bd3b4e8f49" title=" " alt="" coords="383,5,482,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,16,367,16,367,21,306,21"/>
+<area shape="rect" id="Node000005" href="$d8/d1b/bit-stream_8h.html#ac3c016f5dd54fd5952bdd8250feea2d6" title=" " alt="" coords="369,55,496,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="318,65,353,65,353,70,318,70"/>
+<area shape="rect" id="Node000006" href="$d8/d1b/bit-stream_8h.html#ade9058d4771d71bb45030edfb74049a8" title=" " alt="" coords="365,104,499,130"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="313,78,372,96,371,102,311,84"/>
+<area shape="rect" id="Node000007" href="$d8/d1b/bit-stream_8h.html#a6cd3e2dd5a071992eff09950706b07e6" title=" " alt="" coords="547,79,607,104"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="499,102,531,97,532,102,500,108"/>
+<area shape="rect" id="Node000008" href="$d6/d2b/bithacks_8c.html#a6edf0de4bf9928970cf9cc878c784a43" title="Find the first bit at 1 or 0 in a sequence of bits." alt="" coords="557,128,597,154"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="500,125,542,133,542,138,499,131"/>
+<area shape="rect" id="Node000009" href="$d6/d2b/bithacks_8c.html#abfabad13a2d9cd704eff61b1090a60cf" title="Allow to access to a byte as an uint64_t without valgrind warnings." alt="" coords="655,128,833,154"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="597,138,639,138,639,144,597,144"/>
+<area shape="rect" id="Node000010" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="881,128,1049,154"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="833,138,865,138,865,144,833,144"/>
+</map>

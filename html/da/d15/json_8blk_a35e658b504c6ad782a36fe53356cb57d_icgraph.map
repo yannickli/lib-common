@@ -1,0 +1,27 @@
+<map id="unpack_union" name="unpack_union">
+<area shape="rect" id="Node000001" title=" " alt="" coords="573,131,674,156"/>
+<area shape="poly" id="edge17_Node000001_Node000001" title=" " alt="" coords="645,118,638,112,623,109,610,111,603,116,601,122,605,129,600,131,596,122,598,113,608,106,623,104,640,107,649,113"/>
+<area shape="rect" id="Node000002" href="$da/d15/json_8blk.html#a15830199ba94987c87edfef60871591c" title=" " alt="" coords="166,5,256,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="563,128,255,34,256,29,565,123"/>
+<area shape="rect" id="Node000004" href="$da/d15/json_8blk.html#ac3e2708e183ae06d065ec3d9f5b6efe6" title=" " alt="" coords="455,131,525,156"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="557,155,525,154,525,149,557,150"/>
+<area shape="rect" id="Node000006" href="$da/d15/json_8blk.html#a6c0ea4d53fbd6a0f997bac5dbc305e8d" title=" " alt="" coords="167,155,255,180"/>
+<area shape="poly" id="edge18_Node000001_Node000006" title=" " alt="" coords="593,165,525,183,415,199,304,195,233,184,234,178,304,190,415,193,524,178,592,160"/>
+<area shape="rect" id="Node000003" href="$da/d15/json_8blk.html#a95647e5808c60fc30643e189b80fafc4" title=" " alt="" coords="5,5,118,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="150,21,118,21,118,16,150,16"/>
+<area shape="poly" id="edge15_Node000004_Node000001" title=" " alt="" coords="540,132,572,132,572,137,540,137"/>
+<area shape="rect" id="Node000005" href="$da/d15/json_8blk.html#a9d7093d9643fe6a219c97bb34534d8ac" title="Unpack a JSON array into a C array." alt="" coords="19,111,104,136"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="440,140,407,133,323,125,240,124,105,129,104,123,240,118,324,120,408,128,441,135"/>
+<area shape="poly" id="edge16_Node000004_Node000006" title=" " alt="" coords="441,164,408,171,327,177,255,174,255,169,327,172,407,166,440,159"/>
+<area shape="rect" id="Node000007" href="$da/d15/json_8blk.html#a27e7b54c13f1ef6ca370923cd8cdc4ab" title="Unpack a json struct into a C struct." alt="" coords="304,131,407,156"/>
+<area shape="poly" id="edge14_Node000004_Node000007" title=" " alt="" coords="440,155,408,155,408,150,440,150"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="119,106,179,99,251,95,330,96,408,104,447,113,478,128,476,133,445,118,407,109,330,101,252,100,180,104,120,111"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="120,129,188,152,186,157,118,134"/>
+<area shape="poly" id="edge12_Node000006_Node000001" title=" " alt="" coords="270,163,304,166,415,169,524,154,572,144,573,149,525,159,415,175,304,171,270,168"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="151,162,84,139,86,134,153,157"/>
+<area shape="poly" id="edge13_Node000006_Node000006" title=" " alt="" coords="235,142,227,136,211,133,196,135,188,140,186,146,191,153,186,156,181,146,184,137,194,130,211,128,229,131,238,137"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="260,148,303,141,304,146,261,153"/>
+<area shape="poly" id="edge9_Node000007_Node000002" title=" " alt="" coords="326,122,226,33,229,29,330,118"/>
+<area shape="poly" id="edge10_Node000007_Node000004" title=" " alt="" coords="423,132,455,133,455,138,423,137"/>
+<area shape="poly" id="edge11_Node000007_Node000006" title=" " alt="" coords="306,163,255,171,254,166,306,158"/>
+</map>

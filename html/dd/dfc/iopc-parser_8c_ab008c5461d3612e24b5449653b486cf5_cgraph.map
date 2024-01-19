@@ -1,0 +1,9 @@
+<map id="get_type_kind" name="get_type_kind">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,107,31"/>
+<area shape="rect" id="Node000002" href="$dd/dfc/iopc-parser_8c.html#a1eaf9ec41097a8e2140d217969cd0229" title="Get iop type from a type name." alt="" coords="155,5,249,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,16,139,16,139,21,107,21"/>
+<area shape="rect" id="Node000003" href="$d1/dcc/iopctokens_8h.html#a80092650e27dff51274243fa0755ee9b" title=" " alt="" coords="297,5,431,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="249,16,282,16,282,21,249,21"/>
+<area shape="rect" id="Node000004" href="$de/dd0/iopctokens_8c.html#afd6914827c099c39f89fbd22448a8774" title=" " alt="" coords="479,5,589,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="432,16,464,16,464,21,432,21"/>
+</map>

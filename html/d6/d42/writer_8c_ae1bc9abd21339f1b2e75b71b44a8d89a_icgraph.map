@@ -1,0 +1,27 @@
+<map id="asn1_alloc_seq_of" name="asn1_alloc_seq_of">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1374,82,1503,108"/>
+<area shape="rect" id="Node000002" href="$d6/d42/writer_8c.html#a331023de9463ad4d7902cdf3300418ab" title=" " alt="" coords="1197,108,1326,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1359,109,1326,114,1326,108,1358,104"/>
+<area shape="rect" id="Node000007" href="$d6/d42/writer_8c.html#a4e255b03ffc64ea6eeaf9567187084bc" title=" " alt="" coords="440,5,584,46"/>
+<area shape="poly" id="edge15_Node000001_Node000007" title=" " alt="" coords="1363,81,1231,59,1155,50,1079,47,895,47,728,43,584,34,585,29,728,37,895,42,1079,42,1155,45,1232,53,1364,76"/>
+<area shape="rect" id="Node000003" href="$d6/d42/writer_8c.html#a2a4d04f44bb1e6520b812a9a4cb855e7" title=" " alt="" coords="1006,196,1149,221"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1222,143,1150,179,1110,197,1108,192,1148,174,1220,138"/>
+<area shape="rect" id="Node000009" href="$d6/d42/writer_8c.html#a202971cefcb81bce243bb9ddf7e50f73" title=" " alt="" coords="5,145,167,171"/>
+<area shape="poly" id="edge14_Node000002_Node000009" title=" " alt="" coords="1182,136,1049,152,973,158,898,160,510,160,167,160,167,155,510,155,898,155,973,153,1049,147,1182,130"/>
+<area shape="rect" id="Node000004" href="$d6/d42/writer_8c.html#a7163773c50921438f6663a9e83930d73" title=" " alt="" coords="835,196,958,221"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="991,211,959,211,959,206,991,206"/>
+<area shape="rect" id="Node000005" href="$d6/d42/writer_8c.html#a5760e7b97aed25cfbc59243584efd6f5" title="Unpack a given payload following an asn1 description." alt="" coords="666,246,771,272"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="835,228,767,248,765,243,833,223"/>
+<area shape="rect" id="Node000006" href="$d6/d42/writer_8c.html#a6da296f594f1280e9156917ebba28b4d" title=" " alt="" coords="650,94,787,120"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="857,190,741,122,744,118,860,185"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="802,106,1197,116,1197,121,802,112"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="672,90,601,60,572,49,574,44,603,55,674,85"/>
+<area shape="rect" id="Node000010" href="$d6/d42/writer_8c.html#abfd307b07b11e4c30802d1290ba1be25" title=" " alt="" coords="421,94,602,120"/>
+<area shape="poly" id="edge11_Node000006_Node000010" title=" " alt="" coords="635,110,603,110,603,104,635,104"/>
+<area shape="rect" id="Node000008" href="$d6/d42/writer_8c.html#a44290d4db5917ffd539efd3e4bbfeffc" title=" " alt="" coords="215,80,373,121"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="437,54,356,82,355,77,435,49"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="204,128,136,147,135,142,203,123"/>
+<area shape="poly" id="edge10_Node000009_Node000004" title=" " alt="" coords="182,170,215,174,391,188,565,197,834,205,834,210,565,202,391,193,214,179,182,175"/>
+<area shape="poly" id="edge13_Node000010_Node000008" title=" " alt="" coords="406,106,374,105,374,100,406,101"/>
+<area shape="poly" id="edge12_Node000010_Node000010" title=" " alt="" coords="548,82,535,75,512,73,490,75,478,80,476,85,481,92,477,95,470,86,474,76,489,70,512,68,537,70,550,77"/>
+</map>

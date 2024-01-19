@@ -1,0 +1,9 @@
+<map id="dlist_move_tail" name="dlist_move_tail">
+<area shape="rect" id="Node000001" title="Remove element e from its list and add it at the tail of l." alt="" coords="5,31,114,56"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="162,5,271,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,32,146,27,147,32,115,37"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="168,55,265,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="115,49,153,55,152,60,114,54"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="319,55,406,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="266,65,304,65,304,70,266,70"/>
+</map>

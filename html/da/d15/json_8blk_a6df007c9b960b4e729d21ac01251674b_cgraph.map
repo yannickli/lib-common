@@ -1,0 +1,19 @@
+<map id="class_struct_is_empty" name="class_struct_is_empty">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,43,157,69"/>
+<area shape="rect" id="Node000002" href="$d3/d40/iop_8h.html#a07f21da2d3381b98dd6f6bbd642d2130" title=" " alt="" coords="938,71,1071,97"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="141,40,279,16,361,6,444,3,647,3,732,9,817,24,893,44,954,63,952,68,891,49,815,29,732,14,647,8,444,8,362,12,279,21,142,45"/>
+<area shape="rect" id="Node000003" href="$da/d15/json_8blk.html#af76937636e363b9312a4cb5be090e492" title=" " alt="" coords="205,43,318,69"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="157,53,189,53,189,59,157,59"/>
+<area shape="rect" id="Node000004" href="$da/d15/json_8blk.html#a0b74e2ea95e1220f9cf7c5ce005aa518" title=" " alt="" coords="366,93,524,118"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="313,67,381,85,379,91,311,72"/>
+<area shape="poly" id="edge4_Node000004_Node000001" title=" " alt="" coords="365,102,204,84,156,75,157,70,205,79,366,97"/>
+<area shape="rect" id="Node000005" href="$d3/d40/iop_8h.html#a756dfeca8862c920963ce9700ecce577" title=" " alt="" coords="582,43,709,69"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="500,89,575,71,576,76,501,94"/>
+<area shape="rect" id="Node000006" href="$d3/d40/iop_8h.html#aefeceb12938118fa0e6a7ec4beed0049" title=" " alt="" coords="572,93,719,118"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="525,103,556,103,556,108,525,108"/>
+<area shape="rect" id="Node000007" href="$da/d15/json_8blk.html#a400a808a1a90cf71fad083e662025439" title=" " alt="" coords="578,142,713,183"/>
+<area shape="poly" id="edge7_Node000004_Node000007" title=" " alt="" coords="494,116,564,137,562,142,492,121"/>
+<area shape="rect" id="Node000008" href="$d3/d40/iop_8h.html#a766d8c1f5a9d3e12bba0150208905df0" title=" " alt="" coords="767,97,890,122"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="712,141,767,124,768,129,714,146"/>
+<area shape="poly" id="edge9_Node000008_Node000002" title=" " alt="" coords="890,98,922,93,923,98,891,103"/>
+</map>

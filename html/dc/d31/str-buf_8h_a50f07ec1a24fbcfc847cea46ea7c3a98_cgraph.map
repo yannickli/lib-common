@@ -1,0 +1,20 @@
+<map id="sb_detach" name="sb_detach">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,87,82"/>
+<area shape="rect" id="Node000002" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="422,5,495,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,53,134,41,208,30,282,23,406,16,407,22,282,28,209,35,135,46,88,58"/>
+<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#a28a37219e3d2287e3ead464da4894790" title=" " alt="" coords="267,143,326,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="86,80,253,138,251,143,85,85"/>
+<area shape="rect" id="Node000006" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="135,56,206,82"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="87,66,119,66,119,72,87,72"/>
+<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="578,105,661,131"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="327,152,417,146,529,134,562,128,563,134,530,139,418,151,327,157"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="709,105,821,131"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="661,116,694,116,694,121,661,121"/>
+<area shape="rect" id="Node000007" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="254,56,339,82"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="206,66,238,66,238,72,206,72"/>
+<area shape="poly" id="edge7_Node000007_Node000002" title=" " alt="" coords="339,53,406,32,408,37,341,58"/>
+<area shape="poly" id="edge8_Node000007_Node000004" title=" " alt="" coords="341,79,388,90,480,104,563,112,562,117,479,109,387,95,339,84"/>
+<area shape="rect" id="Node000008" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="387,55,530,80"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="340,66,372,66,372,71,340,71"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="503,78,564,98,562,103,501,83"/>
+</map>

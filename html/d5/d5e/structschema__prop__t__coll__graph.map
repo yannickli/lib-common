@@ -1,0 +1,14 @@
+<map id="schema_prop_t" name="schema_prop_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,814,107,879"/>
+<area shape="rect" id="Node000002" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="45,5,211,191"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,191,89,317,70,458,59,645,58,797,53,797,54,645,64,457,83,316,106,190"/>
+<area shape="rect" id="Node000003" href="$de/de1/structschema__object__t.html" title=" " alt="" coords="115,542,269,751"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="129,191,132,307,143,433,161,525,156,526,138,434,127,307,124,191"/>
+<area shape="rect" id="Node000004" href="$d8/d5f/structscalar__value__t.html" title=" " alt="" coords="235,254,365,434"/>
+<area shape="poly" id="edge5_Node000004_Node000002" title=" " alt="" coords="195,189,230,238,225,241,190,192"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="123,752,89,802,85,799,119,749"/>
+<area shape="poly" id="edge6_Node000003_Node000003" title=" " alt="" coords="270,620,289,629,296,646,294,657,287,665,283,662,289,655,291,647,285,632,268,625"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="271,434,237,527,232,525,266,432"/>
+<area shape="rect" id="Node000005" href="$d1/df6/structopt__i64__t.html" title=" " alt="" coords="389,301,491,386"/>
+<area shape="poly" id="edge7_Node000003_Node000005" title=" " alt="" coords="420,387,381,451,331,519,284,570,280,566,327,516,377,448,415,385"/>
+</map>

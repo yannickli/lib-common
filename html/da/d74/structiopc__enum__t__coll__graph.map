@@ -1,0 +1,28 @@
+<map id="iopc_enum_t" name="iopc_enum_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="23,1310,195,1450"/>
+<area shape="rect" id="Node000002" href="$dd/d8a/structiopc__loc__t.html" title=" " alt="" coords="5,1077,153,1242"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,1241,100,1292,94,1293,88,1242"/>
+<area shape="rect" id="Node000003" href="$d6/d5f/structiop__enum__t.html" title=" " alt="" coords="178,1072,306,1247"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="192,1247,162,1297,157,1294,187,1245"/>
+<area shape="rect" id="Node000004" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="129,5,294,191"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="133,192,106,232,83,277,67,325,61,375,61,948,63,971,70,989,80,1004,93,1016,127,1039,166,1070,168,1071,164,1075,163,1074,124,1044,90,1020,76,1007,65,992,58,972,55,948,55,375,62,324,78,275,101,230,128,189"/>
+<area shape="rect" id="Node000008" href="$d9/d45/unioniop__value__t.html" title=" " alt="" coords="139,254,283,499"/>
+<area shape="poly" id="edge8_Node000008_Node000004" title=" " alt="" coords="214,190,214,237,209,237,209,190"/>
+<area shape="rect" id="Node000012" href="$d1/d0b/structiop__enum__alias__t.html" title=" " alt="" coords="331,344,444,409"/>
+<area shape="poly" id="edge14_Node000012_Node000004" title=" " alt="" coords="272,189,360,328,356,331,267,192"/>
+<area shape="rect" id="Node000005" href="$de/dc3/structiop__enum__attrs__t.html" title=" " alt="" coords="101,884,223,1009"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="188,1008,202,1047,206,1055,201,1057,198,1049,183,1010"/>
+<area shape="rect" id="Node000006" href="$dc/d8c/structiop__enum__attr__t.html" title=" " alt="" coords="95,741,231,821"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="166,821,165,867,160,867,160,821"/>
+<area shape="rect" id="Node000007" href="$db/dc2/structiop__generic__attr__arg__t.html" title=" " alt="" coords="141,562,282,627"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="206,628,180,725,175,724,201,626"/>
+<area shape="rect" id="Node000010" href="$d8/db0/structiop__enum__value__attr__t.html" title=" " alt="" coords="255,741,399,821"/>
+<area shape="poly" id="edge11_Node000010_Node000007" title=" " alt="" coords="233,626,296,725,292,728,229,629"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="214,499,214,545,209,545,209,499"/>
+<area shape="rect" id="Node000009" href="$d7/da5/structiop__enum__value__attrs__t.html" title=" " alt="" coords="248,884,399,1009"/>
+<area shape="poly" id="edge9_Node000003_Node000009" title=" " alt="" coords="302,1009,284,1057,279,1055,297,1008"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="329,821,328,867,323,866,324,821"/>
+<area shape="rect" id="Node000011" href="$df/de4/structiop__enum__aliases__t.html" title=" " alt="" coords="359,651,487,717"/>
+<area shape="poly" id="edge12_Node000003_Node000011" title=" " alt="" coords="431,716,438,773,440,847,433,930,425,971,412,1010,396,1041,374,1070,321,1115,318,1111,370,1066,391,1039,408,1008,420,969,428,929,435,847,432,773,426,717"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="394,408,420,634,415,635,388,409"/>
+</map>

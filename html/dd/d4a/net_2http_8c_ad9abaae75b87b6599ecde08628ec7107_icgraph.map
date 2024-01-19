@@ -1,0 +1,5 @@
+<map id="http2_conn_max_client_stream_id" name="http2_conn_max_client_stream_id">
+<area shape="rect" id="Node000001" title="Return the maximum id of the (non&#45;idle) client stream or 0 if none." alt="" coords="150,5,304,46"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a0f9317f1bf905b76ac178b6504862718" title=" " alt="" coords="5,13,102,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,28,102,28,102,23,134,23"/>
+</map>

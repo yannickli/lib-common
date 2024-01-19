@@ -1,0 +1,30 @@
+<map id="iop_dso_register_" name="iop_dso_register_">
+<area shape="rect" id="Node000001" title=" " alt="" coords="601,153,724,179"/>
+<area shape="rect" id="Node000002" href="$d7/dc8/dso_8c.html#aa4d4141cb54fb63179d23a5e700a96af" title=" " alt="" coords="410,104,553,130"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="597,151,531,133,532,128,598,146"/>
+<area shape="rect" id="Node000011" href="$d7/dc8/dso_8c.html#a9635d27b562034423cc0d39b1e6feb92" title=" " alt="" coords="423,153,540,179"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="585,169,540,169,540,164,585,164"/>
+<area shape="rect" id="Node000012" href="$d7/dc8/dso_8c.html#ae754b4b3aaf08f40ff854d99c6992afe" title=" " alt="" coords="425,203,538,228"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="598,186,532,205,531,199,597,181"/>
+<area shape="rect" id="Node000003" href="$d7/dc8/dso_8c.html#aa90724ccf547d271a33875b2e4e53fdc" title=" " alt="" coords="256,104,357,130"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="395,120,358,120,358,114,395,114"/>
+<area shape="rect" id="Node000004" href="$d1/d4c/dso2openapi_8c.html#a2978bd36be0a163ed9ed7c2ecc9778d8" title=" " alt="" coords="107,5,199,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="275,96,202,44,182,34,185,29,204,40,279,92"/>
+<area shape="rect" id="Node000006" href="$d0/db3/yamlfmt_8c.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="128,55,178,80"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="249,101,177,78,179,73,250,96"/>
+<area shape="rect" id="Node000007" href="$d9/d84/dso-compatibility-check_8blk.html#a2b730504bf1213c6d8206b8c3359a8ae" title=" " alt="" coords="114,104,192,130"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="241,120,192,120,192,114,241,114"/>
+<area shape="rect" id="Node000009" href="$d9/d22/dso-find-free-class-id_8c.html#a2b730504bf1213c6d8206b8c3359a8ae" title=" " alt="" coords="114,153,192,179"/>
+<area shape="poly" id="edge8_Node000003_Node000009" title=" " alt="" coords="251,138,193,156,191,151,249,132"/>
+<area shape="rect" id="Node000005" href="$d1/d4c/dso2openapi_8c.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="5,5,55,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="92,21,55,21,55,16,92,16"/>
+<area shape="rect" id="Node000008" href="$d9/d84/dso-compatibility-check_8blk.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,104,55,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="99,120,55,120,55,114,99,114"/>
+<area shape="rect" id="Node000010" href="$d9/d22/dso-find-free-class-id_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,153,55,179"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="99,169,55,169,55,164,99,164"/>
+<area shape="rect" id="Node000013" href="$d7/dc8/dso_8c.html#af577d6d5991563d24d45517d004f63a8" title=" " alt="" coords="251,203,362,228"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="409,227,363,227,363,221,409,222"/>
+<area shape="poly" id="edge13_Node000013_Node000012" title=" " alt="" coords="378,204,425,204,425,210,378,209"/>
+<area shape="rect" id="Node000014" href="$d7/dc8/dso_8c.html#ad9dfd7896750007ebc9c0ad4ad22ff7e" title=" " alt="" coords="103,203,203,228"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="236,218,204,218,204,213,236,213"/>
+</map>

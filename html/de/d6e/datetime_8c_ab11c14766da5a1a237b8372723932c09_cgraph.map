@@ -1,0 +1,5 @@
+<map id="localtime_curhour" name="localtime_curhour">
+<area shape="rect" id="Node000001" title="Return timestamp of the start of the hour which contains the timestamp date." alt="" coords="5,5,129,31"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a31d359af138aef01dc1eef9e5539efb4" title=" " alt="" coords="177,5,257,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,16,161,16,161,21,129,21"/>
+</map>

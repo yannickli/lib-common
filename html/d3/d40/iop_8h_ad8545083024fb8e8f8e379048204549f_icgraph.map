@@ -1,0 +1,12 @@
+<map id="iop_unregister_packages" name="iop_unregister_packages">
+<area shape="rect" id="Node000001" title="Unregister a list of packages." alt="" coords="503,5,669,31"/>
+<area shape="rect" id="Node000002" href="$d7/dc8/dso_8c.html#a6094aa12a8006da42911a64cdd5ce541" title=" " alt="" coords="325,5,455,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="488,21,456,21,456,16,488,16"/>
+<area shape="rect" id="Node000003" href="$d7/dc8/dso_8c.html#af577d6d5991563d24d45517d004f63a8" title=" " alt="" coords="166,5,277,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="309,21,278,21,278,16,309,16"/>
+<area shape="rect" id="Node000004" href="$d7/dc8/dso_8c.html#ae754b4b3aaf08f40ff854d99c6992afe" title=" " alt="" coords="5,5,118,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="150,30,118,29,118,24,150,24"/>
+<area shape="rect" id="Node000005" href="$d7/dc8/dso_8c.html#ad9dfd7896750007ebc9c0ad4ad22ff7e" title=" " alt="" coords="11,55,112,80"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="163,39,107,57,105,51,162,34"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="133,7,165,7,165,12,133,12"/>
+</map>

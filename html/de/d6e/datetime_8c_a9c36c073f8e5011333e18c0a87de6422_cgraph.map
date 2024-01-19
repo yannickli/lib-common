@@ -1,0 +1,5 @@
+<map id="localtime_curmonth" name="localtime_curmonth">
+<area shape="rect" id="Node000001" title="Return timestamp of the start of the month which contains the timestamp date." alt="" coords="5,5,140,31"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a31d359af138aef01dc1eef9e5539efb4" title=" " alt="" coords="188,5,268,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="140,16,172,16,172,21,140,21"/>
+</map>

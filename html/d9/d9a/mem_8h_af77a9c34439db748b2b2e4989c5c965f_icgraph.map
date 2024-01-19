@@ -1,0 +1,7 @@
+<map id="mem_ring_release" name="mem_ring_release">
+<area shape="rect" id="Node000001" title="Release the frame identified by the given cookie." alt="" coords="402,5,529,31"/>
+<area shape="rect" id="Node000002" href="$db/d6e/iopc-iopsq_8c.html#a5b83115db34f7935c32c3adcfab9143a" title="Wipe an iopsq_iop_struct_t object." alt="" coords="204,5,354,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="386,21,354,21,354,16,386,16"/>
+<area shape="rect" id="Node000003" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,5,156,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="188,21,156,21,156,16,188,16"/>
+</map>

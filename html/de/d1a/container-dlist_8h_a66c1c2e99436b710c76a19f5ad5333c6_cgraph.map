@@ -1,0 +1,5 @@
+<map id="dlist_add_tail" name="dlist_add_tail">
+<area shape="rect" id="Node000001" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="5,5,103,31"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="151,5,238,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="103,16,135,16,135,21,103,21"/>
+</map>

@@ -1,0 +1,38 @@
+<map id="iop_struct_is_snmp_obj" name="iop_struct_is_snmp_obj">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1207,55,1365,80"/>
+<area shape="rect" id="Node000002" href="$d7/de6/snmp-mib_8c.html#a5512cbf8e24f628dd1b1fad4ae520a45" title=" " alt="" coords="1025,5,1128,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1213,53,1128,33,1129,28,1214,48"/>
+<area shape="rect" id="Node000005" href="$d7/de6/snmp-mib_8c.html#ace6113829f141fdc3b64b6d20ef4a1e1" title=" " alt="" coords="994,55,1159,80"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="1191,70,1159,70,1159,65,1191,65"/>
+<area shape="rect" id="Node000006" href="$d2/d6a/snmp-doc_8c.html#af7cad7c40ce830c924d0b4c13efa9041" title=" " alt="" coords="1015,105,1138,131"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="1215,87,1133,107,1132,102,1214,82"/>
+<area shape="rect" id="Node000003" href="$d7/de6/snmp-mib_8c.html#a23cbfe4ffbcbbbfb7e77e16d9b47afc3" title="Generate a MIB into a sb_t." alt="" coords="838,5,939,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1010,21,940,21,940,16,1010,16"/>
+<area shape="rect" id="Node000004" href="$d7/de6/snmp-mib_8c.html#a769486ac2f29a4d3da2e0645a8360811" title="Run a MIB generation tool." alt="" coords="689,5,755,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="823,30,756,28,756,23,823,24"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="771,7,838,7,838,12,771,13"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="1009,53,939,34,941,29,1011,48"/>
+<area shape="rect" id="Node000007" href="$d2/d6a/snmp-doc_8c.html#a91f3dbc93e6fc1dfe543d76cf0111fe1" title=" " alt="" coords="678,55,766,80"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="999,106,946,97,766,74,767,69,947,92,1000,101"/>
+<area shape="rect" id="Node000011" href="$d2/d6a/snmp-doc_8c.html#ae9c53b91cee83f20f455dc90e0cb0860" title=" " alt="" coords="832,107,945,132"/>
+<area shape="poly" id="edge12_Node000006_Node000011" title=" " alt="" coords="1000,121,946,122,946,116,1000,116"/>
+<area shape="rect" id="Node000016" href="$d2/d6a/snmp-doc_8c.html#ac31f8d9d291e396e8c473ef3c9734d86" title=" " alt="" coords="831,180,946,206"/>
+<area shape="poly" id="edge19_Node000006_Node000016" title=" " alt="" coords="1029,140,924,182,922,177,1027,135"/>
+<area shape="rect" id="Node000008" href="$d2/d6a/snmp-doc_8c.html#ac9ed6d6619f46d3151d8764e957d8c90" title=" " alt="" coords="508,104,613,130"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="664,88,606,106,604,101,662,83"/>
+<area shape="rect" id="Node000009" href="$d2/d6a/snmp-doc_8c.html#abcad19cc5aed615c4c7683e4ef18f77c" title="Generate a SNMP doc into string buffers." alt="" coords="159,129,299,155"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="493,125,300,139,299,134,492,119"/>
+<area shape="rect" id="Node000010" href="$d2/d6a/snmp-doc_8c.html#a28833530e076659246ee38e72f7d8467" title="Run a SNMP doc generation tool." alt="" coords="5,129,111,155"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="143,145,111,145,111,140,143,140"/>
+<area shape="rect" id="Node000012" href="$d2/d6a/snmp-doc_8c.html#af086f98f76ad90bb9b102d7b19f8a58a" title=" " alt="" coords="661,153,783,179"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="826,140,771,155,770,150,825,134"/>
+<area shape="rect" id="Node000015" href="$d2/d6a/snmp-doc_8c.html#a3f9d0422e6729b0c86aa3a92b7483651" title=" " alt="" coords="673,104,771,130"/>
+<area shape="poly" id="edge17_Node000011_Node000015" title=" " alt="" coords="817,121,771,120,771,115,817,116"/>
+<area shape="rect" id="Node000013" href="$d2/d6a/snmp-doc_8c.html#a25c5eba731c390689700b371da9809c2" title=" " alt="" coords="514,155,607,180"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="645,169,607,170,607,164,645,164"/>
+<area shape="rect" id="Node000014" href="$d2/d6a/snmp-doc_8c.html#a077dfe3d2daceb917c783b08a8e93668" title=" " alt="" coords="347,155,460,180"/>
+<area shape="poly" id="edge15_Node000013_Node000014" title=" " alt="" coords="499,170,460,170,460,165,499,165"/>
+<area shape="poly" id="edge16_Node000014_Node000009" title=" " alt="" coords="331,160,299,155,300,150,332,154"/>
+<area shape="poly" id="edge18_Node000015_Node000008" title=" " alt="" coords="658,120,613,120,613,114,658,114"/>
+<area shape="poly" id="edge20_Node000016_Node000013" title=" " alt="" coords="816,199,741,200,660,194,607,183,608,178,661,189,741,194,816,194"/>
+</map>

@@ -1,0 +1,121 @@
+<map id="file_bin_get_next_record" name="file_bin_get_next_record">
+<area shape="rect" id="Node000001" title="Get next record from a file." alt="" coords="5,257,166,283"/>
+<area shape="rect" id="Node000002" href="$dc/d70/file-bin_8c.html#abd12f1c33a01e00e7624bada49a8d441" title=" " alt="" coords="214,250,338,291"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,268,198,268,198,273,166,273"/>
+<area shape="rect" id="Node000003" href="$dc/d70/file-bin_8c.html#aee30b529828aeef90b4ac6a39be276ec" title=" " alt="" coords="423,5,522,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="279,249,290,205,310,149,341,90,361,64,384,40,407,27,410,31,388,44,365,67,345,93,315,151,295,207,284,250"/>
+<area shape="rect" id="Node000005" href="$dc/d70/file-bin_8c.html#aeb20c45bd94d20044dd754d8523198bd" title=" " alt="" coords="409,55,537,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="283,248,320,175,349,134,384,97,404,85,407,89,388,102,353,137,324,178,288,250"/>
+<area shape="rect" id="Node000008" href="$dc/d70/file-bin_8c.html#aec72106769b9524ea65d9096904e0207" title=" " alt="" coords="607,174,729,215"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="338,256,592,206,593,211,339,261"/>
+<area shape="rect" id="Node000009" href="$dc/d70/file-bin_8c.html#a554e37aa88e3b955763f951bb3b03da0" title=" " alt="" coords="777,126,901,167"/>
+<area shape="poly" id="edge14_Node000002_Node000009" title=" " alt="" coords="285,248,301,222,323,192,351,163,385,141,432,123,482,112,533,106,584,104,681,111,762,124,761,130,680,116,584,110,534,111,483,117,434,129,387,146,354,167,327,195,305,225,290,251"/>
+<area shape="rect" id="Node000010" href="$dc/d70/file-bin_8c.html#a9c961bd540421ed19080ea08057e6e57" title=" " alt="" coords="784,235,894,260"/>
+<area shape="poly" id="edge15_Node000002_Node000010" title=" " alt="" coords="338,265,768,248,768,253,338,270"/>
+<area shape="rect" id="Node000011" href="$dc/d70/file-bin_8c.html#a8a5771744016f8ae3d86bfb43d891ea0" title=" " alt="" coords="386,156,559,182"/>
+<area shape="poly" id="edge11_Node000002_Node000011" title=" " alt="" coords="305,247,385,198,415,185,417,190,387,203,308,252"/>
+<area shape="rect" id="Node000012" href="$de/d06/file-bin_8h.html#a9a829131a31812a981997aad188ef94d" title="Tell if the parsing of a binary file is finished or not." alt="" coords="408,308,537,334"/>
+<area shape="poly" id="edge13_Node000002_Node000012" title=" " alt="" coords="339,284,406,301,405,306,338,289"/>
+<area shape="rect" id="Node000013" href="$dc/d31/str-buf_8h.html#a6e739817e8e91ceaace33c4817e67ac6" title=" " alt="" coords="636,332,700,358"/>
+<area shape="poly" id="edge16_Node000002_Node000013" title=" " alt="" coords="300,289,338,319,362,333,387,344,449,356,512,360,571,357,621,351,621,356,572,362,512,365,448,362,385,349,360,338,335,324,297,293"/>
+<area shape="rect" id="Node000057" href="$dc/d31/str-buf_8h.html#af06d57f4ca5646c0dfaee309dc556826" title=" " alt="" coords="429,409,517,435"/>
+<area shape="poly" id="edge52_Node000002_Node000057" title=" " alt="" coords="293,289,332,338,359,365,387,388,415,403,413,407,385,392,355,369,328,342,289,292"/>
+<area shape="rect" id="Node000058" href="$dc/d31/str-buf_8h.html#a36add39fd03e94f99dd4467a2e49deae" title=" " alt="" coords="438,459,508,484"/>
+<area shape="poly" id="edge54_Node000002_Node000058" title=" " alt="" coords="286,290,300,324,322,366,351,409,388,445,405,455,423,462,422,467,402,460,384,450,347,412,317,369,295,326,282,292"/>
+<area shape="rect" id="Node000062" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="956,623,1027,648"/>
+<area shape="poly" id="edge69_Node000002_Node000062" title=" " alt="" coords="284,290,296,333,317,387,347,445,366,471,388,495,419,521,452,543,524,580,601,606,680,623,756,633,827,638,940,637,940,642,827,643,756,639,679,628,600,611,522,585,449,548,415,525,384,499,362,475,342,447,312,389,291,334,279,292"/>
+<area shape="rect" id="Node000004" href="$de/d06/file-bin_8h.html#a60e80a81260003b07a499089b48694a9" title="Tell if the file_bin has at least len bytes from the current position." alt="" coords="623,5,713,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="523,16,608,16,608,21,523,21"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="526,51,608,30,609,36,527,57"/>
+<area shape="rect" id="Node000006" href="$d4/d86/str-stream_8h.html#a8c72cf3833ab9273d676151a583336a2" title=" " alt="" coords="638,55,698,80"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="537,65,623,65,623,70,537,70"/>
+<area shape="rect" id="Node000007" href="$d4/d86/str-stream_8h.html#a3b4fe44eb26c6eb77b5c58ab8f6a0b46" title=" " alt="" coords="802,55,876,80"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="698,65,786,65,786,70,698,70"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="728,175,761,165,762,170,730,180"/>
+<area shape="poly" id="edge10_Node000008_Node000010" title=" " alt="" coords="730,211,782,227,780,232,728,216"/>
+<area shape="poly" id="edge12_Node000011_Node000008" title=" " alt="" coords="560,177,592,182,591,187,559,183"/>
+<area shape="rect" id="Node000014" href="$dc/d31/str-buf_8h.html#a69537528c954fce98e3d2cb92232ffe8" title=" " alt="" coords="795,420,883,446"/>
+<area shape="poly" id="edge17_Node000013_Node000014" title=" " alt="" coords="696,356,800,410,797,415,694,361"/>
+<area shape="rect" id="Node000015" href="$dc/d31/str-buf_8h.html#a5019d1298a6a5b4f8ae0b645bb8bc627" title=" " alt="" coords="1108,420,1194,446"/>
+<area shape="poly" id="edge18_Node000014_Node000015" title=" " alt="" coords="883,430,1093,430,1093,436,883,436"/>
+<area shape="rect" id="Node000017" href="$d4/d02/str-buf_8c.html#a96e2e5252e81ed31e7071e4db76085b5" title=" " alt="" coords="949,369,1033,395"/>
+<area shape="poly" id="edge20_Node000014_Node000017" title=" " alt="" coords="879,417,935,398,937,403,881,422"/>
+<area shape="rect" id="Node000056" href="$dc/d31/str-buf_8h.html#acd3f1b7a3fde32b199cf24fdb133b4ce" title=" " alt="" coords="960,471,1023,496"/>
+<area shape="poly" id="edge51_Node000014_Node000056" title=" " alt="" coords="881,444,946,466,944,471,879,449"/>
+<area shape="rect" id="Node000016" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="1630,547,1743,572"/>
+<area shape="poly" id="edge19_Node000015_Node000016" title=" " alt="" coords="1195,440,1616,540,1614,545,1194,445"/>
+<area shape="rect" id="Node000018" href="$d7/df8/log_8c.html#abca342edf91a9b45f7a17ef564fa8a53" title=" " alt="" coords="1653,367,1720,392"/>
+<area shape="poly" id="edge21_Node000017_Node000018" title=" " alt="" coords="1034,379,1638,377,1638,382,1034,385"/>
+<area shape="rect" id="Node000042" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="1309,572,1382,598"/>
+<area shape="poly" id="edge38_Node000017_Node000042" title=" " alt="" coords="1007,393,1040,424,1083,456,1138,489,1195,518,1296,563,1294,568,1193,523,1135,494,1080,460,1037,428,1004,397"/>
+<area shape="rect" id="Node000043" href="$d9/d9a/mem_8h.html#a15958df365e5c2cc90a6c0c3e7e0e74f" title=" " alt="" coords="1081,269,1221,295"/>
+<area shape="poly" id="edge39_Node000017_Node000043" title=" " alt="" coords="1003,367,1036,336,1080,304,1089,299,1091,304,1083,308,1039,340,1006,371"/>
+<area shape="rect" id="Node000055" href="$d4/d02/str-buf_8c.html#a63ddc4121cc8fbd2d5fd2a6d65a24feb" title=" " alt="" coords="1093,319,1209,344"/>
+<area shape="poly" id="edge50_Node000017_Node000055" title=" " alt="" coords="1033,366,1093,347,1094,352,1035,371"/>
+<area shape="rect" id="Node000019" href="$d7/df8/log_8c.html#a4bc04f7baa1e064cb0b93c7b9f3a61a1" title=" " alt="" coords="1819,367,1937,392"/>
+<area shape="poly" id="edge22_Node000018_Node000019" title=" " alt="" coords="1720,377,1803,377,1803,382,1720,382"/>
+<area shape="rect" id="Node000037" href="$d7/df8/log_8c.html#a900490b26df7698aac12f7f7e6517e81" title=" " alt="" coords="1834,276,1922,302"/>
+<area shape="poly" id="edge34_Node000018_Node000037" title=" " alt="" coords="1715,364,1834,306,1836,311,1717,369"/>
+<area shape="rect" id="Node000041" href="$d2/d4d/file_8h.html#a25419a391fdd4ad7954699c58cfeb3b9" title=" " alt="" coords="1844,416,1912,442"/>
+<area shape="poly" id="edge37_Node000018_Node000041" title=" " alt="" coords="1721,385,1829,414,1828,419,1720,391"/>
+<area shape="rect" id="Node000020" href="$d7/df8/log_8c.html#a3dbd75fb614210f0b114cfd03c9c0a7b" title=" " alt="" coords="1994,363,2132,388"/>
+<area shape="poly" id="edge23_Node000019_Node000020" title=" " alt="" coords="1937,376,1978,375,1979,380,1937,381"/>
+<area shape="rect" id="Node000035" href="$d7/df8/log_8c.html#a7b1b02d1986e1247c2f571af4a2c2854" title=" " alt="" coords="2013,412,2113,438"/>
+<area shape="poly" id="edge32_Node000019_Node000035" title=" " alt="" coords="1934,390,1998,406,1997,411,1933,396"/>
+<area shape="rect" id="Node000036" href="$d1/dc0/group__log.html#ga045020bb4af234632f7761f220131c69" title=" " alt="" coords="2006,461,2120,487"/>
+<area shape="poly" id="edge33_Node000019_Node000036" title=" " alt="" coords="1926,391,1947,401,1962,413,1972,425,1981,437,1995,448,2003,452,2000,457,1993,452,1978,440,1968,429,1959,417,1945,406,1924,395"/>
+<area shape="poly" id="edge24_Node000020_Node000020" title=" " alt="" coords="2032,364,2026,354,2030,344,2042,338,2063,336,2086,339,2097,345,2095,350,2084,344,2063,341,2044,343,2033,348,2031,353,2036,361"/>
+<area shape="rect" id="Node000021" href="$de/d1a/container-dlist_8h.html#a3b6f65860b212e28f2e28e71eb54d54d" title="Add element e at the head of list l (suited for LIFO)." alt="" coords="2228,420,2302,446"/>
+<area shape="poly" id="edge25_Node000020_Node000021" title=" " alt="" coords="2112,386,2214,416,2212,421,2110,392"/>
+<area shape="rect" id="Node000023" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="2230,469,2300,495"/>
+<area shape="poly" id="edge26_Node000020_Node000023" title=" " alt="" coords="2114,387,2134,397,2150,413,2158,428,2167,442,2182,456,2216,471,2214,476,2179,460,2163,446,2154,430,2145,416,2131,402,2112,391"/>
+<area shape="rect" id="Node000024" href="$d7/df8/log_8c.html#a4c8fbe8648573312126ce341cf34cba1" title=" " alt="" coords="2180,269,2350,295"/>
+<area shape="poly" id="edge27_Node000020_Node000024" title=" " alt="" coords="2082,360,2125,332,2179,304,2194,298,2196,303,2181,309,2128,337,2085,364"/>
+<area shape="rect" id="Node000027" href="$df/d0a/str-l_8h.html#ad74dae07179370f3c22e3f026157926e" title="wipe a lstr_t (frees memory if needed)." alt="" coords="2398,319,2472,344"/>
+<area shape="poly" id="edge31_Node000020_Node000027" title=" " alt="" coords="2132,373,2235,368,2349,354,2383,346,2384,351,2350,359,2236,373,2133,378"/>
+<area shape="rect" id="Node000034" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="2226,319,2304,344"/>
+<area shape="poly" id="edge30_Node000020_Node000034" title=" " alt="" coords="2125,359,2210,341,2212,346,2126,365"/>
+<area shape="rect" id="Node000025" href="$df/d0a/str-l_8h.html#a6a200ca09358f19b13a8e297cda34869" title="returns a constant copy of \v s." alt="" coords="2398,244,2472,270"/>
+<area shape="poly" id="edge28_Node000024_Node000025" title=" " alt="" coords="2350,267,2382,262,2383,267,2350,272"/>
+<area shape="poly" id="edge29_Node000024_Node000027" title=" " alt="" coords="2314,293,2350,304,2384,314,2382,319,2349,309,2313,298"/>
+<area shape="poly" id="edge36_Node000037_Node000025" title=" " alt="" coords="1921,275,1994,261,2102,251,2209,248,2382,251,2382,257,2209,253,2102,257,1994,266,1922,280"/>
+<area shape="rect" id="Node000038" href="$d1/dc0/group__log.html#ga168a6f17b248f61f7d25a17d58d04e36" title=" " alt="" coords="2004,276,2122,302"/>
+<area shape="poly" id="edge35_Node000037_Node000038" title=" " alt="" coords="1922,286,1988,286,1988,292,1922,292"/>
+<area shape="rect" id="Node000044" href="$d8/d37/mem_8blk.html#a2fa974dc4e9f038e5bc400eb689b74b4" title=" " alt="" coords="1269,269,1422,295"/>
+<area shape="poly" id="edge40_Node000043_Node000044" title=" " alt="" coords="1221,280,1253,280,1253,285,1221,285"/>
+<area shape="rect" id="Node000050" href="$d9/d9a/mem_8h.html#ae99e17ad0b27e94e8a00c8af9734a0e7" title=" " alt="" coords="1611,220,1762,246"/>
+<area shape="poly" id="edge49_Node000043_Node000050" title=" " alt="" coords="1187,266,1256,244,1349,221,1455,205,1510,202,1564,205,1618,214,1617,219,1563,210,1510,208,1456,210,1350,226,1257,249,1189,271"/>
+<area shape="rect" id="Node000045" href="$d8/d37/mem_8blk.html#a8e4fbf6500e65079c31e3fd933ae7dc1" title=" " alt="" coords="1470,319,1563,344"/>
+<area shape="poly" id="edge41_Node000044_Node000045" title=" " alt="" coords="1394,293,1456,311,1455,317,1392,298"/>
+<area shape="rect" id="Node000033" href="$d8/d37/mem_8blk.html#a83c7cf203e5eef9d1a8c6c43cde3e2e5" title=" " alt="" coords="1481,420,1552,446"/>
+<area shape="poly" id="edge43_Node000044_Node000033" title=" " alt="" coords="1363,294,1491,408,1487,411,1360,298"/>
+<area shape="rect" id="Node000046" href="$d9/d9a/mem_8h.html#ada6bb9661f0c10ccaa14d231c24aeafd" title=" " alt="" coords="1473,220,1560,246"/>
+<area shape="poly" id="edge44_Node000044_Node000046" title=" " alt="" coords="1392,266,1458,247,1459,252,1394,271"/>
+<area shape="rect" id="Node000052" href="$d9/d9a/mem_8h.html#aabfb5bf96a257374cbc245548b81c4ff" title=" " alt="" coords="1473,269,1560,295"/>
+<area shape="poly" id="edge47_Node000044_Node000052" title=" " alt="" coords="1423,280,1457,280,1457,285,1423,285"/>
+<area shape="poly" id="edge42_Node000045_Node000018" title=" " alt="" coords="1564,342,1639,363,1638,369,1563,347"/>
+<area shape="poly" id="edge45_Node000046_Node000050" title=" " alt="" coords="1561,230,1596,230,1596,236,1561,236"/>
+<area shape="rect" id="Node000051" href="$d8/d37/mem_8blk.html#a377e36d6fbaf3ee7f1b217559cb0c850" title=" " alt="" coords="1810,220,1946,246"/>
+<area shape="poly" id="edge46_Node000050_Node000051" title=" " alt="" coords="1762,230,1794,230,1794,236,1762,236"/>
+<area shape="poly" id="edge48_Node000052_Node000050" title=" " alt="" coords="1560,267,1625,248,1626,253,1561,272"/>
+<area shape="poly" id="edge53_Node000057_Node000013" title=" " alt="" coords="510,406,558,388,621,362,623,367,560,393,512,411"/>
+<area shape="poly" id="edge55_Node000058_Node000017" title=" " alt="" coords="508,461,626,434,776,405,933,385,934,390,777,410,627,439,509,466"/>
+<area shape="poly" id="edge56_Node000058_Node000056" title=" " alt="" coords="508,470,944,480,944,485,508,475"/>
+<area shape="rect" id="Node000059" href="$dc/d31/str-buf_8h.html#a6027a753a7246bd24e279b6ede8837a1" title=" " alt="" coords="623,547,713,572"/>
+<area shape="poly" id="edge57_Node000058_Node000059" title=" " alt="" coords="504,482,625,537,622,542,502,487"/>
+<area shape="rect" id="Node000060" href="$d4/d02/str-buf_8c.html#ac6b7656f4a0f5ea5fa081d29dbc39b98" title=" " alt="" coords="787,572,891,598"/>
+<area shape="poly" id="edge58_Node000059_Node000060" title=" " alt="" coords="714,564,772,572,771,578,713,569"/>
+<area shape="poly" id="edge60_Node000060_Node000042" title=" " alt="" coords="891,582,1293,582,1293,588,891,588"/>
+<area shape="poly" id="edge59_Node000060_Node000033" title=" " alt="" coords="891,571,1465,441,1466,447,892,576"/>
+<area shape="rect" id="Node000061" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="1475,648,1558,674"/>
+<area shape="poly" id="edge61_Node000060_Node000061" title=" " alt="" coords="856,596,897,628,950,658,1036,687,1105,699,1269,709,1346,717,1379,717,1421,709,1454,697,1483,680,1486,685,1456,702,1423,714,1380,722,1346,722,1268,714,1105,705,1034,692,948,663,894,633,853,600"/>
+<area shape="poly" id="edge63_Node000060_Node000062" title=" " alt="" coords="881,596,941,616,940,621,879,601"/>
+<area shape="poly" id="edge62_Node000061_Node000016" title=" " alt="" coords="1539,645,1649,578,1652,583,1542,650"/>
+<area shape="rect" id="Node000063" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="1108,623,1194,648"/>
+<area shape="poly" id="edge64_Node000062_Node000063" title=" " alt="" coords="1027,633,1093,633,1093,638,1027,638"/>
+<area shape="poly" id="edge65_Node000063_Node000042" title=" " alt="" coords="1193,622,1293,596,1294,601,1195,627"/>
+<area shape="poly" id="edge66_Node000063_Node000061" title=" " alt="" coords="1195,636,1460,654,1459,660,1194,641"/>
+<area shape="rect" id="Node000064" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="1274,673,1417,699"/>
+<area shape="poly" id="edge67_Node000063_Node000064" title=" " alt="" coords="1195,644,1279,666,1278,671,1193,649"/>
+<area shape="poly" id="edge68_Node000064_Node000061" title=" " alt="" coords="1416,673,1459,667,1460,672,1417,678"/>
+</map>

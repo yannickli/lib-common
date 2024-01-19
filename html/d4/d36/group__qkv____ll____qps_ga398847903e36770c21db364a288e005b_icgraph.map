@@ -1,0 +1,23 @@
+<map id="qps_sizeof" name="qps_sizeof">
+<area shape="rect" id="Node000001" title=" " alt="" coords="652,93,735,119"/>
+<area shape="rect" id="Node000002" href="$d4/d36/group__qkv____ll____qps.html#ga45a711663f36a77a78d1166a562d5fe5" title=" " alt="" coords="510,17,586,43"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="652,88,573,46,576,41,655,83"/>
+<area shape="rect" id="Node000006" href="$d4/d36/group__qkv____ll____qps.html#gae9e62a5e0d4ea93b41601997d1f456f4" title="Reallocs the memory behind a handle." alt="" coords="340,93,427,119"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="636,109,427,109,427,104,636,104"/>
+<area shape="rect" id="Node000008" href="$d0/df7/qps_8blk.html#a488048348a5756660187be7512aa76d3" title=" " alt="" coords="494,119,602,144"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="637,119,603,125,602,119,636,113"/>
+<area shape="rect" id="Node000009" href="$d0/df7/qps_8blk.html#afbb18a3c57bd99d10d409ddfa1bf850c" title=" " alt="" coords="492,168,604,194"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="658,130,605,159,582,170,580,165,602,154,656,125"/>
+<area shape="rect" id="Node000003" href="$d4/d36/group__qkv____ll____qps.html#ga0c25d1d2115d1333cf8f182261eb7f10" title=" " alt="" coords="331,17,436,43"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="494,33,436,33,436,28,494,28"/>
+<area shape="rect" id="Node000004" href="$d3/d0d/group__qkv____ll____hat.html#gaa4a1c0129347de83787fd27c50b21b6b" title=" " alt="" coords="5,5,95,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="315,24,274,21,178,18,95,19,95,14,178,13,274,16,316,19"/>
+<area shape="rect" id="Node000005" href="$d7/d31/group__qkv____ll____bitmap.html#gac6a47bf04928dc2bf81b711a2d6a9117" title=" " alt="" coords="143,31,274,56"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="315,38,274,41,274,36,315,33"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="127,33,95,28,96,23,128,28"/>
+<area shape="rect" id="Node000007" href="$d4/d36/group__qkv____ll____qps.html#gae499098fbf61287a5e06336a283eb827" title=" " alt="" coords="150,93,267,119"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="324,109,267,109,267,104,324,104"/>
+<area shape="poly" id="edge9_Node000008_Node000006" title=" " alt="" coords="478,124,427,116,428,110,479,118"/>
+<area shape="rect" id="Node000010" href="$d4/d36/group__qkv____ll____qps.html#ga6a74c6a40f758ee0fef4eb8d9c2f99d0" title="Check QPS for pages and handles non referenced in roots." alt="" coords="322,168,444,194"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="477,184,445,184,445,178,477,178"/>
+</map>

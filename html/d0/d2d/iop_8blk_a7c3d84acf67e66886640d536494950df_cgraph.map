@@ -1,0 +1,18 @@
+<map id="iop_equals_desc" name="iop_equals_desc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,88,124,113"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#aed398fecfe78191b4b167297b9835ce3" title=" " alt="" coords="172,88,269,113"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="124,106,156,107,156,112,124,112"/>
+<area shape="rect" id="Node000004" href="$d3/d40/iop_8h.html#a07f21da2d3381b98dd6f6bbd642d2130" title=" " alt="" coords="511,116,645,141"/>
+<area shape="poly" id="edge9_Node000001_Node000004" title=" " alt="" coords="119,111,172,123,253,139,317,149,381,152,463,147,502,142,502,147,464,152,381,157,316,155,252,145,171,128,118,116"/>
+<area shape="poly" id="edge3_Node000002_Node000001" title=" " alt="" coords="171,95,139,94,139,89,171,89"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="194,88,189,79,192,69,203,63,220,61,239,63,249,70,247,75,238,68,220,66,204,68,196,73,194,78,198,86"/>
+<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a766d8c1f5a9d3e12bba0150208905df0" title=" " alt="" coords="329,62,452,88"/>
+<area shape="poly" id="edge4_Node000002_Node000003" title=" " alt="" coords="269,90,313,84,314,89,270,96"/>
+<area shape="rect" id="Node000005" href="$d3/d40/iop_8h.html#aefeceb12938118fa0e6a7ec4beed0049" title=" " alt="" coords="317,112,463,137"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="270,105,302,109,301,114,269,110"/>
+<area shape="rect" id="Node000006" href="$d0/d2d/iop_8blk.html#a6d104d2ec0f6ac057a4520823d115514" title="Read a union tag from a struct." alt="" coords="327,13,453,39"/>
+<area shape="poly" id="edge7_Node000002_Node000006" title=" " alt="" coords="243,85,316,47,330,42,332,47,318,52,245,89"/>
+<area shape="poly" id="edge5_Node000003_Node000004" title=" " alt="" coords="439,86,516,108,515,113,437,91"/>
+<area shape="rect" id="Node000007" href="$d0/d2d/iop_8blk.html#a6856231fc27509385ec13e828edbb074" title=" " alt="" coords="511,5,645,46"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="454,23,496,23,496,28,454,28"/>
+</map>

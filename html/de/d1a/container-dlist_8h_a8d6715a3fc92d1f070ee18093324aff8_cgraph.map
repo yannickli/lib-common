@@ -1,0 +1,7 @@
+<map id="dlist_cut_at" name="dlist_cut_at">
+<area shape="rect" id="Node000001" title="Detach into dst the first elements of src until e (included)." alt="" coords="5,31,94,56"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="159,5,229,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,33,144,24,145,29,95,38"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a09103296d7ba39784005e7402529a9c0" title="Return true if the list has no element." alt="" coords="142,55,246,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="95,48,126,54,125,59,94,53"/>
+</map>

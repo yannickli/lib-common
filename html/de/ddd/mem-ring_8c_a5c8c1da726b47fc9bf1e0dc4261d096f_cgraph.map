@@ -1,0 +1,13 @@
+<map id="ring_reset_to_prevframe" name="ring_reset_to_prevframe">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,167,80"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a22b3ccf6c101e0e0055012550c05bc1c" title=" " alt="" coords="215,55,333,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,65,199,65,199,70,167,70"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="426,29,521,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="333,57,411,47,411,53,334,63"/>
+<area shape="rect" id="Node000006" href="$d8/d37/mem_8blk.html#a194c1be7b1e9d2742e6c11ea6fed3790" title=" " alt="" coords="381,79,566,104"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="334,72,366,76,365,81,333,77"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="614,5,724,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="521,34,599,24,599,29,522,39"/>
+<area shape="rect" id="Node000005" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="634,55,704,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="522,46,619,58,619,64,521,51"/>
+</map>

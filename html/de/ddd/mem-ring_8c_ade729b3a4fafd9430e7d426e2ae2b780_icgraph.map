@@ -1,0 +1,51 @@
+<map id="blk_contains" name="blk_contains">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1052,154,1147,180"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a46e2665eca3ad83041424003cca3e840" title=" " alt="" coords="873,28,1001,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1068,147,953,56,957,51,1072,143"/>
+<area shape="rect" id="Node000007" href="$de/ddd/mem-ring_8c.html#a0dc519eb8e7f01fa6416ca8bc3d6b8dc" title=" " alt="" coords="870,180,1004,205"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1037,179,1005,184,1004,179,1037,174"/>
+<area shape="rect" id="Node000013" href="$de/ddd/mem-ring_8c.html#a1b5994f44ba02f9f56504e1876a27b51" title=" " alt="" coords="886,229,988,255"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="1064,190,1005,220,979,231,977,226,1003,215,1061,185"/>
+<area shape="rect" id="Node000015" href="$de/ddd/mem-ring_8c.html#ac4bc88a0e9539a661958e685045321c1" title=" " alt="" coords="875,129,1000,155"/>
+<area shape="poly" id="edge16_Node000001_Node000015" title=" " alt="" coords="1037,160,1000,154,1000,149,1037,155"/>
+<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#af77a9c34439db748b2b2e4989c5c965f" title="Release the frame identified by the given cookie." alt="" coords="528,78,656,104"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="882,25,843,16,797,10,750,9,704,18,676,30,649,46,609,80,605,76,646,42,673,25,703,12,750,4,798,4,844,11,883,20"/>
+<area shape="rect" id="Node000006" href="$de/ddd/mem-ring_8c.html#a4833b3049c110c86fe85645ba1627c52" title="Force clean the ring pool from empty memory blocks." alt="" coords="706,28,820,53"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="857,43,821,43,821,38,857,38"/>
+<area shape="rect" id="Node000004" href="$db/d6e/iopc-iopsq_8c.html#a5b83115db34f7935c32c3adcfab9143a" title="Wipe an iopsq_iop_struct_t object." alt="" coords="330,78,480,104"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="513,94,481,94,481,88,513,88"/>
+<area shape="rect" id="Node000005" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="132,78,282,104"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="315,94,282,94,282,88,315,88"/>
+<area shape="rect" id="Node000008" href="$de/ddd/mem-ring_8c.html#a77ae562bc5326a7ed63c03f3f6dfd007" title=" " alt="" coords="551,180,633,205"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="854,195,633,195,633,190,854,190"/>
+<area shape="rect" id="Node000009" href="$de/ddd/mem-ring_8c.html#adc9e7915b3feee706d436c0e3cb715a2" title="Seal the active frame." alt="" coords="351,177,460,203"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="535,194,460,193,460,188,535,189"/>
+<area shape="rect" id="Node000011" href="$de/ddd/mem-ring_8c.html#a8fd215d6b37878630abcd626f7108b85" title=" " alt="" coords="372,226,438,252"/>
+<area shape="poly" id="edge11_Node000008_Node000011" title=" " alt="" coords="536,209,440,233,438,228,535,204"/>
+<area shape="poly" id="edge9_Node000009_Node000005" title=" " alt="" coords="336,172,328,168,313,155,304,142,295,129,281,117,259,107,262,102,283,113,299,126,308,139,317,151,332,163,339,168"/>
+<area shape="rect" id="Node000010" href="$de/ddd/mem-ring_8c.html#a3d93d1d071835d4ba0d25b057e8c2aac" title="Seal the ring&#45;pool and return a checkpoint." alt="" coords="133,177,281,203"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="335,192,281,192,281,187,335,187"/>
+<area shape="poly" id="edge12_Node000011_Node000010" title=" " alt="" coords="356,230,261,206,262,201,358,225"/>
+<area shape="rect" id="Node000012" href="$de/ddd/mem-ring_8c.html#ad4af0cc50b53e845edf250cb06b26646" title=" " alt="" coords="168,226,246,252"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="356,242,246,242,246,236,356,236"/>
+<area shape="rect" id="Node000014" href="$de/ddd/mem-ring_8c.html#a2a3726de7fa71c3dd31c9e42a0e6c7a5" title="Dump the ring structure on stdout (debug)" alt="" coords="704,230,822,256"/>
+<area shape="poly" id="edge15_Node000013_Node000014" title=" " alt="" coords="871,245,822,245,822,240,871,240"/>
+<area shape="poly" id="edge17_Node000015_Node000003" title=" " alt="" coords="866,128,822,119,656,99,657,93,822,114,867,122"/>
+<area shape="rect" id="Node000016" href="$de/ddd/mem-ring_8c.html#a303b6087b1b7a8b477e5f44639c12469" title=" " alt="" coords="704,129,822,155"/>
+<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="859,144,823,144,823,139,859,139"/>
+<area shape="poly" id="edge19_Node000016_Node000003" title=" " alt="" coords="702,126,637,107,638,102,703,121"/>
+<area shape="rect" id="Node000017" href="$de/ddd/mem-ring_8c.html#ad6ba8e24fa3e20e0c9dd80ef1717628a" title=" " alt="" coords="531,129,653,155"/>
+<area shape="poly" id="edge20_Node000016_Node000017" title=" " alt="" coords="688,144,653,144,653,139,688,139"/>
+<area shape="poly" id="edge27_Node000017_Node000009" title=" " alt="" coords="525,162,459,179,457,174,523,156"/>
+<area shape="rect" id="Node000018" href="$de/ddd/mem-ring_8c.html#a3985ede75cf06dabc280a095b4d0134e" title="Create a new memory ring&#45;pool." alt="" coords="351,128,460,153"/>
+<area shape="poly" id="edge21_Node000017_Node000018" title=" " alt="" coords="516,144,460,143,460,138,516,138"/>
+<area shape="poly" id="edge22_Node000018_Node000005" title=" " alt="" coords="335,126,261,107,262,102,336,121"/>
+<area shape="rect" id="Node000019" href="$de/ddd/mem-ring_8c.html#a722a95bcb3dded8ae64a37e24ff87736" title="Just like the t_pool() we have the corresponding r_pool()" alt="" coords="179,128,235,153"/>
+<area shape="poly" id="edge23_Node000018_Node000019" title=" " alt="" coords="335,143,236,143,236,138,335,138"/>
+<area shape="rect" id="Node000020" href="$df/d0a/str-l_8h.html#a5755d8b8e2f270c120bf9058e4101f63" title="concatenates its argument to form a new lstr on the r_stack." alt="" coords="7,78,82,104"/>
+<area shape="poly" id="edge24_Node000019_Node000020" title=" " alt="" coords="163,130,82,105,83,100,164,125"/>
+<area shape="rect" id="Node000021" href="$df/d0a/str-l_8h.html#ab2dd3a64ccf77787c30fdd2beb94c817" title="returns a duplicated lstr from the mem stack." alt="" coords="5,128,84,153"/>
+<area shape="poly" id="edge25_Node000019_Node000021" title=" " alt="" coords="163,143,84,143,84,138,163,138"/>
+<area shape="rect" id="Node000022" href="$dc/d31/str-buf_8h.html#a737a59238ec672dd22523f3b0f1f48d5" title=" " alt="" coords="9,177,80,203"/>
+<area shape="poly" id="edge26_Node000019_Node000022" title=" " alt="" coords="164,156,81,182,79,177,163,151"/>
+</map>

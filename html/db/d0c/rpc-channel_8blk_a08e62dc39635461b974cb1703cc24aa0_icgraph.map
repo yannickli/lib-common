@@ -1,0 +1,122 @@
+<map id="ic_msg_new" name="ic_msg_new">
+<area shape="rect" id="Node000001" title=" " alt="" coords="2922,388,3017,414"/>
+<area shape="rect" id="Node000002" href="$dd/de9/rpc-http-server_8c.html#af3468b9b452a0286dd67f5df257213d8" title=" " alt="" coords="831,153,969,193"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2955,374,2914,291,2883,239,2845,187,2800,138,2749,98,2722,83,2693,71,2662,63,2630,61,1286,61,1212,62,1154,66,1098,78,1028,101,975,126,931,154,928,150,972,121,1026,96,1097,73,1154,61,1212,56,1286,56,2630,56,2663,58,2694,66,2724,78,2752,94,2804,134,2849,183,2887,236,2918,288,2959,372"/>
+<area shape="rect" id="Node000006" href="$db/dac/rpc-el_8c.html#ad5785edad9fce58e6f303b4a28df193d" title="Make an RPC call to an async RPC." alt="" coords="599,5,773,31"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="2963,373,2954,323,2938,260,2911,194,2894,163,2872,135,2818,76,2792,55,2767,38,2739,25,2708,17,2630,10,1094,10,773,17,773,12,1094,5,2630,5,2709,12,2741,20,2769,33,2796,51,2821,73,2876,131,2898,160,2916,192,2943,258,2959,322,2968,372"/>
+<area shape="rect" id="Node000011" href="$db/d0c/rpc-channel_8blk.html#a619e907e3b756c178404e2d42bed66c0" title=" " alt="" coords="2740,565,2858,591"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="2959,429,2927,488,2904,520,2876,548,2845,567,2842,562,2873,544,2900,517,2922,485,2954,426"/>
+<area shape="rect" id="Node000012" href="$db/d0c/rpc-channel_8blk.html#a27db6f987839a8bfd1468e85d137c4c9" title=" " alt="" coords="2724,388,2874,414"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="2907,404,2875,404,2875,398,2907,398"/>
+<area shape="rect" id="Node000089" href="$db/d0c/rpc-channel_8blk.html#a3d9757a046429955ac3c89208dc81b10" title=" " alt="" coords="2091,540,2164,566"/>
+<area shape="poly" id="edge61_Node000001_Node000089" title=" " alt="" coords="2937,424,2881,456,2806,491,2720,519,2675,527,2630,530,2489,530,2306,538,2165,551,2164,546,2306,533,2489,525,2630,525,2675,522,2719,514,2804,486,2878,451,2934,420"/>
+<area shape="rect" id="Node000003" href="$dd/de9/rpc-http-server_8c.html#a7aa35bd836933f462594989148ab5fd5" title=" " alt="" coords="612,160,760,186"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="815,176,760,176,760,170,815,170"/>
+<area shape="rect" id="Node000004" href="$dd/de9/rpc-http-server_8c.html#a99f4d0b0719988496aa4496ad91d0b82" title=" " alt="" coords="409,160,547,186"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="597,176,547,176,547,170,597,170"/>
+<area shape="rect" id="Node000005" href="$dd/de9/rpc-http-server_8c.html#a30f581d1d1e0c0a8ff0bd69f9b6316b9" title=" " alt="" coords="208,160,356,186"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="393,176,357,176,357,170,393,170"/>
+<area shape="rect" id="Node000007" href="$db/dac/rpc-el_8c.html#ab564d5690ba53152c1900e3ae9cdb33a" title="Make the asynchronous RPC call with the connected IC EL client." alt="" coords="414,75,541,116"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="636,39,535,77,534,72,634,34"/>
+<area shape="rect" id="Node000010" href="$db/dac/rpc-el_8c.html#ad2091c7b6c6d08d767130403a26c4230" title="Synchronously call an RPC with the IC EL client." alt="" coords="404,16,551,42"/>
+<area shape="poly" id="edge10_Node000006_Node000010" title=" " alt="" coords="584,26,552,28,551,22,584,21"/>
+<area shape="rect" id="Node000008" href="$db/dac/rpc-el_8c.html#a6bcd2209ce7ff6879666d2d222dbd3d6" title="Asynchronously call an RPC with the IC EL client." alt="" coords="5,65,160,91"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="398,82,356,77,254,73,160,76,160,70,254,68,356,72,399,77"/>
+<area shape="rect" id="Node000009" href="$db/dac/rpc-el_8c.html#a406e0ad69521a457ec592294f76e267d" title=" " alt="" coords="218,86,346,127"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="399,102,346,105,345,100,398,97"/>
+<area shape="poly" id="edge9_Node000009_Node000008" title=" " alt="" coords="202,98,160,92,160,86,203,92"/>
+<area shape="rect" id="Node000013" href="$db/d0c/rpc-channel_8blk.html#aed03ca053e8cd665497aab4e3386817a" title=" " alt="" coords="1248,363,1327,388"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="2753,422,2700,441,2636,459,2564,474,2491,479,2320,479,2147,467,1852,438,1328,382,1328,377,1852,433,2147,462,2320,474,2491,474,2563,468,2634,454,2699,436,2751,417"/>
+<area shape="rect" id="Node000015" href="$db/d0c/rpc-channel_8blk.html#ac9faa22aaa4194bf8422ec040518fb79" title=" " alt="" coords="2582,312,2676,338"/>
+<area shape="poly" id="edge15_Node000012_Node000015" title=" " alt="" coords="2753,384,2658,341,2661,336,2756,379"/>
+<area shape="rect" id="Node000014" href="$db/dac/rpc-el_8c.html#a3299fd7f8c33d7f0de7af95430311529" title=" " alt="" coords="1027,388,1164,414"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="1233,385,1165,394,1164,389,1232,380"/>
+<area shape="rect" id="Node000016" href="$db/d0c/rpc-channel_8blk.html#af21fad70d43521dfd48f5cc12389e305" title=" " alt="" coords="1214,97,1361,123"/>
+<area shape="poly" id="edge16_Node000015_Node000016" title=" " alt="" coords="2611,300,2579,250,2557,223,2532,200,2480,160,2435,132,2387,117,2322,111,1738,111,1362,112,1362,107,1738,106,2323,106,2388,111,2437,127,2483,155,2535,196,2561,220,2583,247,2616,297"/>
+<area shape="rect" id="Node000017" href="$db/d0c/rpc-channel_8blk.html#ad35c678466b874e6b3296c129a8fb9bc" title=" " alt="" coords="2244,312,2398,338"/>
+<area shape="poly" id="edge17_Node000015_Node000017" title=" " alt="" coords="2566,328,2399,328,2399,322,2566,322"/>
+<area shape="rect" id="Node000088" href="$db/d0c/rpc-channel_8blk.html#a0652a42ffc7823efbe61c12d60592fe3" title=" " alt="" coords="2446,363,2534,388"/>
+<area shape="poly" id="edge57_Node000015_Node000088" title=" " alt="" coords="2578,346,2528,365,2526,360,2576,341"/>
+<area shape="rect" id="Node000018" href="$db/d0c/rpc-channel_8blk.html#a20a528c1e4c9994a7940c743ab11915d" title=" " alt="" coords="2059,261,2196,287"/>
+<area shape="poly" id="edge18_Node000017_Node000018" title=" " alt="" coords="2254,310,2178,290,2180,285,2255,305"/>
+<area shape="rect" id="Node000087" href="$db/d0c/rpc-channel_8blk.html#a747e2773aab9e2db14c24fcc56d62781" title=" " alt="" coords="2096,413,2159,439"/>
+<area shape="poly" id="edge37_Node000017_Node000087" title=" " alt="" coords="2283,348,2155,415,2152,411,2280,343"/>
+<area shape="rect" id="Node000019" href="$db/d0c/rpc-channel_8blk.html#ac1c48ac4c6cedcaecea99eee99ea8064" title=" " alt="" coords="1229,204,1346,230"/>
+<area shape="poly" id="edge19_Node000018_Node000019" title=" " alt="" coords="2043,280,1920,282,1762,279,1586,271,1410,251,1330,233,1331,228,1411,246,1587,265,1762,274,1920,276,2043,274"/>
+<area shape="rect" id="Node000023" href="$db/d0c/rpc-channel_8blk.html#ad6902b06452a7101b7f2df991a9cec46" title=" " alt="" coords="1870,207,2011,232"/>
+<area shape="poly" id="edge28_Node000018_Node000023" title=" " alt="" coords="2066,259,1986,235,1988,230,2067,254"/>
+<area shape="poly" id="edge27_Node000019_Node000017" title=" " alt="" coords="1326,235,1366,255,1412,273,1501,299,1572,314,1645,321,1738,322,1942,322,2243,322,2243,328,1942,328,1738,327,1645,326,1572,319,1500,304,1410,278,1364,260,1323,240"/>
+<area shape="rect" id="Node000020" href="$db/d0c/rpc-channel_8blk.html#af5bb21c7907d04f507de9cbc122aa266" title=" " alt="" coords="1054,176,1137,202"/>
+<area shape="poly" id="edge20_Node000019_Node000020" title=" " alt="" coords="1213,209,1137,197,1138,192,1214,203"/>
+<area shape="rect" id="Node000021" href="$db/d0c/rpc-channel_8blk.html#a123218bc7d709a83e1b732adeae29069" title="XXX: __ic_query_sync() insures that the message has effectively been written on the socket (and does ..." alt="" coords="1037,111,1154,136"/>
+<area shape="poly" id="edge22_Node000019_Node000021" title=" " alt="" coords="1239,200,1211,187,1120,139,1122,135,1214,182,1241,195"/>
+<area shape="poly" id="edge21_Node000020_Node000002" title=" " alt="" coords="1038,187,969,181,969,176,1039,182"/>
+<area shape="rect" id="Node000022" href="$db/dac/rpc-el_8c.html#aa790b34645336ccb442ccd31d6058355" title="Pack and do RPC query." alt="" coords="829,59,971,100"/>
+<area shape="poly" id="edge23_Node000021_Node000022" title=" " alt="" coords="1021,110,971,98,972,93,1022,104"/>
+<area shape="poly" id="edge24_Node000022_Node000006" title=" " alt="" coords="813,57,733,34,734,29,814,52"/>
+<area shape="poly" id="edge25_Node000022_Node000007" title=" " alt="" coords="814,88,773,90,542,97,541,92,773,85,813,83"/>
+<area shape="poly" id="edge26_Node000022_Node000010" title=" " alt="" coords="813,72,599,46,551,40,552,35,600,41,814,67"/>
+<area shape="rect" id="Node000024" href="$db/d0c/rpc-channel_8blk.html#aa0035eaa08b21b4bdd2383d8bb956f53" title=" " alt="" coords="1657,197,1822,237"/>
+<area shape="poly" id="edge29_Node000023_Node000024" title=" " alt="" coords="1855,221,1823,221,1823,215,1855,216"/>
+<area shape="rect" id="Node000025" href="$db/d0c/rpc-channel_8blk.html#ac06db5d3445b655ce6a228253fac703d" title=" " alt="" coords="1438,197,1582,237"/>
+<area shape="poly" id="edge30_Node000024_Node000025" title=" " alt="" coords="1642,220,1583,220,1583,214,1642,214"/>
+<area shape="rect" id="Node000026" href="$db/d0c/rpc-channel_8blk.html#a33c2a86e516d251757e7b9b4745e5c8c" title=" " alt="" coords="1445,147,1575,172"/>
+<area shape="poly" id="edge32_Node000024_Node000026" title=" " alt="" coords="1642,195,1564,176,1565,170,1643,190"/>
+<area shape="poly" id="edge31_Node000025_Node000019" title=" " alt="" coords="1422,220,1347,220,1347,214,1422,214"/>
+<area shape="poly" id="edge34_Node000026_Node000013" title=" " alt="" coords="1432,176,1412,187,1384,219,1351,269,1298,363,1293,361,1346,267,1379,216,1409,183,1430,171"/>
+<area shape="poly" id="edge36_Node000026_Node000015" title=" " alt="" coords="1590,157,1939,157,2323,157,2371,162,2417,175,2462,195,2503,219,2572,270,2617,310,2613,314,2569,274,2500,223,2460,200,2416,180,2370,167,2322,162,1939,162,1590,162"/>
+<area shape="poly" id="edge33_Node000026_Node000016" title=" " alt="" coords="1433,145,1348,126,1349,121,1434,140"/>
+<area shape="rect" id="Node000027" href="$db/d0c/rpc-channel_8blk.html#ad0f3203da15b9cf0e06004b2ec30fda3" title=" " alt="" coords="1250,147,1325,172"/>
+<area shape="poly" id="edge35_Node000026_Node000027" title=" " alt="" coords="1430,162,1325,162,1325,157,1430,157"/>
+<area shape="rect" id="Node000071" href="$db/d0c/rpc-channel_8blk.html#adc9bceb7a0974122d068ea5e0aa85fb1" title=" " alt="" coords="1905,464,1976,490"/>
+<area shape="poly" id="edge38_Node000087_Node000071" title=" " alt="" coords="2081,441,1977,470,1975,465,2080,436"/>
+<area shape="rect" id="Node000061" href="$db/d0c/rpc-channel_8blk.html#a817ef99c961cde2e81f182d8694839c1" title=" " alt="" coords="851,536,949,562"/>
+<area shape="poly" id="edge39_Node000071_Node000061" title=" " alt="" coords="1889,480,1511,480,1286,479,1156,482,1099,490,1028,505,976,520,931,538,930,533,975,515,1026,500,1098,485,1155,477,1286,474,1511,474,1889,474"/>
+<area shape="rect" id="Node000072" href="$db/d0c/rpc-channel_8blk.html#aebe3d9f2d9d4315148f658d6ef5b0d86" title=" " alt="" coords="1673,540,1807,566"/>
+<area shape="poly" id="edge45_Node000071_Node000072" title=" " alt="" coords="1892,498,1777,542,1775,537,1890,493"/>
+<area shape="rect" id="Node000062" href="$db/d0c/rpc-channel_8blk.html#a48c3a0948c51fa0f785be1abb8087dbd" title=" " alt="" coords="644,547,728,572"/>
+<area shape="poly" id="edge40_Node000061_Node000062" title=" " alt="" coords="835,555,729,560,729,555,835,549"/>
+<area shape="rect" id="Node000067" href="$db/d0c/rpc-channel_8blk.html#ac436bdc6f58cc92cb6d146a2932ea5bb" title=" " alt="" coords="616,497,756,523"/>
+<area shape="poly" id="edge44_Node000061_Node000067" title=" " alt="" coords="835,540,755,525,756,520,836,535"/>
+<area shape="rect" id="Node000063" href="$db/dac/rpc-el_8c.html#a214c8f6acecb37da4afa49e2e8fef056" title="Start client connection if not already in connection attempt." alt="" coords="418,498,537,539"/>
+<area shape="poly" id="edge41_Node000062_Node000063" title=" " alt="" coords="628,551,537,533,539,527,629,546"/>
+<area shape="rect" id="Node000066" href="$db/d0c/rpc-channel_8blk.html#a532fd47994a1a29d8a264c1e9129fc21" title=" " alt="" coords="430,587,525,612"/>
+<area shape="poly" id="edge42_Node000062_Node000066" title=" " alt="" coords="629,573,526,593,525,588,628,568"/>
+<area shape="poly" id="edge43_Node000066_Node000066" title=" " alt="" coords="511,574,500,568,478,565,457,567,446,572,444,577,449,585,445,588,438,578,442,568,456,562,478,560,502,563,514,570"/>
+<area shape="rect" id="Node000073" href="$db/d0c/rpc-channel_8blk.html#adbad4d290e7d5c74507e6862f700b720" title=" " alt="" coords="1411,616,1609,642"/>
+<area shape="poly" id="edge46_Node000072_Node000073" title=" " alt="" coords="1686,574,1610,599,1553,618,1552,613,1608,594,1685,568"/>
+<area shape="rect" id="Node000075" href="$db/d0c/rpc-channel_8blk.html#ac47b14c27995455cf09a680d434a7c6f" title=" " alt="" coords="1449,515,1571,540"/>
+<area shape="poly" id="edge50_Node000072_Node000075" title=" " alt="" coords="1657,546,1571,537,1572,532,1657,541"/>
+<area shape="rect" id="Node000076" href="$db/d0c/rpc-channel_8blk.html#acdf03700d6914be61467f1f9dc8ddbbd" title=" " alt="" coords="1212,565,1363,591"/>
+<area shape="poly" id="edge56_Node000072_Node000076" title=" " alt="" coords="1657,560,1363,577,1363,571,1657,555"/>
+<area shape="rect" id="Node000074" href="$db/d0c/rpc-channel_8blk.html#a103c1f47d37a3645d936a0a7a7468561" title=" " alt="" coords="1058,616,1134,642"/>
+<area shape="poly" id="edge47_Node000073_Node000074" title=" " alt="" coords="1396,632,1134,632,1134,626,1396,626"/>
+<area shape="rect" id="Node000055" href="$db/dac/rpc-el_8c.html#a7fe4f5c20a898647ced2b915ad318b5b" title=" " alt="" coords="821,616,979,642"/>
+<area shape="poly" id="edge48_Node000074_Node000055" title=" " alt="" coords="1042,632,979,632,979,626,1042,626"/>
+<area shape="rect" id="Node000056" href="$db/dac/rpc-el_8c.html#a8e8fb844ec631a1b47b560e08a11f2ad" title="Make the IC EL server listening with the mutex locked." alt="" coords="621,609,751,649"/>
+<area shape="poly" id="edge49_Node000055_Node000056" title=" " alt="" coords="805,632,751,632,751,626,805,626"/>
+<area shape="poly" id="edge51_Node000075_Node000076" title=" " alt="" coords="1436,547,1348,567,1346,562,1435,542"/>
+<area shape="poly" id="edge52_Node000076_Node000061" title=" " alt="" coords="1197,574,949,555,950,550,1197,569"/>
+<area shape="poly" id="edge55_Node000076_Node000074" title=" " alt="" coords="1222,598,1135,621,1134,616,1221,593"/>
+<area shape="rect" id="Node000070" href="$db/d0c/rpc-channel_8blk.html#a87345140c3ae43f61da780ce43cd9d44" title=" " alt="" coords="1045,515,1146,540"/>
+<area shape="poly" id="edge53_Node000076_Node000070" title=" " alt="" coords="1221,563,1146,543,1147,538,1222,558"/>
+<area shape="poly" id="edge54_Node000070_Node000061" title=" " alt="" coords="1030,537,950,546,949,541,1029,532"/>
+<area shape="poly" id="edge58_Node000088_Node000014" title=" " alt="" coords="2431,378,2129,378,1939,378,1777,381,1651,389,1525,397,1363,403,1165,404,1165,399,1363,398,1525,392,1651,383,1777,376,1939,373,2129,373,2431,373"/>
+<area shape="poly" id="edge60_Node000088_Node000017" title=" " alt="" coords="2431,361,2366,341,2367,336,2432,356"/>
+<area shape="poly" id="edge59_Node000088_Node000087" title=" " alt="" coords="2432,391,2399,397,2266,415,2160,426,2159,421,2265,410,2398,392,2431,386"/>
+<area shape="rect" id="Node000090" href="$db/d0c/rpc-channel_8blk.html#acc2a49326fcc617749d2d384c8eaf651" title=" " alt="" coords="1911,589,1970,615"/>
+<area shape="poly" id="edge62_Node000089_Node000090" title=" " alt="" coords="2076,569,1971,597,1969,592,2075,564"/>
+<area shape="rect" id="Node000091" href="$db/d0c/rpc-channel_8blk.html#ab54669a3255d143c48244402fa8d647f" title=" " alt="" coords="1911,540,1970,566"/>
+<area shape="poly" id="edge63_Node000089_Node000091" title=" " alt="" coords="2075,556,1970,556,1970,550,2075,550"/>
+<area shape="poly" id="edge64_Node000091_Node000072" title=" " alt="" coords="1895,556,1807,556,1807,550,1895,550"/>
+<area shape="rect" id="Node000092" href="$db/d0c/rpc-channel_8blk.html#ace882741096820af03c13790ea1b6e5a" title=" " alt="" coords="1677,628,1803,654"/>
+<area shape="poly" id="edge65_Node000091_Node000092" title=" " alt="" coords="1897,569,1871,579,1767,630,1765,625,1869,574,1895,564"/>
+<area shape="rect" id="Node000093" href="$db/d0c/rpc-channel_8blk.html#a3d15b701ca0690aa8048cc2c7546fae2" title=" " alt="" coords="1220,667,1355,692"/>
+<area shape="poly" id="edge66_Node000092_Node000093" title=" " alt="" coords="1661,652,1609,657,1356,677,1355,672,1609,652,1661,646"/>
+<area shape="poly" id="edge67_Node000093_Node000061" title=" " alt="" coords="1204,689,1162,688,1116,683,1070,673,1026,657,1009,645,999,633,990,620,977,605,921,564,924,560,981,602,995,616,1004,630,1013,641,1028,652,1071,668,1117,678,1162,682,1204,683"/>
+<area shape="poly" id="edge68_Node000093_Node000074" title=" " alt="" coords="1221,665,1134,641,1135,636,1222,660"/>
+<area shape="rect" id="Node000094" href="$db/d0c/rpc-channel_8blk.html#a394c42987005d8bbfc2e87db324a259c" title=" " alt="" coords="1035,717,1156,743"/>
+<area shape="poly" id="edge69_Node000093_Node000094" title=" " alt="" coords="1222,699,1147,719,1146,714,1221,694"/>
+<area shape="rect" id="Node000043" href="$db/dac/rpc-el_8c.html#a3d119cca180d9fc33b3a3372f691ad25" title="Create an IC EL client." alt="" coords="835,717,965,743"/>
+<area shape="poly" id="edge70_Node000094_Node000043" title=" " alt="" coords="1020,733,965,733,965,728,1020,728"/>
+</map>

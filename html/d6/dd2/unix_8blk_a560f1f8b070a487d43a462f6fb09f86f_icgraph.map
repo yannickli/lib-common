@@ -1,0 +1,7 @@
+<map id="fcopy" name="fcopy">
+<area shape="rect" id="Node000001" title=" " alt="" coords="129,31,181,56"/>
+<area shape="rect" id="Node000002" href="$d6/dd2/unix_8blk.html#a7bc2416d8cc46022b20ca14d7b7b4c81" title="Copy file pathin to pathout." alt="" coords="11,5,75,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,37,75,28,76,23,114,32"/>
+<area shape="rect" id="Node000003" href="$d6/dd2/unix_8blk.html#a4a996e382b4c354ef5d9e814f44b69f8" title="Copy file from a directory descriptor to another." alt="" coords="5,55,81,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="114,55,82,62,81,57,113,50"/>
+</map>

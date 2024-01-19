@@ -1,0 +1,5 @@
+<map id="rand32" name="rand32">
+<area shape="rect" id="Node000001" title="Generate a 32bit random integer." alt="" coords="209,5,269,31"/>
+<area shape="rect" id="Node000002" href="$d6/df4/rand_8c.html#a2c8158bea7e33deca52f487abf13011c" title=" " alt="" coords="5,5,161,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="193,21,161,21,161,16,193,16"/>
+</map>

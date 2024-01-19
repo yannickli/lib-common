@@ -1,0 +1,18 @@
+<map id="http2_conn_parse_init_settings_hdr" name="http2_conn_parse_init_settings_hdr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,23,154,64"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a7a1ea188bcb489778907aea23e38daeb" title="Get effective HTTP2 settings." alt="" coords="215,5,343,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,31,199,26,200,31,154,37"/>
+<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#ade5c2cb4b1190d338164e638f89f0b0c" title="Parse a HTTP/2 frame info from the ps." alt="" coords="202,55,356,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="154,50,187,54,186,59,154,55"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a1dcc5be8b2a26bb65061bc91fd928f95" title=" " alt="" coords="404,55,496,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="357,65,388,65,388,70,357,70"/>
+<area shape="rect" id="Node000005" href="$d4/d86/str-stream_8h.html#acaca2a6299ce796b2181b5cf6128c5f9" title=" " alt="" coords="544,29,651,55"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="496,57,528,51,529,57,497,62"/>
+<area shape="rect" id="Node000007" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="827,55,890,80"/>
+<area shape="poly" id="edge8_Node000004_Node000007" title=" " alt="" coords="497,65,812,65,812,70,497,70"/>
+<area shape="rect" id="Node000006" href="$d4/d86/str-stream_8h.html#ae098817247881bad5d9318d4c6b712cf" title=" " alt="" coords="699,29,779,55"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="651,40,683,40,683,45,651,45"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="780,48,812,55,811,60,779,53"/>
+<area shape="rect" id="Node000008" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="938,55,1009,80"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="891,65,923,65,923,70,891,70"/>
+</map>

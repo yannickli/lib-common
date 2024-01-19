@@ -1,0 +1,8 @@
+<map id="ic_el_client_async_call_connected" name="ic_el_client_async_call_connected">
+<area shape="rect" id="Node000001" title="Make the asynchronous RPC call with the connected IC EL client." alt="" coords="383,5,510,46"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a6bcd2209ce7ff6879666d2d222dbd3d6" title="Asynchronously call an RPC with the IC EL client." alt="" coords="5,13,160,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="368,25,335,24,208,24,160,25,160,20,208,19,335,19,368,20"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a406e0ad69521a457ec592294f76e267d" title=" " alt="" coords="208,33,335,74"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="368,41,336,46,335,41,367,36"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="192,45,160,40,160,34,193,39"/>
+</map>

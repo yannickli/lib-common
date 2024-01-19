@@ -1,0 +1,23 @@
+<map id="aper_read_aligned_uint" name="aper_read_aligned_uint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,80,160,106"/>
+<area shape="rect" id="Node000002" href="$d8/d1b/bit-stream_8h.html#a6d9453420b1cba63b01e1eca2905a396" title=" " alt="" coords="228,55,297,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,79,212,72,213,77,160,85"/>
+<area shape="rect" id="Node000008" href="$d8/d1b/bit-stream_8h.html#af018ffbc09149767f6036d78e76db96c" title=" " alt="" coords="208,104,317,130"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="160,101,193,105,192,110,160,106"/>
+<area shape="rect" id="Node000003" href="$d8/d1b/bit-stream_8h.html#a624d7fd375ce9d502e3d06e376e851dc" title=" " alt="" coords="394,55,460,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="298,65,378,65,378,70,298,70"/>
+<area shape="rect" id="Node000004" href="$d8/d1b/bit-stream_8h.html#a9314cf527c89c282a39950c0ef72b97f" title=" " alt="" coords="563,55,643,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="460,65,547,65,547,70,460,70"/>
+<area shape="rect" id="Node000006" href="$d8/d1b/bit-stream_8h.html#a1b0d940a6942aa354c38c767dc5bc861" title=" " alt="" coords="571,104,635,130"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="461,74,557,101,556,107,460,79"/>
+<area shape="rect" id="Node000005" href="$d8/d1b/bit-stream_8h.html#ac7c3f7fc264c42a4d53cf5bd3b4e8f49" title=" " alt="" coords="718,55,817,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="643,65,703,65,703,70,643,70"/>
+<area shape="rect" id="Node000007" href="$d8/d1b/bit-stream_8h.html#a6cd3e2dd5a071992eff09950706b07e6" title=" " alt="" coords="738,104,797,130"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="635,114,722,114,722,120,635,120"/>
+<area shape="poly" id="edge11_Node000008_Node000006" title=" " alt="" coords="318,114,556,114,556,120,318,120"/>
+<area shape="rect" id="Node000009" href="$d8/d1b/bit-stream_8h.html#a6ab0fb26cc6a595cf9cb7f6e588ba071" title=" " alt="" coords="365,5,488,31"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="297,101,315,91,330,78,339,66,348,53,363,40,370,36,373,40,367,44,352,57,343,69,334,82,319,95,300,106"/>
+<area shape="poly" id="edge10_Node000009_Node000004" title=" " alt="" coords="476,29,549,50,547,55,475,34"/>
+<area shape="rect" id="Node000010" href="$d8/d1b/bit-stream_8h.html#ad59988765d2cf1d406602372bfa8b0b6" title=" " alt="" coords="536,5,670,31"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="489,16,521,16,521,21,489,21"/>
+</map>

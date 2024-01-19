@@ -1,0 +1,34 @@
+<map id="yaml_pack_variable_t" name="yaml_pack_variable_t">
+<area shape="rect" id="Node000001" title="Deduced value of a variable." alt="" coords="5,1275,143,1341"/>
+<area shape="poly" id="edge18_Node000001_Node000001" title=" " alt="" coords="143,1294,161,1298,169,1308,161,1318,157,1314,164,1308,158,1303,142,1299"/>
+<area shape="rect" id="Node000002" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="99,224,265,409"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,410,93,449,74,492,60,537,55,583,55,1146,59,1205,67,1258,62,1259,54,1205,50,1146,50,583,55,536,69,490,88,447,110,408"/>
+<area shape="rect" id="Node000003" href="$d8/dcc/structyaml__data__t.html" title=" " alt="" coords="303,1078,506,1212"/>
+<area shape="poly" id="edge16_Node000003_Node000002" title=" " alt="" coords="164,409,149,507,140,626,141,689,146,752,156,815,173,875,198,929,231,980,270,1025,310,1065,306,1068,266,1029,227,983,193,932,168,877,151,816,140,753,135,689,135,626,143,507,159,408"/>
+<area shape="rect" id="Node000006" href="$d0/d26/structyaml__parse__t.html" title=" " alt="" coords="315,497,481,672"/>
+<area shape="poly" id="edge7_Node000006_Node000002" title=" " alt="" coords="255,407,307,471,316,483,312,486,303,475,251,411"/>
+<area shape="rect" id="Node000011" href="$de/d41/structyaml__scalar__t.html" title=" " alt="" coords="212,696,373,876"/>
+<area shape="poly" id="edge13_Node000011_Node000002" title=" " alt="" coords="206,408,270,678,265,680,201,409"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="305,1198,155,1270,153,1266,302,1193"/>
+<area shape="rect" id="Node000004" href="$d1/dcc/structyaml__span__t.html" title=" " alt="" coords="362,917,447,982"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="407,982,407,1061,402,1061,402,982"/>
+<area shape="rect" id="Node000005" href="$d0/de9/structyaml__pos__t.html" title=" " alt="" coords="505,532,619,637"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="544,638,443,877,431,903,426,901,438,875,539,636"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="402,672,406,900,401,900,397,672"/>
+<area shape="rect" id="Node000007" href="$d7/d51/structpstream__t.html" title=" " alt="" coords="291,214,486,419"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="395,419,397,480,392,480,390,419"/>
+<area shape="rect" id="Node000008" href="$d8/d4d/structsb__t.html" title=" " alt="" coords="511,254,595,379"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="523,380,500,420,463,484,458,481,496,418,518,377"/>
+<area shape="rect" id="Node000009" href="$d4/de3/structmem__pool__t.html" title=" " alt="" coords="473,5,633,151"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="555,150,555,237,550,237,550,150"/>
+<area shape="poly" id="edge10_Node000009_Node000009" title=" " alt="" coords="633,57,652,64,659,78,657,87,650,93,647,89,652,84,654,78,648,68,632,62"/>
+<area shape="rect" id="Node000010" href="$d3/d39/structyaml__env__presentation__t.html" title=" " alt="" coords="619,252,809,381"/>
+<area shape="poly" id="edge11_Node000006_Node000010" title=" " alt="" coords="651,383,608,421,554,459,496,498,493,494,551,455,604,417,648,379"/>
+<area shape="poly" id="edge12_Node000003_Node000011" title=" " alt="" coords="289,875,293,937,307,999,321,1031,339,1062,335,1065,316,1034,301,1000,288,938,284,876"/>
+<area shape="rect" id="Node000012" href="$dc/df3/structyaml__seq__t.html" title=" " alt="" coords="472,900,623,1000"/>
+<area shape="poly" id="edge14_Node000003_Node000012" title=" " alt="" coords="513,1001,465,1066,461,1063,509,998"/>
+<area shape="rect" id="Node000013" href="$dc/d32/structyaml__obj__t.html" title=" " alt="" coords="647,910,789,990"/>
+<area shape="poly" id="edge15_Node000003_Node000013" title=" " alt="" coords="657,992,522,1075,519,1070,654,987"/>
+<area shape="rect" id="Node000014" href="$da/dc4/structyaml__variable__t.html" title=" " alt="" coords="813,917,916,982"/>
+<area shape="poly" id="edge17_Node000003_Node000014" title=" " alt="" coords="830,984,803,1002,733,1037,660,1067,523,1114,521,1109,658,1062,731,1032,801,997,827,980"/>
+</map>

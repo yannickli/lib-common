@@ -1,0 +1,50 @@
+<map id="file_bin_seek" name="file_bin_seek">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1313,208,1409,234"/>
+<area shape="rect" id="Node000002" href="$dc/d70/file-bin_8c.html#af8c6a0a8423ccfa8e782c0060d1076d5" title="Open a binary file for writing." alt="" coords="1155,145,1259,171"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1312,204,1240,174,1242,169,1314,199"/>
+<area shape="rect" id="Node000014" href="$dc/d70/file-bin_8c.html#a17b4d982b45a1954c9c2b14594e53132" title=" " alt="" coords="1149,232,1265,258"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="1297,233,1266,238,1265,233,1297,228"/>
+<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#afd7ee1bc7a72c00ed491a88f661b602e" title=" " alt="" coords="974,95,1101,120"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1146,143,1082,123,1084,118,1148,138"/>
+<area shape="rect" id="Node000004" href="$db/da8/file-log_8blk.html#a07fef4953498f74c6154aa2a84a8cb22" title="Open a log file." alt="" coords="824,21,920,47"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="992,90,902,50,904,45,994,85"/>
+<area shape="rect" id="Node000006" href="$db/da8/file-log_8blk.html#aa1eabb6ae4e1887f9dce759c17c5b5d8" title=" " alt="" coords="818,95,926,120"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="958,110,926,110,926,105,958,105"/>
+<area shape="rect" id="Node000005" href="$db/da8/file-log_8blk.html#ac9997f2839a3532fe5a7c59b77f145ef" title="Creates a log file from a configuration object, and opens it." alt="" coords="608,8,770,34"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="808,32,770,29,770,24,808,27"/>
+<area shape="rect" id="Node000007" href="$db/da8/file-log_8blk.html#af691a940781675fe1b40fdf41d24f230" title=" " alt="" coords="629,107,749,132"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="803,115,750,118,749,113,802,109"/>
+<area shape="rect" id="Node000013" href="$db/da8/file-log_8blk.html#a8ce89c3f10c656834b18a9ce5d3890c2" title=" " alt="" coords="638,57,740,83"/>
+<area shape="poly" id="edge12_Node000006_Node000013" title=" " alt="" coords="802,96,739,83,740,78,803,91"/>
+<area shape="rect" id="Node000008" href="$db/da8/file-log_8blk.html#a242c917fdef070824408024eb4a7e4d1" title="Re&#45;enable file rotations after &#39;log_file_disable_rotation&#39; has been called and trigger a rotation if ..." alt="" coords="404,156,560,182"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="618,139,540,158,539,153,617,134"/>
+<area shape="rect" id="Node000010" href="$db/da8/file-log_8blk.html#af0c37fd6a0bbee39669d78ee929fbe82" title=" " alt="" coords="443,5,521,31"/>
+<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="616,103,607,98,592,86,582,75,573,64,559,52,521,33,523,29,562,48,577,60,586,72,595,83,610,93,619,98"/>
+<area shape="rect" id="Node000011" href="$db/da8/file-log_8blk.html#aba54e4e7e1f5b88148e9fd8e0a3447ea" title=" " alt="" coords="44,120,121,146"/>
+<area shape="poly" id="edge10_Node000007_Node000011" title=" " alt="" coords="617,106,560,97,498,93,434,93,310,101,202,114,122,128,121,123,201,109,310,95,434,87,498,88,561,92,618,100"/>
+<area shape="rect" id="Node000012" href="$db/da8/file-log_8blk.html#a3ec4414d6a8bde342cdcf39036e01ead" title=" " alt="" coords="440,107,524,132"/>
+<area shape="poly" id="edge11_Node000007_Node000012" title=" " alt="" coords="613,122,525,122,525,117,613,117"/>
+<area shape="rect" id="Node000009" href="$db/da8/file-log_8blk.html#aa74655031af03892b62093d9b1938ce9" title=" " alt="" coords="208,181,356,207"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="389,183,357,187,356,182,388,178"/>
+<area shape="poly" id="edge26_Node000014_Node000009" title=" " alt="" coords="1133,239,1012,228,873,222,688,222,509,216,356,204,357,199,509,211,688,217,873,217,1012,222,1134,234"/>
+<area shape="rect" id="Node000015" href="$dc/d70/file-bin_8c.html#ae7352b5fcf342fb476a06ade9d13ac06" title=" " alt="" coords="820,308,924,334"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="1172,268,1139,284,1102,298,1056,309,1008,316,924,323,924,317,1008,311,1055,304,1101,293,1137,280,1169,263"/>
+<area shape="rect" id="Node000022" href="$dc/d70/file-bin_8c.html#af96e2b4fdac4da97879e3dce1eb51700" title=" " alt="" coords="993,257,1082,283"/>
+<area shape="poly" id="edge24_Node000014_Node000022" title=" " alt="" coords="1134,258,1083,266,1082,261,1133,253"/>
+<area shape="rect" id="Node000016" href="$dc/d70/file-bin_8c.html#a5c2329af5ec26a0d8324c885801afc88" title=" " alt="" coords="418,308,546,334"/>
+<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="804,324,547,324,547,318,804,318"/>
+<area shape="rect" id="Node000020" href="$dc/d70/file-bin_8c.html#ad46d17cb890608302bc883ada63c0638" title=" " alt="" coords="411,257,553,283"/>
+<area shape="poly" id="edge20_Node000015_Node000020" title=" " alt="" coords="804,311,769,305,553,279,554,274,770,300,805,305"/>
+<area shape="rect" id="Node000021" href="$dc/d70/file-bin_8c.html#a47c98e1906106d97d4d179ec87cd6c2a" title=" " alt="" coords="627,358,751,399"/>
+<area shape="poly" id="edge22_Node000015_Node000021" title=" " alt="" coords="815,341,753,361,751,356,813,336"/>
+<area shape="rect" id="Node000017" href="$dc/d70/file-bin_8c.html#a76c39973f56dc3e244822ffb89d157e9" title="Put a record in a binary file." alt="" coords="217,257,347,283"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="413,306,335,286,336,281,414,301"/>
+<area shape="poly" id="edge19_Node000017_Node000011" title=" " alt="" coords="247,250,206,222,101,148,104,144,209,217,250,246"/>
+<area shape="rect" id="Node000018" href="$de/d06/file-bin_8h.html#af887d273cff190bc5af4c23ab333b370" title=" " alt="" coords="5,281,160,307"/>
+<area shape="poly" id="edge17_Node000017_Node000018" title=" " alt="" coords="202,282,160,288,160,282,201,277"/>
+<area shape="rect" id="Node000019" href="$de/d06/file-bin_8h.html#ad49a79a5bcac4fddfdfba13cbbaa4513" title=" " alt="" coords="7,232,158,258"/>
+<area shape="poly" id="edge18_Node000017_Node000019" title=" " alt="" coords="201,263,158,257,159,252,202,257"/>
+<area shape="poly" id="edge21_Node000020_Node000017" title=" " alt="" coords="396,273,347,273,347,268,396,268"/>
+<area shape="poly" id="edge23_Node000021_Node000016" title=" " alt="" coords="611,359,530,337,532,332,612,354"/>
+<area shape="poly" id="edge25_Node000022_Node000015" title=" " alt="" coords="979,291,917,310,915,305,978,286"/>
+</map>

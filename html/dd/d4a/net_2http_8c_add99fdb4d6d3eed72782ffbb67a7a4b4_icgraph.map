@@ -1,0 +1,11 @@
+<map id="httpc_close_http2_pool" name="httpc_close_http2_pool">
+<area shape="rect" id="Node000001" title=" " alt="" coords="520,31,676,56"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a3ef0ecefb94717f602b94b9bb35d62e1" title=" " alt="" coords="363,31,472,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="505,46,472,46,472,41,505,41"/>
+<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a3116828b308e23895f5ecac4258686ea" title=" " alt="" coords="198,31,315,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="348,46,315,46,315,41,348,41"/>
+<area shape="rect" id="Node000004" href="$dd/d4a/net_2http_8c.html#ad6f99386fb518c8ba64244857b0240e1" title=" " alt="" coords="5,5,150,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="182,36,150,31,151,26,183,30"/>
+<area shape="rect" id="Node000005" href="$dd/d4a/net_2http_8c.html#ad196e07d97f054b7629a5f94093340dd" title=" " alt="" coords="5,55,150,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="182,56,151,60,150,55,182,51"/>
+</map>

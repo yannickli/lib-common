@@ -1,0 +1,11 @@
+<map id="el_wake_register" name="el_wake_register">
+<area shape="rect" id="Node000001" title=" " alt="" coords="352,55,471,80"/>
+<area shape="rect" id="Node000002" href="$da/d9c/group__lc__el.html#gaff81beab5b837d31b8b9798d10de32b9" title=" " alt="" coords="161,5,304,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="347,53,281,34,283,29,348,47"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a9dfe6c2ff10cc2176b6497f50f43bd06" title=" " alt="" coords="182,55,283,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="337,70,283,70,283,65,337,65"/>
+<area shape="rect" id="Node000004" href="$dc/d4b/thr-job_8blk.html#ad694c0b99789f472f6ba69e6c13cbc7d" title=" " alt="" coords="188,104,277,130"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="348,88,278,107,277,102,347,83"/>
+<area shape="rect" id="Node000005" href="$dc/d4b/thr-job_8blk.html#aedeeec66e09aa4983e6254f1b84ec2cc" title=" " alt="" coords="5,104,113,130"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="172,120,113,120,113,114,172,114"/>
+</map>

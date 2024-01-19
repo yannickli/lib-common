@@ -1,0 +1,45 @@
+<map id="write_help_string" name="write_help_string">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1658,231,1778,256"/>
+<area shape="rect" id="Node000002" href="$d3/d7b/iopc-lang-c_8blk.html#a7b0d6b4ca907e4475df204e423e7b13a" title=" " alt="" coords="1495,231,1610,256"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1643,246,1610,246,1610,241,1643,241"/>
+<area shape="rect" id="Node000003" href="$d3/d7b/iopc-lang-c_8blk.html#ab73af0a89901453e573a4738c0041e66" title=" " alt="" coords="1282,231,1447,256"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1480,246,1448,246,1448,241,1480,241"/>
+<area shape="rect" id="Node000004" href="$d3/d7b/iopc-lang-c_8blk.html#a9d449ff27ae1a55122242457010da205" title="Dump the attributes table associated to a given object." alt="" coords="674,79,820,104"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1321,226,1233,191,1121,161,1008,136,820,104,820,99,1009,131,1122,156,1235,186,1323,221"/>
+<area shape="rect" id="Node000013" href="$d3/d7b/iopc-lang-c_8blk.html#ab28c9ad460b506283d0fdb7942134595" title=" " alt="" coords="1085,201,1233,227"/>
+<area shape="poly" id="edge13_Node000003_Node000013" title=" " alt="" coords="1266,232,1232,227,1233,222,1266,227"/>
+<area shape="rect" id="Node000017" href="$d3/d7b/iopc-lang-c_8blk.html#a794ac67b2f3d82d60665dac60b8db70e" title=" " alt="" coords="1084,251,1234,292"/>
+<area shape="poly" id="edge20_Node000003_Node000017" title=" " alt="" coords="1266,260,1234,264,1234,259,1266,254"/>
+<area shape="rect" id="Node000018" href="$d3/d7b/iopc-lang-c_8blk.html#a2d61f221cfd1fb5cf593831e131adae1" title=" " alt="" coords="891,313,1033,339"/>
+<area shape="poly" id="edge24_Node000003_Node000018" title=" " alt="" coords="1328,267,1284,288,1234,306,1182,317,1129,324,1033,330,1033,324,1129,319,1182,312,1233,301,1282,283,1326,262"/>
+<area shape="rect" id="Node000005" href="$d3/d7b/iopc-lang-c_8blk.html#a3e16b2467d10a5ddc2cf778af2ee3102" title="Dump the attributes associated to a given object." alt="" coords="469,5,586,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="694,75,606,45,573,34,574,29,608,40,696,70"/>
+<area shape="rect" id="Node000006" href="$d3/d7b/iopc-lang-c_8blk.html#aaf96e6f2eb5aa959ac16df2bee47cd99" title=" " alt="" coords="453,55,602,80"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="659,85,602,78,602,73,659,79"/>
+<area shape="rect" id="Node000012" href="$d3/d7b/iopc-lang-c_8blk.html#a9561a7ae07b731d59a3057073697f021" title=" " alt="" coords="448,104,607,130"/>
+<area shape="poly" id="edge11_Node000004_Node000012" title=" " alt="" coords="659,104,607,110,607,105,659,99"/>
+<area shape="rect" id="Node000007" href="$d3/d7b/iopc-lang-c_8blk.html#ac633cc5263e2185fcaaaa32bff48aade" title=" " alt="" coords="320,129,400,155"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="463,88,449,94,383,131,380,126,447,89,461,83"/>
+<area shape="rect" id="Node000008" href="$df/d1f/iopc_8c.html#a693d2e305d9102c8dd03b6bd0bf61111" title=" " alt="" coords="161,104,272,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="304,135,272,129,273,124,305,130"/>
+<area shape="rect" id="Node000010" href="$db/d07/iopc-dso_8c.html#a95a19b847fb352eb92b539cf3495f093" title=" " alt="" coords="177,153,256,179"/>
+<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="305,154,257,162,256,157,304,149"/>
+<area shape="rect" id="Node000009" href="$df/d1f/iopc_8c.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="34,104,84,130"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="145,120,84,120,84,114,145,114"/>
+<area shape="rect" id="Node000011" href="$db/d07/iopc-dso_8c.html#ab2da67841232fab2872190ddabd94a81" title="Build an IOP DSO." alt="" coords="5,153,113,179"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="161,169,113,169,113,164,161,164"/>
+<area shape="poly" id="edge12_Node000012_Node000007" title=" " alt="" coords="433,134,401,139,401,133,432,129"/>
+<area shape="rect" id="Node000014" href="$d3/d7b/iopc-lang-c_8blk.html#a5932ca501a8fe4de629700124cb66e41" title=" " alt="" coords="887,204,1036,230"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="1070,218,1037,218,1037,213,1070,213"/>
+<area shape="poly" id="edge15_Node000014_Node000007" title=" " alt="" coords="871,208,401,150,401,144,872,203"/>
+<area shape="rect" id="Node000015" href="$d3/d7b/iopc-lang-c_8blk.html#a60e8f426c2193869d8bd3daaecdc8173" title=" " alt="" coords="455,231,600,256"/>
+<area shape="poly" id="edge16_Node000014_Node000015" title=" " alt="" coords="872,225,600,242,600,236,871,220"/>
+<area shape="rect" id="Node000016" href="$d3/d7b/iopc-lang-c_8blk.html#a60e21f96951fdd7e1bbb43189cc174de" title=" " alt="" coords="655,256,839,282"/>
+<area shape="poly" id="edge18_Node000014_Node000016" title=" " alt="" coords="892,236,804,258,802,253,891,231"/>
+<area shape="poly" id="edge17_Node000015_Node000007" title=" " alt="" coords="490,224,382,158,384,153,493,220"/>
+<area shape="poly" id="edge19_Node000016_Node000015" title=" " alt="" coords="639,259,600,254,601,249,640,254"/>
+<area shape="poly" id="edge21_Node000017_Node000018" title=" " alt="" coords="1070,299,1011,315,1010,310,1069,294"/>
+<area shape="rect" id="Node000019" href="$d3/d7b/iopc-lang-c_8blk.html#a138e3066b3ef3a01a0934dfddf817aad" title=" " alt="" coords="675,306,819,347"/>
+<area shape="poly" id="edge22_Node000018_Node000019" title=" " alt="" coords="875,329,820,329,820,324,875,324"/>
+<area shape="poly" id="edge23_Node000019_Node000015" title=" " alt="" coords="670,303,654,297,560,259,562,254,656,292,671,298"/>
+</map>

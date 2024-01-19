@@ -1,0 +1,12 @@
+<map id="mem_ring_delete" name="mem_ring_delete">
+<area shape="rect" id="Node000001" title="Delete the given memory ring&#45;pool." alt="" coords="577,31,698,56"/>
+<area shape="rect" id="Node000002" href="$db/d6e/iopc-iopsq_8c.html#a5b83115db34f7935c32c3adcfab9143a" title="Wipe an iopsq_iop_struct_t object." alt="" coords="204,5,354,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="575,29,529,21,439,15,355,16,355,11,439,10,530,16,576,24"/>
+<area shape="rect" id="Node000004" href="$de/ddd/mem-ring_8c.html#af77a9c34439db748b2b2e4989c5c965f" title="Release the frame identified by the given cookie." alt="" coords="402,31,529,56"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="562,46,530,46,530,41,562,41"/>
+<area shape="rect" id="Node000005" href="$de/ddd/mem-ring_8c.html#aa5ae1efac41f407624fbc340a51d01d4" title="Destroy the r_pool()" alt="" coords="413,80,518,106"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="576,64,514,82,512,77,575,59"/>
+<area shape="rect" id="Node000003" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,5,156,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="188,21,156,21,156,16,188,16"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="386,35,354,31,355,26,387,30"/>
+</map>

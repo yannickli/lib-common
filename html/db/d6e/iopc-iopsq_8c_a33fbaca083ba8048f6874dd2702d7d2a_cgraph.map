@@ -1,0 +1,7 @@
+<map id="iop_type_to_iop" name="iop_type_to_iop">
+<area shape="rect" id="Node000001" title="Fill an IOP² type from an iop_type_t." alt="" coords="5,31,117,56"/>
+<area shape="rect" id="Node000002" href="$d5/d85/iop_2priv_8h.html#a1d55c91fb65bfbfdc1d7f8669eeb98df" title=" " alt="" coords="175,5,328,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,33,159,28,160,33,117,39"/>
+<area shape="rect" id="Node000003" href="$dd/d89/iopc-iopsq_8h.html#a1c12808fe56c05bf2a3257245155ed4f" title=" " alt="" coords="165,55,338,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="117,48,149,52,149,57,117,53"/>
+</map>

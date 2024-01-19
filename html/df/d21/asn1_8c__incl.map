@@ -1,0 +1,9 @@
+<map id="asn1.c" name="asn1.c">
+<area shape="rect" id="Node000001" title=" " alt="" coords="193,5,252,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,133,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="197,34,110,75,108,70,195,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="157,79,288,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="225,31,225,63,220,63,220,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="311,79,398,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="246,29,320,69,318,74,243,34"/>
+</map>

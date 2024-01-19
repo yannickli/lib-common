@@ -1,0 +1,8 @@
+<map id="log_buffer_t" name="log_buffer_t">
+<area shape="rect" id="Node000001" title="Logs buffer." alt="" coords="72,537,152,602"/>
+<area shape="rect" id="Node000002" href="$d2/dca/structlog__ctx__t.html" title=" " alt="" coords="127,254,287,474"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,475,136,523,131,520,154,473"/>
+<area shape="rect" id="Node000003" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="5,5,171,191"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="79,191,71,325,73,400,81,473,94,520,89,522,76,474,68,400,66,325,73,190"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="132,189,153,238,148,240,127,192"/>
+</map>

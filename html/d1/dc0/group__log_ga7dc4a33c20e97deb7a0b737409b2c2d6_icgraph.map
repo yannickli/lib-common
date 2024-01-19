@@ -1,0 +1,25 @@
+<map id="logger_set_level" name="logger_set_level">
+<area shape="rect" id="Node000001" title="Set the maximum logging level for logger." alt="" coords="363,179,478,204"/>
+<area shape="rect" id="Node000002" href="$d7/df8/log_8c.html#a9b1bf78ea07fb4c46335e0ab7e2a279d" title=" " alt="" coords="185,5,301,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="405,166,369,105,344,72,313,44,295,34,298,29,317,40,347,69,374,102,410,163"/>
+<area shape="rect" id="Node000003" href="$d7/df8/log_8c.html#a60dc133c1f3b0acddb17491196bbbaa9" title=" " alt="" coords="187,55,299,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="397,169,361,130,314,94,292,83,294,79,316,89,364,126,401,165"/>
+<area shape="rect" id="Node000004" href="$d0/dae/log-iop_8c.html#a63641a925669a373028c8e1116c807cd" title=" " alt="" coords="184,104,302,130"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="380,174,314,143,286,133,288,128,316,138,382,169"/>
+<area shape="rect" id="Node000005" href="$d0/dae/log-iop_8c.html#a05ed259cf4ec84512ed3980df290df1d" title="IOP configuration interface." alt="" coords="184,153,302,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="347,184,302,177,302,172,348,178"/>
+<area shape="rect" id="Node000006" href="$d7/df8/log_8c.html#a188b4c443e33ac3d7ba2495db4076f4a" title=" " alt="" coords="197,203,289,228"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="348,204,289,212,289,207,347,199"/>
+<area shape="rect" id="Node000008" href="$d0/dae/log-iop_8c.html#ac4d3dc64d8d5d5fcad1eee263c64412b" title=" " alt="" coords="185,252,301,278"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="381,214,316,243,287,254,285,249,314,238,379,209"/>
+<area shape="rect" id="Node000009" href="$d1/dc0/group__log.html#ga90aa8c72db1d2e650c2240aac5a812a9" title="Reset the maximum logging level of logger to its default level." alt="" coords="180,301,306,327"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="401,218,364,256,316,292,294,303,292,298,314,288,360,252,397,214"/>
+<area shape="rect" id="Node000012" href="$d7/d75/yaml_8c.html#a2be1013d3960ec4bf93f75c523263c2a" title=" " alt="" coords="171,351,315,376"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="409,220,373,281,347,313,317,342,298,352,295,348,313,337,343,310,369,278,405,217"/>
+<area shape="rect" id="Node000007" href="$d7/df8/log_8c.html#a083b2e840cc4afee2f08f66c46f4d64d" title=" " alt="" coords="16,203,112,228"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="182,218,113,218,113,213,182,213"/>
+<area shape="rect" id="Node000010" href="$d0/dae/log-iop_8c.html#a140f004d0183ebc0d3ce47db28f87bf5" title=" " alt="" coords="5,276,123,302"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="164,306,122,300,123,294,165,300"/>
+<area shape="rect" id="Node000011" href="$d0/dae/log-iop_8c.html#a8c596e657f10c1e11dbcae5d4ea44a42" title=" " alt="" coords="5,325,123,351"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="165,327,123,333,122,328,164,322"/>
+</map>

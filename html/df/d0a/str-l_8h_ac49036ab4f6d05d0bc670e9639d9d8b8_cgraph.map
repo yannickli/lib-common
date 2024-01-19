@@ -1,0 +1,11 @@
+<map id="lstr_utf8_truncate" name="lstr_utf8_truncate">
+<area shape="rect" id="Node000001" title="Truncate the string to the given number of utf8 characters." alt="" coords="5,5,128,31"/>
+<area shape="rect" id="Node000002" href="$d6/dc3/str-conv_8h.html#a50416038cda74e46d76e95a17937f39a" title=" " alt="" coords="176,5,276,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,16,160,16,160,21,128,21"/>
+<area shape="rect" id="Node000003" href="$d6/dc3/str-conv_8h.html#a7c460ac286d861f7f2ab804d516e59d0" title=" " alt="" coords="324,5,406,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="277,16,308,16,308,21,277,21"/>
+<area shape="rect" id="Node000004" href="$d6/dc3/str-conv_8h.html#ae5571dbb0efdfc94f629880dcbb7a8df" title=" " alt="" coords="454,5,564,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="407,16,439,16,439,21,407,21"/>
+<area shape="rect" id="Node000005" href="$d6/dc3/str-conv_8h.html#a72b0f31f2f1d7424dac6fddbf53aada8" title=" " alt="" coords="612,5,704,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="564,16,596,16,596,21,564,21"/>
+</map>

@@ -1,0 +1,19 @@
+<map id="http2_is_valid_response_hdr_to_send" name="http2_is_valid_response_hdr_to_send">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,167,88"/>
+<area shape="rect" id="Node000002" href="$dd/d56/http_8h.html#ae4a35c59ab430754e03004e54f06ea93" title=" " alt="" coords="215,5,354,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,45,215,33,216,38,168,50"/>
+<area shape="rect" id="Node000003" href="$de/d04/str-l_8c.html#ab31f8fee506d0fe74d0c66d888351191" title="Convert a lstr into an int." alt="" coords="245,55,324,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="167,65,230,65,230,70,167,70"/>
+<area shape="rect" id="Node000007" href="$d4/d86/str-stream_8h.html#a01f510bc60b3e1efa55cf7c371dadfee" title=" " alt="" coords="246,104,323,130"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="168,85,232,101,230,106,166,90"/>
+<area shape="rect" id="Node000004" href="$df/d0a/str-l_8h.html#ac764f4c7ed4f6b893874879a2ebb28b4" title="return the right&#45;trimmed lstr." alt="" coords="402,5,474,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="323,53,387,32,388,37,325,58"/>
+<area shape="rect" id="Node000005" href="$d8/d17/str-num_8c.html#ae846bdcb22ccf7e1a1a22e9ad94c87ee" title=" " alt="" coords="403,55,474,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="324,65,387,65,387,70,324,70"/>
+<area shape="rect" id="Node000006" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="522,55,625,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="474,65,507,65,507,70,474,70"/>
+<area shape="rect" id="Node000008" href="$d4/d86/str-stream_8h.html#a8c72cf3833ab9273d676151a583336a2" title=" " alt="" coords="409,104,468,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="323,114,393,114,393,120,323,120"/>
+<area shape="rect" id="Node000009" href="$d4/d86/str-stream_8h.html#a3b4fe44eb26c6eb77b5c58ab8f6a0b46" title=" " alt="" coords="536,104,611,130"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="468,114,521,114,521,120,468,120"/>
+</map>

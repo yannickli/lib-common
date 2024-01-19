@@ -1,0 +1,14 @@
+<map id="latching_incr_int" name="latching_incr_int">
+<area shape="rect" id="Node000001" title=" " alt="" coords="441,31,556,56"/>
+<area shape="rect" id="Node000002" href="$de/d2b/runtime_8c.html#abf958014dfaeee3ee1a5796a2ff137da" title=" " alt="" coords="218,5,393,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="425,37,393,32,394,27,426,31"/>
+<area shape="rect" id="Node000004" href="$de/d2b/runtime_8c.html#a3cc04469f0bbf2947f6bcfcb329c6090" title=" " alt="" coords="233,55,378,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="426,55,378,61,378,56,425,50"/>
+<area shape="rect" id="Node000003" href="$de/d2b/runtime_8c.html#ae654ef5dfb3fa02e6a206513e971a2d2" title=" " alt="" coords="13,5,162,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="202,21,162,21,162,16,202,16"/>
+<area shape="poly" id="edge6_Node000004_Node000003" title=" " alt="" coords="230,53,147,34,148,29,231,48"/>
+<area shape="rect" id="Node000005" href="$de/d2b/runtime_8c.html#a1fed51eaa33dceef8cbad583bfdd3706" title=" " alt="" coords="40,55,135,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="218,70,135,70,135,65,218,65"/>
+<area shape="rect" id="Node000006" href="$de/d2b/runtime_8c.html#a020f38338fc12c7e1da8f59aef6b16c0" title=" " alt="" coords="5,104,170,130"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="231,87,148,106,147,101,230,82"/>
+</map>

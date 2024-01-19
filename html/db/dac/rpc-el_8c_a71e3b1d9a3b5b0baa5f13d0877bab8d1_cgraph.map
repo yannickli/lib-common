@@ -1,0 +1,9 @@
+<map id="ic_el_client_sync_query_cb" name="ic_el_client_sync_query_cb">
+<area shape="rect" id="Node000001" title="Callback for syncronous client queries." alt="" coords="5,42,185,68"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a919f92a5ae25a35bcc0f0ae9b73d41a4" title="Increment wait lock counter." alt="" coords="240,5,372,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,40,225,34,225,40,186,45"/>
+<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a683bc90d92f7295fa2b6b62dba747f5d" title=" " alt="" coords="233,70,379,96"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,64,217,69,217,74,185,70"/>
+<area shape="rect" id="Node000004" href="$d3/d40/iop_8h.html#a1dcb37c8b1e1c86c5ed3c9ac9da80049" title="Duplicate an IOP structure." alt="" coords="427,70,607,96"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="380,80,411,80,411,86,380,86"/>
+</map>

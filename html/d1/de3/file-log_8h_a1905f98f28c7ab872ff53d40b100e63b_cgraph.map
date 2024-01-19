@@ -1,0 +1,7 @@
+<map id="log_file_get_file_stamp" name="log_file_get_file_stamp">
+<area shape="rect" id="Node000001" title="Get the creation timestamp of a log file from his full path." alt="" coords="5,5,158,31"/>
+<area shape="rect" id="Node000002" href="$d8/d17/str-num_8c.html#ae846bdcb22ccf7e1a1a22e9ad94c87ee" title=" " alt="" coords="206,5,277,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,16,190,16,190,21,158,21"/>
+<area shape="rect" id="Node000003" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="325,5,427,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="277,16,309,16,309,21,277,21"/>
+</map>

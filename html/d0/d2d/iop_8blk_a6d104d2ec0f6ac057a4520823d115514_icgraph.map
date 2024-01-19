@@ -1,0 +1,37 @@
+<map id="iop_union_get_tag" name="iop_union_get_tag">
+<area shape="rect" id="Node000001" title="Read a union tag from a struct." alt="" coords="972,216,1099,242"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#a1cc948908fbd5277cda44853bd7f5d30" title=" " alt="" coords="830,143,914,168"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="990,212,902,171,904,166,992,207"/>
+<area shape="rect" id="Node000012" href="$d0/d2d/iop_8blk.html#aed398fecfe78191b4b167297b9835ce3" title=" " alt="" coords="824,216,921,242"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="957,232,921,232,921,226,957,226"/>
+<area shape="rect" id="Node000014" href="$d0/d2d/iop_8blk.html#ac4237ff6384c71f7071e6e9e35ab26cf" title=" " alt="" coords="820,265,924,291"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="977,249,918,267,917,262,975,244"/>
+<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#ae31a683a8360f57ba6c1a261df652053" title=" " alt="" coords="660,104,766,130"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="814,144,765,132,766,127,815,139"/>
+<area shape="rect" id="Node000004" href="$d0/d2d/iop_8blk.html#a448225324910d0de252b6e040bdcf37a" title=" " alt="" coords="482,55,604,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="651,102,589,84,591,78,652,97"/>
+<area shape="rect" id="Node000007" href="$d0/d2d/iop_8blk.html#a4df79be46b4f506b6bfe5032741e2f11" title=" " alt="" coords="489,104,597,130"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="644,120,597,120,597,114,644,114"/>
+<area shape="rect" id="Node000005" href="$d0/d2d/iop_8blk.html#ab89279ec3093f0eda25141b326291575" title=" " alt="" coords="317,5,432,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="481,52,420,34,422,29,483,47"/>
+<area shape="rect" id="Node000006" href="$d0/d2d/iop_8blk.html#a007321f8a5ab2cb79c2c5b97dc72fa98" title=" " alt="" coords="321,55,429,80"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="466,70,429,70,429,65,466,65"/>
+<area shape="rect" id="Node000008" href="$d0/d2d/iop_8blk.html#a72d1069b5861ce1f8cd3e445d5a715af" title=" " alt="" coords="324,104,425,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="473,120,426,120,426,114,473,114"/>
+<area shape="rect" id="Node000011" href="$d0/d2d/iop_8blk.html#a8b980505a5736bdcb7fe5d746f80a685" title="Single&#45;field comparison between two IOP structs, unions or classes." alt="" coords="325,153,425,179"/>
+<area shape="poly" id="edge10_Node000007_Node000011" title=" " alt="" coords="483,137,422,155,420,150,481,132"/>
+<area shape="rect" id="Node000009" href="$d0/d2d/iop_8blk.html#a4458976366c9e0f77cc34390986c3c0d" title=" " alt="" coords="156,104,269,130"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="309,120,269,120,269,114,309,114"/>
+<area shape="rect" id="Node000010" href="$d0/d2d/iop_8blk.html#a0d03ebbf035d0f126c3f451bfaf7aa4e" title=" " alt="" coords="5,104,108,130"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="140,120,108,120,108,114,140,114"/>
+<area shape="poly" id="edge11_Node000011_Node000002" title=" " alt="" coords="440,162,829,154,830,159,440,167"/>
+<area shape="poly" id="edge13_Node000012_Node000012" title=" " alt="" coords="899,203,890,197,872,195,856,197,847,201,845,207,850,214,845,217,840,207,843,198,854,192,872,189,892,192,902,199"/>
+<area shape="rect" id="Node000013" href="$d0/d2d/iop_8blk.html#a7c3d84acf67e66886640d536494950df" title=" " alt="" coords="654,216,772,242"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="808,240,772,240,772,235,808,235"/>
+<area shape="poly" id="edge15_Node000013_Node000012" title=" " alt="" coords="787,217,823,218,823,223,787,223"/>
+<area shape="rect" id="Node000015" href="$d0/d2d/iop_8blk.html#a7edeb7eefe129b53d7527ddc14a20768" title=" " alt="" coords="668,265,758,291"/>
+<area shape="poly" id="edge17_Node000014_Node000015" title=" " alt="" coords="804,290,758,289,758,284,804,284"/>
+<area shape="poly" id="edge18_Node000015_Node000014" title=" " alt="" coords="774,267,820,267,820,272,774,272"/>
+<area shape="rect" id="Node000016" href="$d0/d2d/iop_8blk.html#af2e550e8f95aa2d06b76106cf21ae347" title=" " alt="" coords="480,265,606,291"/>
+<area shape="poly" id="edge19_Node000015_Node000016" title=" " alt="" coords="652,281,606,281,606,276,652,276"/>
+</map>

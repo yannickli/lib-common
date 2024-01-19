@@ -1,0 +1,14 @@
+<map id="http2_parse_frame_hdr" name="http2_parse_frame_hdr">
+<area shape="rect" id="Node000001" title="Parse a HTTP/2 frame info from the ps." alt="" coords="5,31,160,56"/>
+<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#a1dcc5be8b2a26bb65061bc91fd928f95" title=" " alt="" coords="208,31,300,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,41,192,41,192,46,160,46"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#acaca2a6299ce796b2181b5cf6128c5f9" title=" " alt="" coords="348,5,454,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="300,33,332,27,333,33,301,38"/>
+<area shape="rect" id="Node000005" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="631,31,694,56"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="301,41,615,41,615,46,301,46"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#ae098817247881bad5d9318d4c6b712cf" title=" " alt="" coords="502,5,583,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="455,16,487,16,487,21,455,21"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="583,24,616,31,615,36,582,29"/>
+<area shape="rect" id="Node000006" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="742,31,812,56"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="694,41,727,41,727,46,694,46"/>
+</map>

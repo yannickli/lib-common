@@ -1,0 +1,7 @@
+<map id="rp_alloc" name="rp_alloc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="202,31,268,56"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a3d93d1d071835d4ba0d25b057e8c2aac" title="Seal the ring&#45;pool and return a checkpoint." alt="" coords="5,5,154,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,38,154,33,154,28,187,33"/>
+<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#ad4af0cc50b53e845edf250cb06b26646" title=" " alt="" coords="41,55,118,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,54,119,64,118,59,186,48"/>
+</map>

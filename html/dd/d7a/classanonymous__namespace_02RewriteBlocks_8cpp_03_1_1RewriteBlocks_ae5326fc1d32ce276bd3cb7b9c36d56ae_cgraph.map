@@ -1,0 +1,18 @@
+<map id="anonymous_namespace{RewriteBlocks::cpp}::RewriteBlocks::SynthesizeBlockFunc" name="anonymous_namespace{RewriteBlocks::cpp}::RewriteBlocks::SynthesizeBlockFunc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,215,186,286"/>
+<area shape="rect" id="Node000002" href="$dd/d7a/classanonymous__namespace_02RewriteBlocks_8cpp_03_1_1RewriteBlocks.html#a2f4c4696a1e215143c8b0ae2ab115dcb" title=" " alt="" coords="235,5,429,61"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,213,162,141,195,103,232,70,235,68,238,72,235,74,199,107,166,145,119,216"/>
+<area shape="rect" id="Node000003" href="$dd/d7a/classanonymous__namespace_02RewriteBlocks_8cpp_03_1_1RewriteBlocks.html#aa687eb908986cfbdef51923ccd4633c6" title="convertBlockPointerToFunctionPointer &#45; Converts a block&#45;pointer type to a function pointer type and u..." alt="" coords="235,85,429,155"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,212,252,161,255,165,162,217"/>
+<area shape="rect" id="Node000004" href="$de/d2b/RewriteBlocks_8cpp.html#ad902f7d132d1729c8c30da506b342d2e" title=" " alt="" coords="478,144,665,170"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="186,226,233,216,475,171,476,176,234,221,187,232"/>
+<area shape="rect" id="Node000005" href="$de/d2b/RewriteBlocks_8cpp.html#abcf6b7662e7d265033a6ec277ecaa2fd" title=" " alt="" coords="247,230,417,271"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="186,248,231,248,231,253,186,253"/>
+<area shape="rect" id="Node000006" href="$dd/d7a/classanonymous__namespace_02RewriteBlocks_8cpp_03_1_1RewriteBlocks.html#a55d2a90df8004275ef2334b7679e5345" title=" " alt="" coords="235,295,429,366"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="187,278,221,290,219,295,185,283"/>
+<area shape="rect" id="Node000007" href="$dd/d7a/classanonymous__namespace_02RewriteBlocks_8cpp_03_1_1RewriteBlocks.html#a124795af719d9fdfcb356d7ab264302f" title=" " alt="" coords="235,390,429,461"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="132,284,179,330,235,375,242,379,239,384,232,379,175,334,128,288"/>
+<area shape="rect" id="Node000008" href="$dd/d7a/classanonymous__namespace_02RewriteBlocks_8cpp_03_1_1RewriteBlocks.html#aadb27ca7fce2e1cb82cbc68944f5b61b" title=" " alt="" coords="234,485,430,555"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="114,285,133,327,161,375,195,425,236,470,239,473,235,477,232,474,191,429,156,378,129,329,109,287"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="429,132,470,139,469,144,429,138"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="get_struct_from_tag" name="get_struct_from_tag">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,81,143,107"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#ac6881f6f92d74c934dcf5c56b0c3d9a6" title=" " alt="" coords="226,5,333,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,78,190,48,226,34,228,39,192,53,111,83"/>
+<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a07f21da2d3381b98dd6f6bbd642d2130" title=" " alt="" coords="416,56,549,82"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="143,87,400,71,401,77,143,93"/>
+<area shape="rect" id="Node000004" href="$d0/d2d/iop_8blk.html#a3e0d747e81d1c12ef29768dbc4cb0029" title=" " alt="" coords="191,107,368,132"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="143,100,176,104,175,109,142,105"/>
+<area shape="rect" id="Node000005" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="241,156,318,182"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="104,105,192,142,226,153,225,158,190,147,102,110"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="334,29,414,49,413,54,333,34"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="333,103,413,83,414,89,335,109"/>
+</map>

@@ -1,0 +1,14 @@
+<map id="json_media_object_t" name="json_media_object_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,814,137,879"/>
+<area shape="rect" id="Node000002" href="$de/de1/structschema__object__t.html" title=" " alt="" coords="97,542,251,751"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="123,752,98,801,93,798,118,749"/>
+<area shape="poly" id="edge5_Node000002_Node000002" title=" " alt="" coords="252,620,271,629,278,646,276,657,269,665,265,662,271,655,273,647,267,632,250,625"/>
+<area shape="rect" id="Node000003" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="19,5,185,191"/>
+<area shape="poly" id="edge7_Node000001_Node000003" title=" " alt="" coords="90,191,72,317,59,458,59,518,71,797,66,797,54,518,54,458,67,317,85,190"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="102,190,105,307,117,433,138,525,132,526,112,434,100,307,97,190"/>
+<area shape="rect" id="Node000004" href="$d8/d5f/structscalar__value__t.html" title=" " alt="" coords="209,254,339,434"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="169,189,204,238,199,241,164,192"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="247,434,216,526,211,525,242,433"/>
+<area shape="rect" id="Node000005" href="$d1/df6/structopt__i64__t.html" title=" " alt="" coords="363,301,465,386"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="394,388,356,451,308,519,265,567,261,563,304,516,352,448,390,385"/>
+</map>

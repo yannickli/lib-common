@@ -1,0 +1,15 @@
+<map id="log_file_t" name="log_file_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="117,710,259,1120"/>
+<area shape="rect" id="Node000002" href="$de/d3a/structfile__bin__t.html" title=" " alt="" coords="57,462,181,647"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,647,140,686,141,693,136,694,135,687,128,648"/>
+<area shape="rect" id="Node000003" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="5,214,171,399"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="89,398,92,438,93,445,88,446,87,438,83,399"/>
+<area shape="rect" id="Node000004" href="$d8/d4d/structsb__t.html" title=" " alt="" coords="205,244,289,369"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="207,370,176,424,164,448,159,446,171,422,203,367"/>
+<area shape="rect" id="Node000006" href="$dd/d91/structfile__t.html" title=" " alt="" coords="205,502,310,607"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="252,368,257,485,252,485,247,369"/>
+<area shape="rect" id="Node000005" href="$d4/de3/structmem__pool__t.html" title=" " alt="" coords="167,5,327,151"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="249,150,249,227,244,227,244,150"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="327,57,346,64,353,78,351,87,344,93,341,89,346,84,348,78,342,68,326,62"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="250,608,233,694,228,693,245,607"/>
+</map>

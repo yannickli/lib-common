@@ -1,0 +1,12 @@
+<map id="latching_decr_int" name="latching_decr_int">
+<area shape="rect" id="Node000001" title=" " alt="" coords="560,29,680,55"/>
+<area shape="rect" id="Node000002" href="$de/d2b/runtime_8c.html#a0e8a698aa0b9165f7df9b80bd7bffc70" title=" " alt="" coords="209,5,354,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="545,40,354,26,355,21,545,34"/>
+<area shape="rect" id="Node000004" href="$de/d2b/runtime_8c.html#ad3369df3056ab83f5239a47bbc848728" title=" " alt="" coords="402,55,512,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="545,56,513,62,513,56,544,51"/>
+<area shape="rect" id="Node000003" href="$de/d2b/runtime_8c.html#a14622d1b551cc00e2f9a3ae41cd04579" title=" " alt="" coords="5,31,161,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="193,32,161,36,160,31,193,27"/>
+<area shape="rect" id="Node000005" href="$de/d2b/runtime_8c.html#ae8009452bc9ed223ab5b599d1ce6e475" title=" " alt="" coords="226,55,337,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="387,70,337,70,337,65,387,65"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="211,62,161,56,162,50,211,56"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="tm_diff_hours" name="tm_diff_hours">
+<area shape="rect" id="Node000001" title="Count the number of hours between two dates." alt="" coords="5,5,105,31"/>
+<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#ab6064a2ed6ea7f4e17ca0922b717a94d" title="Count the number of days between two dates." alt="" coords="153,5,247,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,16,137,16,137,21,105,21"/>
+<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#ab75324239c8fa896834be8c56b567f16" title="Count the number of days since January 1st, 1900." alt="" coords="295,5,459,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="248,16,279,16,279,21,248,21"/>
+<area shape="rect" id="Node000004" href="$de/d1b/datetime_8h.html#a7fe5eccec7a625f2069d274a6cdba2df" title="Count the number of leap years since 1900." alt="" coords="507,5,685,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="460,16,492,16,492,21,460,21"/>
+</map>

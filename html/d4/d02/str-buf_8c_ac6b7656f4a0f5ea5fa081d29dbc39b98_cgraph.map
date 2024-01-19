@@ -1,0 +1,20 @@
+<map id="__sb_optimize" name="__sb_optimize">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,81,110,107"/>
+<area shape="rect" id="Node000002" href="$d8/d37/mem_8blk.html#a83c7cf203e5eef9d1a8c6c43cde3e2e5" title=" " alt="" coords="158,5,229,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,79,154,37,157,41,83,83"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="445,56,518,82"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,88,429,69,430,75,110,94"/>
+<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="601,156,684,182"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="80,105,116,125,158,142,216,156,275,166,394,176,501,176,585,172,586,177,501,182,393,181,275,172,215,162,157,147,114,130,78,110"/>
+<area shape="rect" id="Node000006" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="158,107,229,132"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="111,101,143,107,142,113,110,107"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="732,156,844,182"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="684,166,717,166,717,172,684,172"/>
+<area shape="rect" id="Node000007" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="277,107,362,132"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="229,117,261,117,261,122,229,122"/>
+<area shape="poly" id="edge7_Node000007_Node000003" title=" " alt="" coords="362,104,429,82,431,87,364,109"/>
+<area shape="poly" id="edge8_Node000007_Node000004" title=" " alt="" coords="364,130,411,141,503,154,586,162,585,168,502,160,410,146,362,135"/>
+<area shape="rect" id="Node000008" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="410,105,553,131"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="363,116,395,116,395,122,363,122"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="526,129,587,149,585,154,524,134"/>
+</map>

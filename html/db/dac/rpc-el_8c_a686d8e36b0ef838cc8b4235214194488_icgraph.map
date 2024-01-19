@@ -1,0 +1,7 @@
+<map id="ic_el_client_async_connect_locked" name="ic_el_client_async_connect_locked">
+<area shape="rect" id="Node000001" title="Asynchronously connect the client with the el mutex locked." alt="" coords="208,27,335,68"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a6bcd2209ce7ff6879666d2d222dbd3d6" title="Asynchronously call an RPC with the IC EL client." alt="" coords="5,5,160,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="192,38,160,33,160,28,193,33"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a92167a92086d474f807a9d76b3bf3679" title="Aynchronously connect the IC EL client." alt="" coords="19,55,146,96"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="193,62,147,69,146,63,192,57"/>
+</map>

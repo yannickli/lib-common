@@ -1,0 +1,5 @@
+<map id="tm_nb_days_since_1900" name="tm_nb_days_since_1900">
+<area shape="rect" id="Node000001" title="Count the number of days since January 1st, 1900." alt="" coords="5,5,170,31"/>
+<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#a7fe5eccec7a625f2069d274a6cdba2df" title="Count the number of leap years since 1900." alt="" coords="218,5,395,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,16,202,16,202,21,170,21"/>
+</map>

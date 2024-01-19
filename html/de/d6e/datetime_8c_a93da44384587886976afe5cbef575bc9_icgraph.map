@@ -1,0 +1,11 @@
+<map id="split_time_interval" name="split_time_interval">
+<area shape="rect" id="Node000001" title="Split a number of seconds into years, weeks, days, hours, minutes and seconds." alt="" coords="388,46,514,72"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a3ef87e47b96ed981dd937c1c10363c4c" title="Print a human readable string in english from a number of seconds." alt="" coords="213,5,340,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="372,47,340,40,341,35,373,42"/>
+<area shape="rect" id="Node000004" href="$de/d6e/datetime_8c.html#ab7df1690d393f2f5ea7b1c44e648c1a2" title="Print a human readable string in french from a number of seconds." alt="" coords="213,71,340,111"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="373,76,341,82,340,77,372,71"/>
+<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#aec3aa8587bd689053c2f9da1d331e4af" title="Print a human readable string in english from a number of seconds." alt="" coords="5,13,165,39"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="197,28,165,28,165,23,197,23"/>
+<area shape="rect" id="Node000005" href="$de/d1b/datetime_8h.html#a5ab544b2a8b005f93668fea1f1a3f713" title="Print a human readable string in french from a number of seconds." alt="" coords="8,78,162,104"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="197,94,162,94,162,88,197,88"/>
+</map>

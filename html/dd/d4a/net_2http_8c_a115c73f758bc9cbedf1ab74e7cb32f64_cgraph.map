@@ -1,0 +1,67 @@
+<map id="http2_conn_close" name="http2_conn_close">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,108,129,133"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#aa3f75bb508b8dde4e3230d35de806c02" title="Internally closes streams with ids greater than the respective limits." alt="" coords="177,128,354,169"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,126,162,131,161,136,129,132"/>
+<area shape="rect" id="Node000028" href="$dd/d4a/net_2http_8c.html#ac7fbeba93886082113be531c89b08aea" title=" " alt="" coords="193,78,338,104"/>
+<area shape="poly" id="edge30_Node000001_Node000028" title=" " alt="" coords="129,109,177,101,178,107,130,114"/>
+<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#af120f899f0d5ea46316e0990398ccdd1" title=" " alt="" coords="402,136,556,161"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="354,146,386,146,386,151,354,151"/>
+<area shape="rect" id="Node000004" href="$dd/d4a/net_2http_8c.html#a740fdd176969b47762ba521d3f85c9f7" title=" " alt="" coords="604,211,759,251"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="514,159,617,202,615,207,512,164"/>
+<area shape="rect" id="Node000024" href="$dd/d4a/net_2http_8c.html#a6e74f9164c01f80d55b51af49665f933" title=" " alt="" coords="604,128,759,169"/>
+<area shape="poly" id="edge26_Node000003_Node000024" title=" " alt="" coords="557,146,589,146,589,151,557,151"/>
+<area shape="rect" id="Node000005" href="$dd/d4a/net_2http_8c.html#a2518cd3b2da3c63cc4d5f9be95736974" title="Reset a steam&#45;attached (active) httpc to the idle state to serve the next query if any." alt="" coords="823,257,957,298"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="759,246,809,257,807,262,758,251"/>
+<area shape="rect" id="Node000006" href="$de/d1a/container-dlist_8h.html#a7a9ef8311171b9472b641e48aefc2a29" title="Remove element e from its list and add it at the tail of l." alt="" coords="1043,344,1151,369"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="939,296,1022,330,1038,336,1036,341,1020,335,937,301"/>
+<area shape="rect" id="Node000010" href="$dd/d4a/net_2http_8c.html#a91aa6f0fa9062e40c2cb0928399e1c84" title=" " alt="" coords="1031,229,1164,270"/>
+<area shape="poly" id="edge9_Node000005_Node000010" title=" " alt="" coords="957,266,1015,258,1015,263,957,271"/>
+<area shape="rect" id="Node000013" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="1469,230,1540,256"/>
+<area shape="poly" id="edge25_Node000005_Node000013" title=" " alt="" coords="924,254,969,232,1020,215,1126,197,1210,194,1295,201,1402,215,1454,226,1453,231,1401,220,1294,206,1210,199,1127,202,1022,220,971,237,927,259"/>
+<area shape="rect" id="Node000019" href="$dd/d4a/net_2http_8c.html#ad84c81d3e4c4c558b7ef4740e2390d96" title=" " alt="" coords="1021,294,1173,320"/>
+<area shape="poly" id="edge19_Node000005_Node000019" title=" " alt="" coords="957,284,1006,291,1005,297,957,290"/>
+<area shape="rect" id="Node000020" href="$dd/d4a/net_2http_8c.html#ac31d69a7838f285237020d5b191d2caf" title=" " alt="" coords="1025,430,1169,456"/>
+<area shape="poly" id="edge20_Node000005_Node000020" title=" " alt="" coords="919,297,1070,418,1066,422,915,301"/>
+<area shape="rect" id="Node000007" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="1450,380,1559,405"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1152,358,1435,384,1434,389,1152,364"/>
+<area shape="rect" id="Node000008" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="1263,329,1360,355"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="1152,350,1247,343,1247,349,1152,355"/>
+<area shape="rect" id="Node000009" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="1461,329,1548,355"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1361,339,1445,339,1445,344,1361,344"/>
+<area shape="rect" id="Node000011" href="$d7/dcb/container-htlist_8h.html#ad447ba65032263c290856d3718ce59ea" title=" " alt="" coords="1257,230,1366,256"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1164,245,1242,242,1242,248,1164,250"/>
+<area shape="rect" id="Node000012" href="$dc/d31/str-buf_8h.html#ab83eeb942ed3944470a82c220a999845" title=" " alt="" coords="1278,280,1345,305"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="1165,260,1264,280,1263,286,1164,266"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="1344,281,1454,253,1455,258,1346,287"/>
+<area shape="rect" id="Node000014" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="1607,230,1692,256"/>
+<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="1541,240,1591,240,1591,246,1541,246"/>
+<area shape="rect" id="Node000015" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="1775,180,1848,205"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="1692,227,1759,206,1761,211,1694,232"/>
+<area shape="rect" id="Node000016" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="1931,256,2014,281"/>
+<area shape="poly" id="edge15_Node000014_Node000016" title=" " alt="" coords="1693,244,1915,261,1915,267,1693,249"/>
+<area shape="rect" id="Node000018" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="1740,281,1883,307"/>
+<area shape="poly" id="edge17_Node000014_Node000018" title=" " alt="" coords="1694,254,1755,273,1753,278,1692,259"/>
+<area shape="rect" id="Node000017" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="2062,256,2174,281"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="2014,266,2047,266,2047,271,2014,271"/>
+<area shape="poly" id="edge18_Node000018_Node000016" title=" " alt="" coords="1883,280,1915,275,1916,280,1884,285"/>
+<area shape="rect" id="Node000021" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="1264,430,1359,456"/>
+<area shape="poly" id="edge21_Node000020_Node000021" title=" " alt="" coords="1170,440,1248,440,1248,446,1170,446"/>
+<area shape="rect" id="Node000023" href="$dd/d4a/net_2http_8c.html#a660e73ab127cb51ab2f5613cd1507ddb" title=" " alt="" coords="1221,480,1402,505"/>
+<area shape="poly" id="edge24_Node000020_Node000023" title=" " alt="" coords="1157,454,1238,473,1237,478,1156,459"/>
+<area shape="poly" id="edge22_Node000021_Node000007" title=" " alt="" coords="1359,428,1437,407,1439,412,1360,433"/>
+<area shape="rect" id="Node000022" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="1470,430,1539,456"/>
+<area shape="poly" id="edge23_Node000021_Node000022" title=" " alt="" coords="1359,440,1454,440,1454,446,1359,446"/>
+<area shape="rect" id="Node000025" href="$dd/d4a/net_2http_8c.html#a46edc5c89b13ac687060b7dc9a906d11" title="Streaming Layer Handlers." alt="" coords="822,128,958,169"/>
+<area shape="poly" id="edge27_Node000024_Node000025" title=" " alt="" coords="759,146,807,146,807,151,759,151"/>
+<area shape="rect" id="Node000026" href="$dd/d4a/net_2http_8c.html#a8f94539c6ab9c3a9ff771f65b657b39c" title=" " alt="" coords="1043,129,1152,155"/>
+<area shape="poly" id="edge28_Node000025_Node000026" title=" " alt="" coords="958,144,1027,141,1027,147,958,149"/>
+<area shape="rect" id="Node000027" href="$de/d1a/container-dlist_8h.html#a09103296d7ba39784005e7402529a9c0" title="Return true if the list has no element." alt="" coords="1259,104,1364,129"/>
+<area shape="poly" id="edge29_Node000026_Node000027" title=" " alt="" coords="1152,133,1244,122,1244,127,1153,138"/>
+<area shape="rect" id="Node000029" href="$dd/d4a/net_2http_8c.html#a93018d53614727d23870688fe1e226ee" title=" " alt="" coords="407,71,551,111"/>
+<area shape="poly" id="edge31_Node000028_Node000029" title=" " alt="" coords="338,88,391,88,391,94,338,94"/>
+<area shape="rect" id="Node000031" href="$dd/d4a/net_2http_8c.html#a65bcd0505ec1714bf6452f138cef587d" title=" " alt="" coords="407,5,551,46"/>
+<area shape="poly" id="edge34_Node000028_Node000031" title=" " alt="" coords="309,75,395,49,396,54,311,80"/>
+<area shape="rect" id="Node000030" href="$dd/d4a/net_2http_8c.html#a3045844b543c7cf69010bac6782cea55" title=" " alt="" coords="807,78,973,104"/>
+<area shape="poly" id="edge32_Node000029_Node000030" title=" " alt="" coords="552,88,791,88,791,94,552,94"/>
+<area shape="poly" id="edge33_Node000030_Node000027" title=" " alt="" coords="974,93,1244,110,1244,115,973,99"/>
+</map>

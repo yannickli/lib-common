@@ -1,0 +1,20 @@
+<map id="file_flush" name="file_flush">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,77,82"/>
+<area shape="rect" id="Node000002" href="$d6/d13/file_8c.html#ac2b08ae4582c317faf02333070ded423" title=" " alt="" coords="125,56,228,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="77,66,109,66,109,72,77,72"/>
+<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#ab83eeb942ed3944470a82c220a999845" title=" " alt="" coords="276,56,342,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="228,66,260,66,260,72,228,72"/>
+<area shape="rect" id="Node000004" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="390,56,462,82"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="343,66,374,66,374,72,343,72"/>
+<area shape="rect" id="Node000005" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="510,56,595,82"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="462,66,494,66,494,72,462,72"/>
+<area shape="rect" id="Node000006" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="678,5,751,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="595,53,662,32,664,37,596,58"/>
+<area shape="rect" id="Node000007" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="833,81,917,107"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="596,69,818,87,817,92,595,75"/>
+<area shape="rect" id="Node000009" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="643,107,785,132"/>
+<area shape="poly" id="edge8_Node000005_Node000009" title=" " alt="" coords="596,80,657,99,656,104,595,85"/>
+<area shape="rect" id="Node000008" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="965,81,1077,107"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="917,92,949,92,949,97,917,97"/>
+<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="785,106,818,100,819,106,786,111"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="ber_decode_len32" name="ber_decode_len32">
+<area shape="rect" id="Node000001" title="Decode a ber&#45;encoded length to a 32 bits unsigned int." alt="" coords="5,30,132,56"/>
+<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#ae7e79a0c55fae102e38e4362cc43dce1" title=" " alt="" coords="295,30,376,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,40,280,40,280,46,132,46"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="553,30,616,56"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="131,29,179,22,342,4,414,4,505,15,538,23,537,28,504,20,414,10,343,9,180,27,132,34"/>
+<area shape="rect" id="Node000006" href="$d4/d86/str-stream_8h.html#acfd192f4458058cc85b3bfdc7d9bb79d" title=" " alt="" coords="180,81,247,107"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="108,54,166,75,164,80,107,59"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#ae098817247881bad5d9318d4c6b712cf" title=" " alt="" coords="424,30,505,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="377,40,409,40,409,46,377,46"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="505,40,537,40,537,46,505,46"/>
+<area shape="rect" id="Node000005" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="664,30,734,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="616,40,649,40,649,46,616,46"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="245,78,288,60,290,65,247,83"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="247,91,362,85,433,77,504,66,537,57,538,62,505,71,434,83,362,90,248,96"/>
+</map>

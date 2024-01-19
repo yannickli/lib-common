@@ -1,0 +1,9 @@
+<map id="tm_diff_days" name="tm_diff_days">
+<area shape="rect" id="Node000001" title="Count the number of days between two dates." alt="" coords="319,31,413,56"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a6dbac9ff329b2819802c234727aa66a3" title="Count the number of days between two timestamps, in local time." alt="" coords="167,5,271,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="303,35,271,30,272,25,304,30"/>
+<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#a0dbfac0b51e4ce34cad23d027883a48b" title="Count the number of hours between two dates." alt="" coords="169,55,269,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="304,56,269,62,268,57,303,51"/>
+<area shape="rect" id="Node000004" href="$de/d1b/datetime_8h.html#a626a0a53d749aae9222df95eb537366e" title="Count the number of minutes between two dates." alt="" coords="5,55,119,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="154,70,119,70,119,65,154,65"/>
+</map>

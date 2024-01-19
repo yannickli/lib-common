@@ -1,0 +1,5 @@
+<map id="core_mem_set_malloc_trim_period" name="core_mem_set_malloc_trim_period">
+<area shape="rect" id="Node000001" title="Set the period for the cron that calls malloc_trim()." alt="" coords="216,5,368,46"/>
+<area shape="rect" id="Node000002" href="$d8/d37/mem_8blk.html#a023a25e6316cb99c8d3abac7bcf7c35b" title=" " alt="" coords="5,13,168,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,28,168,28,168,23,200,23"/>
+</map>

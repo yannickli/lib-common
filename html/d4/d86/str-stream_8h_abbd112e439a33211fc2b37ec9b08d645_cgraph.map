@@ -1,0 +1,10 @@
+<map id="ps_skipc" name="ps_skipc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,79,56"/>
+<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#ab49bd98b3b894ba0666d76f13d25b9c1" title=" " alt="" coords="127,5,214,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="78,34,111,27,112,32,80,39"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="262,31,325,56"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="79,41,246,41,246,46,79,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="215,25,247,31,246,37,214,30"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="373,31,444,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="326,41,358,41,358,46,326,46"/>
+</map>

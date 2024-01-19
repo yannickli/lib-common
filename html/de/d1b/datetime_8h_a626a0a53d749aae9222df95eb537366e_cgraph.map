@@ -1,0 +1,11 @@
+<map id="tm_diff_minutes" name="tm_diff_minutes">
+<area shape="rect" id="Node000001" title="Count the number of minutes between two dates." alt="" coords="5,5,119,31"/>
+<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#a0dbfac0b51e4ce34cad23d027883a48b" title="Count the number of hours between two dates." alt="" coords="167,5,266,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,16,151,16,151,21,119,21"/>
+<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#ab6064a2ed6ea7f4e17ca0922b717a94d" title="Count the number of days between two dates." alt="" coords="314,5,408,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="267,16,298,16,298,21,267,21"/>
+<area shape="rect" id="Node000004" href="$de/d1b/datetime_8h.html#ab75324239c8fa896834be8c56b567f16" title="Count the number of days since January 1st, 1900." alt="" coords="456,5,621,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="409,16,441,16,441,21,409,21"/>
+<area shape="rect" id="Node000005" href="$de/d1b/datetime_8h.html#a7fe5eccec7a625f2069d274a6cdba2df" title="Count the number of leap years since 1900." alt="" coords="669,5,846,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="621,16,653,16,653,21,621,21"/>
+</map>

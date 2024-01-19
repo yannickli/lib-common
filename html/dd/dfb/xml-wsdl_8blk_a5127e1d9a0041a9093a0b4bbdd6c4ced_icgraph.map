@@ -1,0 +1,9 @@
+<map id="iop_xwsdl_put_occurs" name="iop_xwsdl_put_occurs">
+<area shape="rect" id="Node000001" title=" " alt="" coords="503,5,653,31"/>
+<area shape="rect" id="Node000002" href="$dd/dfb/xml-wsdl_8blk.html#aa7d5de5c9667fdbd70eb0c77a8194477" title=" " alt="" coords="321,5,455,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="488,21,456,21,456,16,488,16"/>
+<area shape="rect" id="Node000003" href="$dd/dfb/xml-wsdl_8blk.html#a11e34fabf17b2da949fcf7b80a000a72" title=" " alt="" coords="132,5,273,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,21,273,21,273,16,306,16"/>
+<area shape="rect" id="Node000004" href="$dd/dfb/xml-wsdl_8blk.html#a1e1c4ce12aa0b7bf8bfec4c608c634d9" title=" " alt="" coords="5,5,84,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="116,21,84,21,84,16,116,16"/>
+</map>

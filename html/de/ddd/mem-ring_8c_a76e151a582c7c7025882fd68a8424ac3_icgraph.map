@@ -1,0 +1,21 @@
+<map id="blk_entry" name="blk_entry">
+<area shape="rect" id="Node000001" title=" " alt="" coords="754,105,827,131"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a46e2665eca3ad83041424003cca3e840" title=" " alt="" coords="577,55,706,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="738,103,680,83,682,78,740,98"/>
+<area shape="rect" id="Node000007" href="$de/ddd/mem-ring_8c.html#aff9eaa948c0e409bb9e9f3c18b0f73fa" title="Delete the given memory ring&#45;pool." alt="" coords="581,105,702,131"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="738,121,702,121,702,116,738,116"/>
+<area shape="rect" id="Node000009" href="$de/ddd/mem-ring_8c.html#a2a3726de7fa71c3dd31c9e42a0e6c7a5" title="Dump the ring structure on stdout (debug)" alt="" coords="583,155,700,180"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="740,138,683,157,681,152,738,133"/>
+<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#af77a9c34439db748b2b2e4989c5c965f" title="Release the frame identified by the given cookie." alt="" coords="402,55,529,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="561,70,530,70,530,65,561,65"/>
+<area shape="rect" id="Node000006" href="$de/ddd/mem-ring_8c.html#a4833b3049c110c86fe85645ba1627c52" title="Force clean the ring pool from empty memory blocks." alt="" coords="409,5,523,31"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="578,53,514,34,515,29,579,47"/>
+<area shape="rect" id="Node000004" href="$db/d6e/iopc-iopsq_8c.html#a5b83115db34f7935c32c3adcfab9143a" title="Wipe an iopsq_iop_struct_t object." alt="" coords="204,80,354,106"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="387,81,355,85,354,80,386,76"/>
+<area shape="rect" id="Node000005" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,80,156,106"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="188,96,156,96,156,90,188,90"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="579,103,512,83,513,78,581,98"/>
+<area shape="poly" id="edge7_Node000007_Node000004" title=" " alt="" coords="565,116,354,101,354,95,566,110"/>
+<area shape="rect" id="Node000008" href="$de/ddd/mem-ring_8c.html#aa5ae1efac41f407624fbc340a51d01d4" title="Destroy the r_pool()" alt="" coords="413,156,518,182"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="581,138,513,158,512,153,579,133"/>
+</map>

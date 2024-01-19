@@ -1,0 +1,7 @@
+<map id="pstrcat" name="pstrcat">
+<area shape="rect" id="Node000001" title="Appends the string pointed to by src at the end of the string pointed to by dest not overflowing size..." alt="" coords="5,5,67,31"/>
+<area shape="rect" id="Node000002" href="$d9/d9a/mem_8h.html#ac6666dfc404402cb2de833e453df3a60" title="Copies the string pointed to by src to the buffer dest of size bytes." alt="" coords="115,5,178,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,16,99,16,99,21,67,21"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#a65a75486be9aedadf3b957fbd5fdc146" title="Copies at n characters from the string pointed to by src to the buffer dest of size bytes." alt="" coords="226,5,318,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="178,16,210,16,210,21,178,21"/>
+</map>

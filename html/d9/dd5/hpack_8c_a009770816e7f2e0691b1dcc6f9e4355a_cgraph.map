@@ -1,0 +1,9 @@
+<map id="hpack_write_str" name="hpack_write_str">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,119,56"/>
+<area shape="rect" id="Node000002" href="$d9/dd5/hpack_8c.html#a9c87abe87694746b0109a4217c94f62e" title="Write at most len bytes of the huffman&#45;coded version of str." alt="" coords="167,5,325,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,33,151,29,152,34,120,38"/>
+<area shape="rect" id="Node000003" href="$d9/dd5/hpack_8c.html#a6bb200fd55b6de55035ebc7d004c4c92" title=" " alt="" coords="190,55,302,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="120,48,175,56,174,61,119,54"/>
+<area shape="rect" id="Node000004" href="$d9/dd5/hpack_8c.html#a771c37c8bc98f04432162e1a54457674" title="Write HPACK&#45;encoded integer val to out prefixed by zero bits." alt="" coords="373,55,499,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="302,65,357,65,357,70,302,70"/>
+</map>

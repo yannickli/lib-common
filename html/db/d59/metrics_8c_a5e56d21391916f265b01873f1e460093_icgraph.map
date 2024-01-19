@@ -1,0 +1,15 @@
+<map id="bridge_histogram" name="bridge_histogram">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1146,13,1267,39"/>
+<area shape="rect" id="Node000002" href="$db/d59/metrics_8c.html#a8ad945a5d57af20b69df115b06f9d373" title=" " alt="" coords="993,13,1098,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1131,28,1099,28,1099,23,1131,23"/>
+<area shape="rect" id="Node000003" href="$db/d59/metrics_8c.html#a55cb8537e096e9e88630d1a33debd717" title=" " alt="" coords="797,5,945,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="978,28,945,28,945,23,978,23"/>
+<area shape="rect" id="Node000004" href="$db/d59/metrics_8c.html#ae84b5d5e8a7f0ab7c835a791ac2d3be5" title="Bridge function for default metric exposition format." alt="" coords="600,13,749,39"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="781,28,749,28,749,23,781,23"/>
+<area shape="rect" id="Node000005" href="$da/da7/prometheus-client_2http_8c.html#a552a38dcf9568c4b84bc447a92674207" title=" " alt="" coords="394,13,552,39"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="585,28,553,28,553,23,585,23"/>
+<area shape="rect" id="Node000006" href="$da/da7/prometheus-client_2http_8c.html#a79831f90819f3a1f7ddb5611e72f12cb" title=" " alt="" coords="209,13,346,39"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="379,28,346,28,346,23,379,23"/>
+<area shape="rect" id="Node000007" href="$da/da7/prometheus-client_2http_8c.html#a8015696d6da994bc28605c1bff840740" title="Start the HTTP server for scraping." alt="" coords="5,13,161,39"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="193,28,161,28,161,23,193,23"/>
+</map>

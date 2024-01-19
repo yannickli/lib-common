@@ -1,0 +1,5 @@
+<map id="rand_range" name="rand_range">
+<area shape="rect" id="Node000001" title="Generate a random integer in the range [first,last]." alt="" coords="5,5,91,31"/>
+<area shape="rect" id="Node000002" href="$d6/df4/rand_8c.html#a988e5bd66ff6e9ccd7b38af4505e68e3" title="Generate a 64bit random integer." alt="" coords="139,5,199,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,16,123,16,123,21,91,21"/>
+</map>
