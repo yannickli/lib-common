@@ -1,8 +1,0 @@
-<map id="field_path_print_rec" name="field_path_print_rec">
-<area shape="rect" id="Node000001" title=" " alt="" coords="419,29,552,55"/>
-<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="519,17,508,10,486,8,465,10,455,15,452,20,458,27,453,30,447,21,451,11,464,5,486,3,509,5,522,12"/>
-<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#ad0a05bb0af1e252309d1f50503a8fd95" title=" " alt="" coords="215,29,371,55"/>
-<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="403,45,371,45,371,40,403,40"/>
-<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#af457886d43d4eff91e6aea7b593abc6c" title=" " alt="" coords="5,29,167,55"/>
-<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="199,45,167,45,167,40,199,40"/>
-</map>

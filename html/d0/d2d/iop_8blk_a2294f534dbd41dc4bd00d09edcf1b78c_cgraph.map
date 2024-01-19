@@ -1,7 +1,0 @@
-<map id="t_iop_field_path_init" name="t_iop_field_path_init">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,141,56"/>
-<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#a50e05ec7381bfa8ea8464ed3b9cb0f4d" title=" " alt="" coords="189,5,338,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="141,32,173,27,174,33,141,37"/>
-<area shape="rect" id="Node000003" href="$d1/d10/mem-stack_8h.html#a1d0e2a29f86dc033a02e50484b527fd0" title=" " alt="" coords="235,55,292,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="141,49,220,59,219,65,141,55"/>
-</map>

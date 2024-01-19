@@ -1,5 +1,0 @@
-<map id="bb_shift_left" name="bb_shift_left">
-<area shape="rect" id="Node000001" title="Shift the bit&#45;buffer of “shift” bits to the left." alt="" coords="198,5,290,31"/>
-<area shape="rect" id="Node000002" href="$d2/d6f/bit-buf_8c.html#af31a575e22f67942b78c9ef715ca77c3" title=" " alt="" coords="5,5,150,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,21,150,21,150,16,182,16"/>
-</map>

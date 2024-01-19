@@ -1,7 +1,0 @@
-<map id="mp_iopsq_build_mono_element_pkg" name="mp_iopsq_build_mono_element_pkg">
-<area shape="rect" id="Node000001" title="Generates an dumb IOP package from a single package elem description." alt="" coords="403,5,553,46"/>
-<area shape="rect" id="Node000002" href="$db/d6e/iopc-iopsq_8c.html#aa37570289cdd73d2d1aacb686eb9bd3e" title=" " alt="" coords="204,13,355,39"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="388,28,356,28,356,23,388,23"/>
-<area shape="rect" id="Node000003" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,13,156,39"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="188,28,156,28,156,23,188,23"/>
-</map>

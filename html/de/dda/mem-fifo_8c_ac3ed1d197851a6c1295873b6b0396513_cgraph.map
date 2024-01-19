@@ -1,7 +1,0 @@
-<map id="mem_page_reset" name="mem_page_reset">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,127,56"/>
-<area shape="rect" id="Node000002" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="183,5,352,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,33,167,28,168,33,127,39"/>
-<area shape="rect" id="Node000003" href="$d8/d37/mem_8blk.html#a194c1be7b1e9d2742e6c11ea6fed3790" title=" " alt="" coords="175,55,360,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="127,48,159,52,159,57,127,53"/>
-</map>

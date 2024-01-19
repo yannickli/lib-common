@@ -1,9 +1,0 @@
-<map id="qv_u16_t" name="qv_u16_t">
-<area shape="rect" id="Node000001" title=" " alt="" coords="17,382,194,507"/>
-<area shape="rect" id="Node000002" href="$db/d85/structqvector__t.html" title=" " alt="" coords="117,214,253,319"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,320,143,368,138,366,160,318"/>
-<area shape="rect" id="Node000003" href="$d4/de3/structmem__pool__t.html" title=" " alt="" coords="5,5,165,151"/>
-<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="80,150,75,231,79,319,87,365,82,366,74,319,70,231,74,150"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="126,149,152,197,147,200,121,152"/>
-<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="166,57,184,64,192,78,189,87,183,93,179,89,185,84,187,78,181,68,164,62"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="do_compile" name="do_compile">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,93,56"/>
-<area shape="rect" id="Node000002" href="$db/d07/iopc-dso_8c.html#a0369a6d6fe9786ba10ae0f6f13fbc2ae" title=" " alt="" coords="182,5,244,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,34,166,23,167,28,94,39"/>
-<area shape="rect" id="Node000004" href="$d8/d37/mem_8blk.html#a766414bc838f5962c5592c0e2f9bb008" title=" " alt="" coords="141,55,285,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="93,47,126,52,125,57,93,53"/>
-<area shape="rect" id="Node000003" href="$d6/dd2/unix_8blk.html#a0db788f4ba3717388d31b3af962073fb" title="Wrapper of fork() that must be used instead of it." alt="" coords="333,5,379,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="244,16,318,16,318,21,244,21"/>
-</map>

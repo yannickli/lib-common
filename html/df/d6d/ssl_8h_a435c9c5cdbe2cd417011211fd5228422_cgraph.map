@@ -1,7 +1,0 @@
-<map id="ssl_ctx_reset" name="ssl_ctx_reset">
-<area shape="rect" id="Node000001" title="Reset the whole SSL context and change the AES key and IV." alt="" coords="5,31,104,56"/>
-<area shape="rect" id="Node000002" href="$da/da5/ssl_8blk.html#a09234e983449dab0621f088e32beab0a" title="Setup (distinct) contexts for encryption and decryption." alt="" coords="156,5,277,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,33,140,27,141,33,104,38"/>
-<area shape="rect" id="Node000003" href="$da/da5/ssl_8blk.html#a08a030938dd26f1e39c41099e4c7599b" title="Generate the key and IV from the given password and salt." alt="" coords="152,55,281,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="104,48,137,53,136,58,104,53"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="pem_password_blk_cb" name="pem_password_blk_cb">
-<area shape="rect" id="Node000001" title=" " alt="" coords="333,31,487,56"/>
-<area shape="rect" id="Node000002" href="$da/da5/ssl_8blk.html#a631b9558f9a1fa98cb809103e9b1d85c" title=" " alt="" coords="183,5,285,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="317,33,284,28,285,23,318,28"/>
-<area shape="rect" id="Node000003" href="$da/da5/ssl_8blk.html#a28ca8e6d8f8902dbbdccf67ed0280a3c" title=" " alt="" coords="183,55,285,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="318,59,286,63,285,58,317,53"/>
-<area shape="rect" id="Node000004" href="$da/da5/ssl_8blk.html#af8cc82d39884d7de8556d49d9ca7517c" title=" " alt="" coords="5,55,135,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="167,70,135,70,135,65,167,65"/>
-</map>

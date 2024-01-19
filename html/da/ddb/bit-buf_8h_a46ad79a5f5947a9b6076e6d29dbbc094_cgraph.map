@@ -1,7 +1,0 @@
-<map id="bb_reset_mark" name="bb_reset_mark">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,113,56"/>
-<area shape="rect" id="Node000002" href="$da/ddb/bit-buf_8h.html#acfa2b435dec97e0e1b52c4036959e205" title=" " alt="" coords="164,5,264,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,32,149,26,149,31,114,37"/>
-<area shape="rect" id="Node000003" href="$da/ddb/bit-buf_8h.html#a69edc65aed1e5d5f7236c270366eab87" title=" " alt="" coords="161,55,267,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="114,49,146,54,145,60,113,54"/>
-</map>

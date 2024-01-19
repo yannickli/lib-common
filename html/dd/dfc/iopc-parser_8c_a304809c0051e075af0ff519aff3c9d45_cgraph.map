@@ -1,7 +1,0 @@
-<map id="iopc_dox_check_param_dir" name="iopc_dox_check_param_dir">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,42,184,68"/>
-<area shape="rect" id="Node000002" href="$dd/dfc/iopc-parser_8c.html#a8cf84710df2679f8061cc0dfda2dd220" title=" " alt="" coords="232,5,373,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="184,40,216,35,217,40,184,45"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="264,70,341,96"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="184,64,249,73,248,78,184,70"/>
-</map>

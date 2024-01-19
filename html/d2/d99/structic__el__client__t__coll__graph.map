@@ -1,8 +1,0 @@
-<map id="ic_el_client_t" name="ic_el_client_t">
-<area shape="rect" id="Node000001" title=" " alt="" coords="37,164,189,329"/>
-<area shape="rect" id="Node000002" href="$d3/d30/structic__el__client__cb__cfg__t.html" title="Configuration of the callbacks of an IC EL client." alt="" coords="5,5,140,71"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,70,95,139,96,147,91,148,89,140,76,71"/>
-<area shape="rect" id="Node000003" href="$db/ddb/structdlist__t.html" title=" " alt="" coords="165,5,213,71"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="180,71,151,149,146,147,175,70"/>
-<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="213,21,230,23,237,29,239,38,237,47,231,52,227,49,232,44,234,38,232,32,228,28,212,26"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="sctp_ep_init_sock" name="sctp_ep_init_sock">
-<area shape="rect" id="Node000001" title=" " alt="" coords="153,31,279,56"/>
-<area shape="rect" id="Node000002" href="$dd/d03/sctp-tools_8c.html#af5df2c77824fc7da18bd32a7662fa2b5" title=" " alt="" coords="5,5,105,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,34,105,29,105,23,138,29"/>
-<area shape="rect" id="Node000003" href="$dd/d03/sctp-tools_8c.html#a8f0c86a4df171798cafc332f5fc2a904" title=" " alt="" coords="13,55,97,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="138,58,98,64,97,59,137,53"/>
-</map>

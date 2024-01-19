@@ -1,5 +1,0 @@
-<map id="ic_el_client_sync_query_cb" name="ic_el_client_sync_query_cb">
-<area shape="rect" id="Node000001" title="Callback for syncronous client queries." alt="" coords="201,5,380,31"/>
-<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#ad2091c7b6c6d08d767130403a26c4230" title="Synchronously call an RPC with the IC EL client." alt="" coords="5,5,153,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,21,153,21,153,16,185,16"/>
-</map>

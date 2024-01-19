@@ -1,9 +1,0 @@
-<map id="wah_word_enum_t" name="wah_word_enum_t">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,525,171,690"/>
-<area shape="rect" id="Node000002" href="$d2/dbc/structwah__t.html" title=" " alt="" coords="16,302,160,462"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,462,91,508,85,508,85,462"/>
-<area shape="rect" id="Node000003" href="$d2/d45/unionwah__word__t.html" title=" " alt="" coords="36,154,140,239"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="91,239,91,285,85,285,85,239"/>
-<area shape="rect" id="Node000004" href="$d2/db8/structwah__header__t.html" title=" " alt="" coords="31,5,145,91"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="91,90,91,137,85,137,85,90"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="lstr_trim" name="lstr_trim">
-<area shape="rect" id="Node000001" title="return the trimmed lstr." alt="" coords="5,31,74,56"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a6fd2457702779cd5682db2e932222da4" title="return the left&#45;trimmed lstr." alt="" coords="122,5,194,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="74,34,106,27,107,32,75,39"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#ac764f4c7ed4f6b893874879a2ebb28b4" title="return the right&#45;trimmed lstr." alt="" coords="122,55,194,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="75,48,107,54,106,60,74,53"/>
-</map>

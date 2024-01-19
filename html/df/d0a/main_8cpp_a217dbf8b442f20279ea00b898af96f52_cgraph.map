@@ -1,9 +1,0 @@
-<map id="main" name="main">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,92,55,118"/>
-<area shape="rect" id="Node000002" href="$dc/d27/namespaceanonymous__namespace_02main_8cpp_03.html#ab4eb12abfe44bdef4149c286f031f9d4" title=" " alt="" coords="110,5,297,61"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="54,92,102,71,116,65,118,70,104,76,56,97"/>
-<area shape="rect" id="Node000003" href="$dc/d27/namespaceanonymous__namespace_02main_8cpp_03.html#ae52c9d341c191d7a2c4a553655aec275" title=" " alt="" coords="103,85,304,126"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="55,103,87,103,87,108,55,108"/>
-<area shape="rect" id="Node000004" href="$dc/d27/namespaceanonymous__namespace_02main_8cpp_03.html#add6ad7ecacbebf3821a44e9d1c1d91e6" title=" " alt="" coords="104,150,303,191"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="56,114,104,135,123,142,121,147,102,140,54,119"/>
-</map>

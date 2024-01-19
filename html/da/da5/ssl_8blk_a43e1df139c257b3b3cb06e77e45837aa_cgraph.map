@@ -1,7 +1,0 @@
-<map id="ssl_get_error_conv" name="ssl_get_error_conv">
-<area shape="rect" id="Node000001" title="Helper to convert openssl errors to classical system errors." alt="" coords="5,5,137,31"/>
-<area shape="rect" id="Node000002" href="$da/da5/ssl_8blk.html#aeba371daba7f6b6f5ff75f70b0003965" title=" " alt="" coords="185,5,291,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,16,169,16,169,21,137,21"/>
-<area shape="rect" id="Node000003" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="339,5,400,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="291,16,324,16,324,21,291,21"/>
-</map>

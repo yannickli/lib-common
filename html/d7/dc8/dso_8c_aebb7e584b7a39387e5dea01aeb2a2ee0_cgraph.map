@@ -1,8 +1,0 @@
-<map id="find_rpc_in_mod" name="find_rpc_in_mod">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,121,56"/>
-<area shape="rect" id="Node000002" href="$d7/dc8/dso_8c.html#a110a31677bd4109a97101376494fe4af" title=" " alt="" coords="169,5,287,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,32,153,27,154,32,121,37"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="335,31,412,56"/>
-<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="121,41,320,41,320,46,121,46"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="288,26,320,32,319,37,287,31"/>
-</map>

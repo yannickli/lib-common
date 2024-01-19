@@ -1,5 +1,0 @@
-<map id="lstr_ascii_icmp" name="lstr_ascii_icmp">
-<area shape="rect" id="Node000001" title="Returns &quot;memcmp&quot; ordering of lowercase \v s1 and lowercase \v s2." alt="" coords="176,5,284,31"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#aef1c0f650f0fd962d2935cb7e5b4160b" title="Alternative version of lstr_ascii_icmp that takes pointers as arguments." alt="" coords="5,5,128,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,21,128,21,128,16,160,16"/>
-</map>

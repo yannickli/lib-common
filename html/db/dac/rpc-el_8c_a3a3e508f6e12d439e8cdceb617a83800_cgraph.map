@@ -1,9 +1,0 @@
-<map id="ic_el_peer_wipe" name="ic_el_peer_wipe">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,120,56"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="168,31,263,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,41,152,41,152,46,120,46"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="311,5,420,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,33,295,27,296,33,264,38"/>
-<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="331,55,400,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="264,48,316,57,315,62,263,54"/>
-</map>

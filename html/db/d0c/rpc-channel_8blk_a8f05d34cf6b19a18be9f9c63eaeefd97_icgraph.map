@@ -1,9 +1,0 @@
-<map id="ev_priority_to_str" name="ev_priority_to_str">
-<area shape="rect" id="Node000001" title=" " alt="" coords="293,31,413,56"/>
-<area shape="rect" id="Node000002" href="$db/d0c/rpc-channel_8blk.html#a8c10547bff1935d2f89431d7c605e7db" title=" " alt="" coords="153,31,245,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="278,46,245,46,245,41,278,41"/>
-<area shape="rect" id="Node000003" href="$db/d0c/rpc-channel_8blk.html#a1e76b48789c85f73e25cbe7f7a1a9bb5" title=" " alt="" coords="5,5,105,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="137,35,105,30,106,24,138,30"/>
-<area shape="rect" id="Node000004" href="$db/d0c/rpc-channel_8blk.html#aabd413bb41662c777bcd3b6d418a73e5" title=" " alt="" coords="8,55,102,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="138,56,103,62,102,57,137,51"/>
-</map>

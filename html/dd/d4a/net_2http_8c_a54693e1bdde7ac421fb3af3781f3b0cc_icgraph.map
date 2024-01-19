@@ -1,7 +1,0 @@
-<map id="http2_conn_send_error" name="http2_conn_send_error">
-<area shape="rect" id="Node000001" title=" " alt="" coords="150,31,303,56"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a9512bd24775a26bbc61296576a3b64ba" title=" " alt="" coords="5,5,102,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,33,102,28,102,23,135,27"/>
-<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a17742263c747e9f4a348dd221d162dd7" title=" " alt="" coords="5,55,102,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="135,59,102,64,102,58,134,54"/>
-</map>

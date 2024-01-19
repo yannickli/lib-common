@@ -1,9 +1,0 @@
-<map id="dlist_pop" name="dlist_pop">
-<area shape="rect" id="Node000001" title="Remove the head of list l (suited for FIFO and LIFO)." alt="" coords="5,31,79,56"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="127,31,222,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,41,111,41,111,46,79,46"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="270,5,379,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="222,33,254,27,255,33,223,38"/>
-<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="290,55,359,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="223,48,275,57,274,62,222,54"/>
-</map>

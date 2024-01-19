@@ -1,9 +1,0 @@
-<map id="iop_rpc_compat_ignored" name="iop_rpc_compat_ignored">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,42,168,68"/>
-<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#afac461c49bba8dfdf924d4551c74fb49" title=" " alt="" coords="218,5,356,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,40,203,35,203,41,169,46"/>
-<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#a60b36e5e1f697a300dbfb53b7a42839f" title=" " alt="" coords="216,70,358,96"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,64,201,68,200,74,168,69"/>
-<area shape="rect" id="Node000004" href="$d3/d40/iop_8h.html#a4ceeb81aaff665765293af180a32bb6b" title=" " alt="" coords="406,70,527,96"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="358,80,390,80,390,86,358,86"/>
-</map>

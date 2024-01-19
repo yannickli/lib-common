@@ -1,7 +1,0 @@
-<map id="sb_utf8_transform" name="sb_utf8_transform">
-<area shape="rect" id="Node000001" title=" " alt="" coords="196,31,322,56"/>
-<area shape="rect" id="Node000002" href="$d4/d9a/str-conv_8c.html#a360a1f516f426d897c36f39f719232cf" title="append to sb the string describe by s with a lower case" alt="" coords="6,5,147,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,35,147,31,148,25,180,30"/>
-<area shape="rect" id="Node000003" href="$d4/d9a/str-conv_8c.html#a50a66195ee9c5ecb7b246656589521d4" title="append to sb the string describe by s with an upper case" alt="" coords="5,55,148,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,56,148,61,148,55,180,51"/>
-</map>

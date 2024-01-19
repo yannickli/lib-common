@@ -1,9 +1,0 @@
-<map id="sha2_hmac" name="sha2_hmac">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,94,80"/>
-<area shape="rect" id="Node000002" href="$db/d4d/sha2_8h.html#ae067e9dcc07e4635d91c7d507f247fe4" title="SHA&#45;256 HMAC final digest." alt="" coords="146,5,272,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,51,149,34,151,39,94,57"/>
-<area shape="rect" id="Node000003" href="$db/d4d/sha2_8h.html#ad643163ca046c911615cf2e358afa386" title="SHA&#45;256 HMAC context setup." alt="" coords="145,55,273,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="94,65,129,65,129,70,94,70"/>
-<area shape="rect" id="Node000004" href="$db/d4d/sha2_8h.html#ac91cc55b70092217c3ddc831320dcbc7" title="SHA&#45;256 HMAC process buffer." alt="" coords="142,104,276,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="94,78,151,96,149,101,93,84"/>
-</map>

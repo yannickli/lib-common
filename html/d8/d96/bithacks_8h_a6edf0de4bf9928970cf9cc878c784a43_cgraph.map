@@ -1,7 +1,0 @@
-<map id="bsf" name="bsf">
-<area shape="rect" id="Node000001" title="Find the first bit at 1 or 0 in a sequence of bits." alt="" coords="5,5,45,31"/>
-<area shape="rect" id="Node000002" href="$d6/d2b/bithacks_8c.html#abfabad13a2d9cd704eff61b1090a60cf" title="Allow to access to a byte as an uint64_t without valgrind warnings." alt="" coords="93,5,271,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="45,16,77,16,77,21,45,21"/>
-<area shape="rect" id="Node000003" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="319,5,487,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="271,16,303,16,303,21,271,21"/>
-</map>

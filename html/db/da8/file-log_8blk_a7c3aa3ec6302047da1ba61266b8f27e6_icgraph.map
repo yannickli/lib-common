@@ -1,7 +1,0 @@
-<map id="log_file_flush" name="log_file_flush">
-<area shape="rect" id="Node000001" title=" " alt="" coords="362,5,457,31"/>
-<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#a60c9f888fb4dd891725490be7ceaf24f" title=" " alt="" coords="215,5,314,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="346,21,314,21,314,16,346,16"/>
-<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#ac9997f2839a3532fe5a7c59b77f145ef" title="Creates a log file from a configuration object, and opens it." alt="" coords="5,5,167,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="199,21,167,21,167,16,199,16"/>
-</map>

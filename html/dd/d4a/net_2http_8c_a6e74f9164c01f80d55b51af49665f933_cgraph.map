@@ -1,9 +1,0 @@
-<map id="http2_stream_on_reset_server" name="http2_stream_on_reset_server">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,160,46"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a46edc5c89b13ac687060b7dc9a906d11" title="Streaming Layer Handlers." alt="" coords="208,5,343,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,23,193,23,193,28,160,28"/>
-<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a8f94539c6ab9c3a9ff771f65b657b39c" title=" " alt="" coords="391,13,500,39"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="343,23,375,23,375,28,343,28"/>
-<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a09103296d7ba39784005e7402529a9c0" title="Return true if the list has no element." alt="" coords="548,13,653,39"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="501,23,533,23,533,28,501,28"/>
-</map>

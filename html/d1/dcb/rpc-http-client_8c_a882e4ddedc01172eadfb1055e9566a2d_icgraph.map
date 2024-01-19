@@ -1,8 +1,0 @@
-<map id="http_iop_register_timeout_check" name="http_iop_register_timeout_check">
-<area shape="rect" id="Node000001" title=" " alt="" coords="220,47,387,88"/>
-<area shape="rect" id="Node000002" href="$d1/dcb/rpc-http-client_8c.html#ac2c5663b4b81434be56c2ac4cf5f35b5" title=" " alt="" coords="32,5,145,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="204,47,144,34,146,28,205,42"/>
-<area shape="rect" id="Node000003" href="$d1/dcb/rpc-http-client_8c.html#a17dc16c4d8c2d91ec0df8fbdc40e44af" title=" " alt="" coords="5,55,172,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="204,79,172,79,172,74,204,74"/>
-<area shape="poly" id="edge3_Node000003_Node000001" title=" " alt="" coords="187,56,219,56,219,61,187,61"/>
-</map>

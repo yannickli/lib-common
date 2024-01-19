@@ -1,7 +1,0 @@
-<map id="ic_el_client_notify_in_connect" name="ic_el_client_notify_in_connect">
-<area shape="rect" id="Node000001" title="Notify client connection or disconnection when in_connect." alt="" coords="377,5,501,46"/>
-<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#aff421ee37a47d250ef413d3b718e86ae" title="Called on event on the ic channel." alt="" coords="183,13,329,39"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="361,28,330,28,330,23,361,23"/>
-<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a3d119cca180d9fc33b3a3372f691ad25" title="Create an IC EL client." alt="" coords="5,13,135,39"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="167,28,135,28,135,23,167,23"/>
-</map>

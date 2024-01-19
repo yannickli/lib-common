@@ -1,7 +1,0 @@
-<map id="iop_enum_from_str2_desc" name="iop_enum_from_str2_desc">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,180,31"/>
-<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#abae824b2e7cf559a6ba813aa40952559" title=" " alt="" coords="228,5,388,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,16,212,16,212,21,180,21"/>
-<area shape="rect" id="Node000003" href="$de/d04/str-l_8c.html#a2c6861958e11bd58f7d7f5a109baff6a" title="Returns whether s1 and s2 contents are case&#45;insentively equal." alt="" coords="436,5,550,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="388,16,421,16,421,21,388,21"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="datetime.h" name="datetime.h">
-<area shape="rect" id="Node000001" title=" " alt="" coords="157,5,239,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,111,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="175,34,96,74,94,69,173,29"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="134,79,262,105"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,31,201,63,195,63,195,31"/>
-<area shape="rect" id="Node000004" title=" " alt="" coords="286,79,406,105"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="224,29,308,69,306,74,222,34"/>
-</map>

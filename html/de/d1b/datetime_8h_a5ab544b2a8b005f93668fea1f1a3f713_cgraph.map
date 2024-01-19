@@ -1,7 +1,0 @@
-<map id="t_get_time_split_lstr_fr" name="t_get_time_split_lstr_fr">
-<area shape="rect" id="Node000001" title="Print a human readable string in french from a number of seconds." alt="" coords="5,13,159,39"/>
-<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#ab7df1690d393f2f5ea7b1c44e648c1a2" title="Print a human readable string in french from a number of seconds." alt="" coords="207,5,334,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,23,191,23,191,28,159,28"/>
-<area shape="rect" id="Node000003" href="$de/d6e/datetime_8c.html#a93da44384587886976afe5cbef575bc9" title="Split a number of seconds into years, weeks, days, hours, minutes and seconds." alt="" coords="382,13,508,39"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="334,23,366,23,366,28,334,28"/>
-</map>

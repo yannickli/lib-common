@@ -1,7 +1,0 @@
-<map id="bit_reverse32" name="bit_reverse32">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,105,31"/>
-<area shape="rect" id="Node000002" href="$d8/d96/bithacks_8h.html#af1b5ed2097027628c63c42fba3b0b4f6" title=" " alt="" coords="153,5,252,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,16,137,16,137,21,105,21"/>
-<area shape="rect" id="Node000003" href="$d8/d96/bithacks_8h.html#afad68888c33c8259c81998317e68a74e" title=" " alt="" coords="300,5,392,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="253,16,284,16,284,21,253,21"/>
-</map>

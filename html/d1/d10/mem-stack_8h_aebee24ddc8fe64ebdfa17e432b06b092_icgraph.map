@@ -1,7 +1,0 @@
-<map id="mem_stack_pool_wipe" name="mem_stack_pool_wipe">
-<area shape="rect" id="Node000001" title=" " alt="" coords="198,31,352,56"/>
-<area shape="rect" id="Node000002" href="$d7/df8/log_8c.html#adc2702e4573e3b3f549a58dc9a8505f3" title=" " alt="" coords="5,5,150,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,34,150,30,150,25,182,29"/>
-<area shape="rect" id="Node000003" href="$da/d36/mem-stack_8c.html#ab4a41c8ca86b1ac60611d7febe462e0d" title=" " alt="" coords="32,55,123,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="183,57,123,65,123,59,182,52"/>
-</map>

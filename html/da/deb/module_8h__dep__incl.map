@@ -1,9 +1,0 @@
-<map id="module.h" name="module.h">
-<area shape="rect" id="Node000001" title=" " alt="" coords="55,5,128,31"/>
-<area shape="rect" id="Node000002" href="$d5/dc4/core_8h.html" title=" " alt="" coords="63,79,120,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,46,94,79,89,79,89,46"/>
-<area shape="rect" id="Node000003" href="$de/d65/http2_8h.html" title=" " alt="" coords="5,153,66,178"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="75,118,47,154,43,151,71,115"/>
-<area shape="rect" id="Node000004" href="$db/d0e/parsing-helpers_8h.html" title=" " alt="" coords="89,153,209,178"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="113,115,141,151,137,154,108,118"/>
-</map>

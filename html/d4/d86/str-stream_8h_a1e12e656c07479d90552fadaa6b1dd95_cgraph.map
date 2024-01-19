@@ -1,9 +1,0 @@
-<map id="ps_getlli" name="ps_getlli">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,75,56"/>
-<area shape="rect" id="Node000002" href="$d8/d17/str-num_8c.html#afa47a7dd9a5c67dd5bbe5b6f70b9d4a7" title=" " alt="" coords="123,5,197,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="75,34,107,27,108,32,76,39"/>
-<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a792bf8e215595e8fd225339902c447bf" title=" " alt="" coords="130,55,190,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="76,48,116,56,115,61,75,53"/>
-<area shape="rect" id="Node000003" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="245,5,347,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="197,16,230,16,230,21,197,21"/>
-</map>

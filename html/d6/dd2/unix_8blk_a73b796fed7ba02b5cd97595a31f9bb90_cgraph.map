@@ -1,9 +1,0 @@
-<map id="close_fds_unix" name="close_fds_unix">
-<area shape="rect" id="Node000001" title="Unix (non&#45;linux) implementation of close_fds." alt="" coords="5,55,113,80"/>
-<area shape="rect" id="Node000002" href="$d7/d50/sort_8h.html#a483f3145cb3c052cf73e101978f3ebf9" title=" " alt="" coords="161,5,245,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,52,148,34,150,39,100,57"/>
-<area shape="rect" id="Node000003" href="$d7/d50/sort_8h.html#a54b121fa24cae30d5ed51a8a093ddedc" title=" " alt="" coords="171,55,235,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="113,65,155,65,155,70,113,70"/>
-<area shape="rect" id="Node000004" href="$d7/d50/sort_8h.html#a625de9b5d87b642403b1ab0f068d3ce3" title=" " alt="" coords="173,104,233,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="100,78,159,99,158,104,98,83"/>
-</map>

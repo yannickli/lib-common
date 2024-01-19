@@ -1,7 +1,0 @@
-<map id="file.c" name="file.c">
-<area shape="rect" id="Node000001" title=" " alt="" coords="113,5,160,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,124,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="126,33,89,70,86,66,123,29"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="147,79,273,105"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="150,29,189,66,185,70,147,33"/>
-</map>

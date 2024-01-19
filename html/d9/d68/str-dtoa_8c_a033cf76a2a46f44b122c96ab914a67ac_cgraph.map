@@ -1,9 +1,0 @@
-<map id="d2b" name="d2b">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,48,80"/>
-<area shape="rect" id="Node000002" href="$d9/d68/str-dtoa_8c.html#ace762ed592424f703e25c2318727eb8c" title=" " alt="" coords="97,5,154,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="47,55,83,36,86,41,49,59"/>
-<area shape="rect" id="Node000003" href="$d9/d68/str-dtoa_8c.html#af57c0f364dc2d4844f7aeba09395fa3d" title=" " alt="" coords="96,55,155,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="48,65,80,65,80,70,48,70"/>
-<area shape="rect" id="Node000004" href="$d9/d68/str-dtoa_8c.html#a27739a75589e9a8a9480855431e10f09" title=" " alt="" coords="96,104,155,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="49,76,86,94,83,99,47,80"/>
-</map>

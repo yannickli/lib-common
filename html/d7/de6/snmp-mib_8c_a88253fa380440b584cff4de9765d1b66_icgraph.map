@@ -1,8 +1,0 @@
-<map id="mib_open_banner" name="mib_open_banner">
-<area shape="rect" id="Node000001" title=" " alt="" coords="269,5,392,31"/>
-<area shape="rect" id="Node000002" href="$d7/de6/snmp-mib_8c.html#a23cbfe4ffbcbbbfb7e77e16d9b47afc3" title="Generate a MIB into a sb_t." alt="" coords="120,5,221,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="253,21,221,21,221,16,253,16"/>
-<area shape="rect" id="Node000003" href="$d7/de6/snmp-mib_8c.html#a769486ac2f29a4d3da2e0645a8360811" title="Run a MIB generation tool." alt="" coords="5,5,72,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="104,30,72,29,72,23,104,25"/>
-<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="87,7,119,7,119,12,87,12"/>
-</map>

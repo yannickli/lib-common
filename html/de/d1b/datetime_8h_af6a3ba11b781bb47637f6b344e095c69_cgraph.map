@@ -1,5 +1,0 @@
-<map id="localtime_curweek" name="localtime_curweek">
-<area shape="rect" id="Node000001" title="Return timestamp of the start of the week which contains the timestamp date." alt="" coords="5,5,135,31"/>
-<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a31d359af138aef01dc1eef9e5539efb4" title=" " alt="" coords="183,5,263,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,16,167,16,167,21,135,21"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="iopsq_int_type_to_int_size" name="iopsq_int_type_to_int_size">
-<area shape="rect" id="Node000001" title=" " alt="" coords="531,5,705,31"/>
-<area shape="rect" id="Node000002" href="$db/d6e/iopc-iopsq_8c.html#a33fbaca083ba8048f6874dd2702d7d2a" title="Fill an IOP² type from an iop_type_t." alt="" coords="372,5,483,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="516,21,484,21,484,16,516,16"/>
-<area shape="rect" id="Node000003" href="$db/d6e/iopc-iopsq_8c.html#a4d0dcf7022ee812d436eb925951ee564" title="Fill an iopsq type from an iop_full_type_t." alt="" coords="222,5,324,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="356,21,324,21,324,16,356,16"/>
-<area shape="rect" id="Node000004" href="$db/d6e/iopc-iopsq_8c.html#a22e05ced9d3438543dea5245f0752896" title="Build an iopsq.Type instance from an &#39;iop_full_type_t&#39;." alt="" coords="5,5,174,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="206,21,174,21,174,16,206,16"/>
-</map>

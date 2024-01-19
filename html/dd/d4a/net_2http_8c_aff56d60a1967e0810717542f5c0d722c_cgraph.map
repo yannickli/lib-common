@@ -1,9 +1,0 @@
-<map id="httpd_query_detach" name="httpd_query_detach">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,140,56"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="188,31,283,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="140,41,172,41,172,46,140,46"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="331,5,440,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="283,33,315,27,316,33,284,38"/>
-<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="351,55,420,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="284,48,336,57,335,62,283,54"/>
-</map>

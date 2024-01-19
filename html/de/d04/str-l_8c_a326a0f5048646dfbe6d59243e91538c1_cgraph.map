@@ -1,9 +1,0 @@
-<map id="lstr_to_double" name="lstr_to_double">
-<area shape="rect" id="Node000001" title="Convert a lstr into a double." alt="" coords="5,31,108,56"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#ac764f4c7ed4f6b893874879a2ebb28b4" title="return the right&#45;trimmed lstr." alt="" coords="156,5,228,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,31,140,25,141,30,108,37"/>
-<area shape="rect" id="Node000003" href="$d8/d50/str-num_8h.html#af2c360cf082de69a034806d5cb122f74" title=" " alt="" coords="158,55,226,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="108,50,143,56,142,61,108,55"/>
-<area shape="rect" id="Node000004" href="$d8/d17/str-num_8c.html#a908a87de779ce4c1a2a8e6b7c7be803a" title="Wrapper around strtod that do not consider subnormal values as errors." alt="" coords="276,55,434,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="226,65,261,65,261,70,226,70"/>
-</map>

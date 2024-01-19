@@ -1,9 +1,0 @@
-<map id="addr_parse_minport" name="addr_parse_minport">
-<area shape="rect" id="Node000001" title=" " alt="" coords="359,31,494,56"/>
-<area shape="rect" id="Node000002" href="$d7/dab/addr_8c.html#ac14472b20e6c459cf242a20e4290ef54" title=" " alt="" coords="209,31,311,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="343,46,311,46,311,41,343,41"/>
-<area shape="rect" id="Node000003" href="$da/da7/prometheus-client_2http_8c.html#a8015696d6da994bc28605c1bff840740" title="Start the HTTP server for scraping." alt="" coords="5,5,161,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="193,37,161,32,162,27,194,31"/>
-<area shape="rect" id="Node000004" href="$dd/d03/sctp-tools_8c.html#a8f0c86a4df171798cafc332f5fc2a904" title=" " alt="" coords="41,55,125,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="193,55,126,64,125,59,193,50"/>
-</map>

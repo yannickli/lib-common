@@ -1,7 +1,0 @@
-<map id="httpc_query_attach" name="httpc_query_attach">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,137,31"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="185,5,282,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,16,169,16,169,21,137,21"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="330,5,417,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="282,16,314,16,314,21,282,21"/>
-</map>

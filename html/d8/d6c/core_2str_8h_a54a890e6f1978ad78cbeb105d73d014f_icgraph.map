@@ -1,9 +1,0 @@
-<map id="stristart" name="stristart">
-<area shape="rect" id="Node000001" title="Tells whether str begins with p, case insensitive." alt="" coords="156,55,221,80"/>
-<area shape="rect" id="Node000002" href="$d8/d6c/core_2str_8h.html#ad615d9a75853545eccea8e5399a2c159" title=" " alt="" coords="20,5,93,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="140,52,92,34,94,29,142,47"/>
-<area shape="rect" id="Node000003" href="$d7/d61/xmlr_8c.html#aa7557bf8d3b6b945b2c552cf7c378260" title=" " alt="" coords="5,55,108,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="140,70,108,70,108,65,140,65"/>
-<area shape="rect" id="Node000004" href="$d7/d61/xmlr_8c.html#aecb0d5d9d81d0912064865b4b149e632" title=" " alt="" coords="6,104,107,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="142,88,94,106,92,101,140,83"/>
-</map>

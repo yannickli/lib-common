@@ -1,9 +1,0 @@
-<map id="sctp_addr_len" name="sctp_addr_len">
-<area shape="rect" id="Node000001" title=" " alt="" coords="330,31,432,56"/>
-<area shape="rect" id="Node000002" href="$df/dc8/sctp_8c.html#a51975d60c2a36ad969d3dcc00e12bc17" title=" " alt="" coords="154,5,281,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="314,36,280,31,281,25,315,31"/>
-<area shape="rect" id="Node000004" href="$df/dc8/sctp_8c.html#a50b6dc8b68efd051ff7e157c146ce9e6" title=" " alt="" coords="153,55,282,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="315,56,283,61,282,55,314,51"/>
-<area shape="rect" id="Node000003" href="$dd/d03/sctp-tools_8c.html#af5df2c77824fc7da18bd32a7662fa2b5" title=" " alt="" coords="5,5,105,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="138,21,105,21,105,16,138,16"/>
-</map>

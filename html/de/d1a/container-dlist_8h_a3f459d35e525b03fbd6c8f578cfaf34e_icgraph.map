@@ -1,7 +1,0 @@
-<map id="dlist_is_last" name="dlist_is_last">
-<area shape="rect" id="Node000001" title="Return true if e is the tail of l." alt="" coords="321,5,411,31"/>
-<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a1b5994f44ba02f9f56504e1876a27b51" title=" " alt="" coords="171,5,273,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="305,21,273,21,273,16,305,16"/>
-<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#a2a3726de7fa71c3dd31c9e42a0e6c7a5" title="Dump the ring structure on stdout (debug)" alt="" coords="5,5,123,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="155,21,123,21,123,16,155,16"/>
-</map>

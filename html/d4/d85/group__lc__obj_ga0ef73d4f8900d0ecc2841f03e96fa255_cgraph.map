@@ -1,9 +1,0 @@
-<map id="obj_release_scope" name="obj_release_scope">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,135,56"/>
-<area shape="rect" id="Node000002" href="$d4/d85/group__lc__obj.html#ga4651285ce16b85ef73af3be50d6a7b6c" title=" " alt="" coords="183,5,312,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,32,167,27,168,32,135,37"/>
-<area shape="rect" id="Node000004" href="$d4/d85/group__lc__obj.html#ga7c461537728d2f254b8e31344e94b577" title=" " alt="" coords="187,55,308,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="135,50,172,55,171,60,135,55"/>
-<area shape="rect" id="Node000003" href="$d8/d6c/core_2str_8h.html#a92b107f7a7bb4e0fb29239f766a3e328" title=" " alt="" coords="360,5,427,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="313,16,344,16,344,21,313,21"/>
-</map>

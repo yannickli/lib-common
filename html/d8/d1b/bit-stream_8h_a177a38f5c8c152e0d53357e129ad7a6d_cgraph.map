@@ -1,9 +1,0 @@
-<map id="__bs_peek_bits" name="__bs_peek_bits">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,118,56"/>
-<area shape="rect" id="Node000002" href="$d8/d1b/bit-stream_8h.html#a1b0d940a6942aa354c38c767dc5bc861" title=" " alt="" coords="218,5,282,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,33,203,22,203,27,118,39"/>
-<area shape="rect" id="Node000004" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="166,55,334,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="118,48,151,52,150,57,118,53"/>
-<area shape="rect" id="Node000003" href="$d8/d1b/bit-stream_8h.html#a6cd3e2dd5a071992eff09950706b07e6" title=" " alt="" coords="382,5,441,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="282,16,366,16,366,21,282,21"/>
-</map>

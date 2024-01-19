@@ -1,9 +1,0 @@
-<map id="qps_pg_alloc_search" name="qps_pg_alloc_search">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,149,56"/>
-<area shape="rect" id="Node000002" href="$d8/d96/bithacks_8h.html#aa893adf22bc8fa53d8db678eca4151bd" title=" " alt="" coords="239,5,293,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,31,224,21,224,26,150,36"/>
-<area shape="rect" id="Node000003" href="$d0/df7/qps_8blk.html#a9a5da8030436e76f943293ef3560d448" title=" " alt="" coords="197,55,335,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="150,50,182,54,181,59,149,55"/>
-<area shape="rect" id="Node000004" href="$d0/df7/qps_8blk.html#ad90632123992c6bfc6c0b0e8a025ad0f" title=" " alt="" coords="383,55,507,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="335,65,367,65,367,70,335,70"/>
-</map>

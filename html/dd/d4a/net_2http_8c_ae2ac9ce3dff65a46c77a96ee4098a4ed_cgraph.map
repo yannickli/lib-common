@@ -1,7 +1,0 @@
-<map id="http2_stream_maintain_recv_window" name="http2_stream_maintain_recv_window">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,159,75"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a4b861b27e4fd4da747fcd7f5b34c8e4a" title=" " alt="" coords="207,5,378,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,42,191,37,191,42,159,47"/>
-<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a7a1ea188bcb489778907aea23e38daeb" title="Get effective HTTP2 settings." alt="" coords="228,70,357,96"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,63,213,70,212,75,159,68"/>
-</map>

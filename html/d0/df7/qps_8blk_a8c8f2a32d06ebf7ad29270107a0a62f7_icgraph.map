@@ -1,9 +1,0 @@
-<map id="qps_lock_snapshot" name="qps_lock_snapshot">
-<area shape="rect" id="Node000001" title=" " alt="" coords="327,31,460,56"/>
-<area shape="rect" id="Node000002" href="$d4/d36/group__qkv____ll____qps.html#ga7fcf8c35ae2a77fdc10451bbddbf423c" title="open a qps store." alt="" coords="175,5,260,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="311,34,259,27,260,22,312,29"/>
-<area shape="rect" id="Node000003" href="$d0/df7/qps_8blk.html#afb6083a9f26277bd316462514efabd75" title=" " alt="" coords="156,55,279,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="312,57,280,62,279,56,311,52"/>
-<area shape="rect" id="Node000004" href="$d0/df7/qps_8blk.html#a913ee1fd5c281f44c36b47e9c7bfd7dd" title="take a qps snapshot." alt="" coords="5,55,108,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="140,70,108,70,108,65,140,65"/>
-</map>

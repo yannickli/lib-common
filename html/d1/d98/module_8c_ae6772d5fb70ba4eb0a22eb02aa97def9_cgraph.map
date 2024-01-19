@@ -1,8 +1,0 @@
-<map id="module_require" name="module_require">
-<area shape="rect" id="Node000001" title="Require a module." alt="" coords="5,31,115,56"/>
-<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="32,32,26,22,30,12,41,6,60,4,80,7,91,13,88,18,78,12,60,9,43,11,34,16,32,21,36,29"/>
-<area shape="rect" id="Node000002" href="$d1/d98/module_8c.html#a84115e90bc6c41b8a418440c4d357517" title="true if module is loaded." alt="" coords="163,5,288,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,32,147,27,148,33,115,38"/>
-<area shape="rect" id="Node000003" href="$d1/d98/module_8c.html#a097a79bc3735e018ad5789043b582a6f" title=" " alt="" coords="167,55,284,80"/>
-<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="115,49,152,54,152,60,115,54"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="murmur3_128_hash_64" name="murmur3_128_hash_64">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,162,56"/>
-<area shape="rect" id="Node000002" href="$d1/d04/hash_8c.html#a1cf4c413cb2128b405bbe3e629c5e250" title=" " alt="" coords="210,31,372,56"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,41,194,41,194,46,162,46"/>
-<area shape="rect" id="Node000003" href="$d1/d04/hash_8c.html#a45ebc52453239d2d5ac888da55fd27f7" title=" " alt="" coords="420,5,479,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="372,28,404,23,405,28,373,33"/>
-<area shape="rect" id="Node000004" href="$d1/d04/hash_8c.html#a5b9b9f3f752f4e9db99f8467d4487f16" title=" " alt="" coords="423,55,476,80"/>
-<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="373,53,408,59,407,64,372,58"/>
-</map>

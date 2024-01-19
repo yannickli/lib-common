@@ -1,8 +1,0 @@
-<map id="contains_blk" name="contains_blk">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,100,31"/>
-<area shape="rect" id="Node000002" href="$d9/d68/str-dtoa_8c.html#ae3b60d76128298cf2780a4612b47befe" title=" " alt="" coords="266,5,312,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,16,251,16,251,21,100,21"/>
-<area shape="rect" id="Node000003" href="$df/d6e/sort_8blk.html#a31604ba53a481ec51ac131ffa92eae38" title=" " alt="" coords="148,31,218,56"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,25,133,31,132,36,100,30"/>
-<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="217,33,250,25,251,30,219,38"/>
-</map>

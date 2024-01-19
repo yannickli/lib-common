@@ -1,7 +1,0 @@
-<map id="mp_iop_field_path_compile" name="mp_iop_field_path_compile">
-<area shape="rect" id="Node000001" title="Build an IOP field path on a specified memory pool." alt="" coords="217,31,394,56"/>
-<area shape="rect" id="Node000002" href="$d3/d40/iop_8h.html#a497b536bf8b8390cb9bb53e93311afb7" title="Build an IOP field path on the standard libc allocator." alt="" coords="11,5,163,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,34,163,30,164,24,202,29"/>
-<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a971bc2b3b910523c8b7cc9e8e622d14d" title="Build an IOP field path on the t_stack." alt="" coords="5,55,169,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,58,169,61,169,56,201,52"/>
-</map>

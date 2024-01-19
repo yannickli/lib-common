@@ -1,7 +1,0 @@
-<map id="obj_wipe_real" name="obj_wipe_real">
-<area shape="rect" id="Node000001" title=" " alt="" coords="290,5,390,31"/>
-<area shape="rect" id="Node000002" href="$d4/d85/group__lc__obj.html#gaef61e6c960e4278dc36092f1ce25a935" title=" " alt="" coords="148,5,242,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="274,21,242,21,242,16,274,16"/>
-<area shape="rect" id="Node000003" href="$d4/d85/group__lc__obj.html#ga0533cdae3055d70db61194327e66ae07" title=" " alt="" coords="5,5,100,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="132,21,100,21,100,16,132,16"/>
-</map>

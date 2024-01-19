@@ -1,7 +1,0 @@
-<map id="dlist_add_after" name="dlist_add_after">
-<area shape="rect" id="Node000001" title="Add a new element n after an element e." alt="" coords="5,5,112,31"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a3b6f65860b212e28f2e28e71eb54d54d" title="Add element e at the head of list l (suited for LIFO)." alt="" coords="160,5,233,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,16,144,16,144,21,112,21"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="281,5,368,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="233,16,265,16,265,21,233,21"/>
-</map>

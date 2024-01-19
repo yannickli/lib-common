@@ -1,9 +1,0 @@
-<map id="writer.c" name="writer.c">
-<area shape="rect" id="Node000001" title=" " alt="" coords="183,5,246,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,136,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="191,34,110,74,107,69,189,29"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="160,79,269,105"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,31,217,63,212,63,212,31"/>
-<area shape="rect" id="Node000004" title=" " alt="" coords="293,79,411,105"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="239,29,316,69,314,74,237,34"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="vstristr" name="vstristr">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,67,31"/>
-<area shape="rect" id="Node000002" href="$d8/d6c/core_2str_8h.html#a596f450f323780266413da9a1607b940" title=" " alt="" coords="115,5,169,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,16,99,16,99,21,67,21"/>
-<area shape="rect" id="Node000003" href="$df/d5f/str_8c.html#a2749d1cbe852e85c93bbbae1a3f9fab2" title="Find the first occurrence of the substring needle in str, case insensitively." alt="" coords="217,5,278,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="169,16,202,16,202,21,169,21"/>
-</map>

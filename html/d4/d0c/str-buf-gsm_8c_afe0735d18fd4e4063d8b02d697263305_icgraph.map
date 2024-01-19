@@ -1,7 +1,0 @@
-<map id="get_gsm7_pack" name="get_gsm7_pack">
-<area shape="rect" id="Node000001" title=" " alt="" coords="196,31,309,56"/>
-<area shape="rect" id="Node000002" href="$d4/d0c/str-buf-gsm_8c.html#af5aeec1c7245f84d80fb295df95dcad4" title=" " alt="" coords="5,5,148,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,36,148,31,148,26,180,30"/>
-<area shape="rect" id="Node000003" href="$d4/d0c/str-buf-gsm_8c.html#a19ce79866ae630ec14680da996a1baa6" title=" " alt="" coords="13,55,140,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,56,141,61,140,56,180,51"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="timing_scope_start" name="timing_scope_start">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,137,80"/>
-<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#a1e632afdaf4af5a5ad1c10d4fa1349eb" title=" " alt="" coords="185,5,253,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,51,169,32,171,37,113,57"/>
-<area shape="rect" id="Node000003" href="$d2/d4d/file_8h.html#aa694120a0e2e1e38b7bebb913a0fe88e" title=" " alt="" coords="187,55,251,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="137,65,172,65,172,70,137,70"/>
-<area shape="rect" id="Node000004" href="$d2/d4d/file_8h.html#a25419a391fdd4ad7954699c58cfeb3b9" title=" " alt="" coords="185,104,253,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="113,78,171,98,169,103,111,84"/>
-</map>

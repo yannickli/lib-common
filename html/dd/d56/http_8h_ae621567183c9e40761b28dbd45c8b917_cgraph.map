@@ -1,9 +1,0 @@
-<map id="httpc_pool_can_query" name="httpc_pool_can_query">
-<area shape="rect" id="Node000001" title="Check if the pool has either a connection ready or if a new connection can be done." alt="" coords="5,31,153,56"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a96ac3a2484cab382a99fd7c819b90be9" title="Check if the pool has a connection ready." alt="" coords="203,5,350,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,31,187,27,188,32,153,37"/>
-<area shape="rect" id="Node000004" href="$dd/d4a/net_2http_8c.html#a7fa0b627fbb5a9475e6f9ed876da2f3d" title=" " alt="" coords="201,55,352,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="153,50,186,54,185,59,152,55"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a09103296d7ba39784005e7402529a9c0" title="Return true if the list has no element." alt="" coords="400,5,504,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="351,16,384,16,384,21,351,21"/>
-</map>

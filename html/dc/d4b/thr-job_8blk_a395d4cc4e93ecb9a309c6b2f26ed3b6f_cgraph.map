@@ -1,7 +1,0 @@
-<map id="thr_syn_schedule" name="thr_syn_schedule">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,128,31"/>
-<area shape="rect" id="Node000002" href="$dc/d4b/thr-job_8blk.html#a16bb35ef03b7c4227b2ab175d2541381" title=" " alt="" coords="176,5,239,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,16,160,16,160,21,128,21"/>
-<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#a1bd62cd344b57b3239087cd8f11f9793" title=" " alt="" coords="287,5,364,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="240,16,272,16,272,21,240,21"/>
-</map>

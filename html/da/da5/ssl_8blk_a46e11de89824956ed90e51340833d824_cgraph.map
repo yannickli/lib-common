@@ -1,9 +1,0 @@
-<map id="ssl_write" name="ssl_write">
-<area shape="rect" id="Node000001" title="Wrapper to SSL_write that mimic write(2)." alt="" coords="5,5,79,31"/>
-<area shape="rect" id="Node000002" href="$da/da5/ssl_8blk.html#a43e1df139c257b3b3cb06e77e45837aa" title="Helper to convert openssl errors to classical system errors." alt="" coords="127,5,258,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,16,111,16,111,21,79,21"/>
-<area shape="rect" id="Node000003" href="$da/da5/ssl_8blk.html#aeba371daba7f6b6f5ff75f70b0003965" title=" " alt="" coords="306,5,412,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="259,16,290,16,290,21,259,21"/>
-<area shape="rect" id="Node000004" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="460,5,522,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="413,16,445,16,445,21,413,21"/>
-</map>

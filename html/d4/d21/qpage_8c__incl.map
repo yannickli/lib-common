@@ -1,9 +1,0 @@
-<map id="qpage.c" name="qpage.c">
-<area shape="rect" id="Node000001" title=" " alt="" coords="205,5,271,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,151,120"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,34,133,74,130,69,212,29"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="174,87,302,112"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="241,31,241,71,235,71,235,31"/>
-<area shape="rect" id="Node000004" title=" " alt="" coords="325,87,463,112"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="263,29,358,77,356,82,261,34"/>
-</map>

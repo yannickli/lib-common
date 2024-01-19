@@ -1,9 +1,0 @@
-<map id="dump_entries" name="dump_entries">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,105,56"/>
-<area shape="rect" id="Node000002" href="$da/d31/str-l-obfuscate-default_8c.html#a666e47bc4977d37c318fd55642ad2821" title="Obfuscate or unobfuscate a lstr." alt="" coords="153,5,256,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,32,137,27,138,32,106,38"/>
-<area shape="rect" id="Node000004" href="$d3/dcd/farchc_8c.html#af752c69ba682f3608d242b7c1840ccaa" title=" " alt="" coords="163,55,246,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="106,49,148,56,147,61,105,54"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#aab06adc2eb0fc22b568d1f32d306b7f7" title="Xor a lstr with another." alt="" coords="304,5,367,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="257,16,288,16,288,21,257,21"/>
-</map>

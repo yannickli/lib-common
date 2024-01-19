@@ -1,8 +1,0 @@
-<map id="mem_page_size_left" name="mem_page_size_left">
-<area shape="rect" id="Node000001" title=" " alt="" coords="267,31,407,56"/>
-<area shape="rect" id="Node000002" href="$de/dda/mem-fifo_8c.html#ae73b3de6a4f821b33428ac2158695d86" title=" " alt="" coords="142,5,219,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="251,32,219,27,220,22,252,27"/>
-<area shape="rect" id="Node000003" href="$de/dda/mem-fifo_8c.html#accab417e12f9f9c9a12e60861741f8be" title=" " alt="" coords="5,31,94,56"/>
-<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="252,46,94,46,94,41,252,41"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="127,31,95,38,94,32,126,26"/>
-</map>

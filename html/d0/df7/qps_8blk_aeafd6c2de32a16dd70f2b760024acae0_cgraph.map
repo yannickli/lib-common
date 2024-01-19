@@ -1,9 +1,0 @@
-<map id="qps_map_recycle" name="qps_map_recycle">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,128,56"/>
-<area shape="rect" id="Node000002" href="$d7/d50/sort_8h.html#a8323d25555865830db36a52695f33a51" title=" " alt="" coords="198,5,269,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,32,182,23,183,28,128,37"/>
-<area shape="rect" id="Node000003" href="$d0/df7/qps_8blk.html#ad761e5267c483809e3ef4d78353e46c8" title=" " alt="" coords="176,55,291,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="128,50,161,54,160,60,128,55"/>
-<area shape="rect" id="Node000004" href="$d4/d36/group__qkv____ll____qps.html#ga764bdc449f42c744648a47799fc40354" title=" " alt="" coords="339,55,431,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="291,65,324,65,324,70,291,70"/>
-</map>

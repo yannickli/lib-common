@@ -1,9 +1,0 @@
-<map id="parse_number" name="parse_number">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,109,56"/>
-<area shape="rect" id="Node000002" href="$dd/d5b/str-iprintf_8c.html#a4d97bad725d98d86ca70da65686742b6" title=" " alt="" coords="157,5,230,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,31,141,25,142,30,110,36"/>
-<area shape="rect" id="Node000003" href="$d9/d68/str-dtoa_8c.html#a8d1b83f11138c08dbb9041a64d9ef27e" title=" " alt="" coords="170,55,217,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,50,155,58,154,63,109,55"/>
-<area shape="rect" id="Node000004" href="$d9/d68/str-dtoa_8c.html#ace762ed592424f703e25c2318727eb8c" title=" " alt="" coords="278,55,335,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="217,65,263,65,263,70,217,70"/>
-</map>

@@ -1,9 +1,0 @@
-<map id="mem_stack_pool_protect" name="mem_stack_pool_protect">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,173,56"/>
-<area shape="rect" id="Node000002" href="$da/d36/mem-stack_8c.html#a6b85dba3c440cb377e1db4ef7039edba" title=" " alt="" coords="272,5,355,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,31,256,22,257,27,173,37"/>
-<area shape="rect" id="Node000004" href="$d8/d37/mem_8blk.html#a194c1be7b1e9d2742e6c11ea6fed3790" title=" " alt="" coords="221,55,406,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="173,50,205,53,205,59,173,55"/>
-<area shape="rect" id="Node000003" href="$da/d36/mem-stack_8c.html#a5226b292528670b27ecca3924599b78b" title=" " alt="" coords="454,5,520,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="355,16,438,16,438,21,355,21"/>
-</map>

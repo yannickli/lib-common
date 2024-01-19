@@ -1,9 +1,0 @@
-<map id="iopc_token_init" name="iopc_token_init">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,114,31"/>
-<area shape="rect" id="Node000002" href="$dc/d31/str-buf_8h.html#a28a37219e3d2287e3ead464da4894790" title=" " alt="" coords="162,5,221,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,16,146,16,146,21,114,21"/>
-<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="269,5,352,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="222,16,253,16,253,21,222,21"/>
-<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="400,5,513,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="353,16,385,16,385,21,353,21"/>
-</map>

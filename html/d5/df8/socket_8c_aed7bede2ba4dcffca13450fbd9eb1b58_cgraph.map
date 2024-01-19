@@ -1,9 +1,0 @@
-<map id="acceptx" name="acceptx">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,72,31"/>
-<area shape="rect" id="Node000002" href="$d5/df8/socket_8c.html#a39a36d17d08d39d888dc739989775a7b" title=" " alt="" coords="120,5,243,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="72,16,104,16,104,21,72,21"/>
-<area shape="rect" id="Node000003" href="$d6/dd2/unix_8blk.html#a49ce04bc27f124999ef20359ed0bb764" title=" " alt="" coords="291,5,402,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="243,16,275,16,275,21,243,21"/>
-<area shape="rect" id="Node000004" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="450,5,512,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="403,16,434,16,434,21,403,21"/>
-</map>

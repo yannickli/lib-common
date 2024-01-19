@@ -1,9 +1,0 @@
-<map id="httpd_query_create" name="httpd_query_create">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,137,56"/>
-<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="197,5,294,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,31,181,25,181,30,138,37"/>
-<area shape="rect" id="Node000004" href="$dd/d4a/net_2http_8c.html#a742c6a12e1712b491375ec603c9cecc1" title=" " alt="" coords="185,55,306,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="138,50,170,54,169,60,137,55"/>
-<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="354,5,441,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="294,16,338,16,338,21,294,21"/>
-</map>

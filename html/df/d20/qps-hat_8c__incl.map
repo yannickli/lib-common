@@ -1,9 +1,0 @@
-<map id="qps&#45;hat.c" name="qps&#45;hat.c">
-<area shape="rect" id="Node000001" title=" " alt="" coords="192,5,266,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,133,105"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="203,34,111,75,109,70,201,29"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="156,79,302,105"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="232,31,232,63,226,63,226,31"/>
-<area shape="rect" id="Node000004" title=" " alt="" coords="325,79,413,105"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="254,29,333,69,331,74,252,34"/>
-</map>

@@ -1,5 +1,0 @@
-<map id="lstr_cmp_p" name="lstr_cmp_p">
-<area shape="rect" id="Node000001" title="Alternative version of lstr_cmp that takes pointers as arguments." alt="" coords="5,5,91,31"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a26e9662009a92888ff6db49b86513036" title="Returns &quot;memcmp&quot; ordering of \v s1 and \v s2." alt="" coords="139,5,210,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,16,123,16,123,21,91,21"/>
-</map>

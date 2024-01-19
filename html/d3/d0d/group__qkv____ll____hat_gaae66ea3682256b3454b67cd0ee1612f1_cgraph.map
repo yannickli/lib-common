@@ -1,7 +1,0 @@
-<map id="qhat_get" name="qhat_get">
-<area shape="rect" id="Node000001" title="Get a read&#45;only pointer to the value associated with a key." alt="" coords="5,31,77,56"/>
-<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#gabe4f98001e3e708c3b9ae8553d4308b4" title="Get a read&#45;only pointer to the value described by a path." alt="" coords="125,5,228,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="77,34,109,28,110,33,78,39"/>
-<area shape="rect" id="Node000003" href="$d3/d0d/group__qkv____ll____hat.html#gac5e77a8e12e69d4b71cd36da0bada57d" title=" " alt="" coords="125,55,228,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="78,47,111,53,110,58,77,52"/>
-</map>

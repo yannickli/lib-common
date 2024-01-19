@@ -1,9 +1,0 @@
-<map id="t_iop_bunpack_multi" name="t_iop_bunpack_multi">
-<area shape="rect" id="Node000001" title="Unpack a packed IOP union using the t_pool()." alt="" coords="5,31,146,56"/>
-<area shape="rect" id="Node000002" href="$d3/d40/iop_8h.html#a99d44dddcc54aa853b64394460965641" title=" " alt="" coords="194,5,323,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,31,178,27,179,32,146,36"/>
-<area shape="rect" id="Node000004" href="$d1/d10/mem-stack_8h.html#a1d0e2a29f86dc033a02e50484b527fd0" title=" " alt="" coords="230,55,287,80"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="146,50,215,59,215,65,146,55"/>
-<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#ad39b7749d096057bf1f92f16b509aab1" title="Unpack a packed IOP union." alt="" coords="371,5,534,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="323,16,355,16,355,21,323,21"/>
-</map>

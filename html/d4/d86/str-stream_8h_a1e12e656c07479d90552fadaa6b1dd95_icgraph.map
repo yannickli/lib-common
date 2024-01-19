@@ -1,7 +1,0 @@
-<map id="ps_getlli" name="ps_getlli">
-<area shape="rect" id="Node000001" title=" " alt="" coords="294,5,363,31"/>
-<area shape="rect" id="Node000002" href="$d7/d4e/datetime-iso8601_8c.html#a371383131a66150894296d3d02c61a76" title="Parse a string as a date and builds the corresponding unix timestamp." alt="" coords="161,5,246,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="279,21,246,21,246,16,279,16"/>
-<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#a712ea3529b223312894698b7190fe481" title=" " alt="" coords="5,5,113,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="145,21,113,21,113,16,145,16"/>
-</map>

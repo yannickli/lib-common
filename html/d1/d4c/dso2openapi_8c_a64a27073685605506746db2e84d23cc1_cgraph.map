@@ -1,7 +1,0 @@
-<map id="get_iop_module" name="get_iop_module">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,118,56"/>
-<area shape="rect" id="Node000002" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="174,5,235,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,31,158,24,159,29,119,36"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="166,55,243,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="119,50,151,56,150,61,118,56"/>
-</map>

@@ -1,7 +1,0 @@
-<map id="_sb_add_duration_ms" name="_sb_add_duration_ms">
-<area shape="rect" id="Node000001" title="Appends a pretty&#45;formatted duration to a string buffer." alt="" coords="195,31,343,56"/>
-<area shape="rect" id="Node000002" href="$dc/d31/str-buf_8h.html#aa9343adde46ad97791b0c03faae5a7bc" title=" " alt="" coords="5,5,147,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,34,147,30,148,25,180,29"/>
-<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#a853ee555ef43a45428b1bb131a60613d" title=" " alt="" coords="11,55,141,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="180,57,142,62,141,57,179,52"/>
-</map>

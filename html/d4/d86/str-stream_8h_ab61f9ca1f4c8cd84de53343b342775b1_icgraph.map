@@ -1,5 +1,0 @@
-<map id="ps_get_ps_upto_data" name="ps_get_ps_upto_data">
-<area shape="rect" id="Node000001" title="Returns the bytes up to the (d, len) word." alt="" coords="189,5,334,31"/>
-<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#ad5c7bf05734a2d3961a1a0b5f32de97f" title=" " alt="" coords="5,5,141,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,21,141,21,141,16,173,16"/>
-</map>

@@ -1,8 +1,0 @@
-<map id="asn1_build_choice_table" name="asn1_build_choice_table">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,169,63"/>
-<area shape="rect" id="Node000002" href="$d6/d42/writer_8c.html#af32ac0a39a1692527586c4aabb01aa93" title=" " alt="" coords="217,29,371,70"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="169,47,201,47,201,52,169,52"/>
-<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="264,29,262,19,267,11,278,5,294,3,311,5,321,11,319,16,309,10,294,8,279,10,271,14,267,20,269,28"/>
-<area shape="rect" id="Node000003" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="419,37,480,63"/>
-<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="371,47,404,47,404,52,371,52"/>
-</map>

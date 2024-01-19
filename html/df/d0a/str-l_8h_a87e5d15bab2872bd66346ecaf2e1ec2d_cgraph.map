@@ -1,9 +1,0 @@
-<map id="lstr_to_int64" name="lstr_to_int64">
-<area shape="rect" id="Node000001" title="Convert a lstr into an int64." alt="" coords="5,31,98,56"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#ac764f4c7ed4f6b893874879a2ebb28b4" title="return the right&#45;trimmed lstr." alt="" coords="147,5,219,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,32,131,25,132,31,99,37"/>
-<area shape="rect" id="Node000003" href="$d8/d17/str-num_8c.html#afa47a7dd9a5c67dd5bbe5b6f70b9d4a7" title=" " alt="" coords="146,55,220,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="99,49,131,55,130,61,98,55"/>
-<area shape="rect" id="Node000004" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="268,55,370,80"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="220,65,253,65,253,70,220,70"/>
-</map>

@@ -1,5 +1,0 @@
-<map id="log_file_disable_rotation" name="log_file_disable_rotation">
-<area shape="rect" id="Node000001" title="Disable file rotations until &#39;log_file_enable_rotation&#39; is called." alt="" coords="202,5,361,31"/>
-<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#aa74655031af03892b62093d9b1938ce9" title=" " alt="" coords="5,5,154,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,21,154,21,154,16,186,16"/>
-</map>

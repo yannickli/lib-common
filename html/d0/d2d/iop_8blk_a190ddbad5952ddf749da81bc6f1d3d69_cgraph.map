@@ -1,5 +1,0 @@
-<map id="iop_field_path_get_type" name="iop_field_path_get_type">
-<area shape="rect" id="Node000001" title="Get the type associated with a given field path." alt="" coords="5,5,162,31"/>
-<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#af138a610122e2e92f0bad6e5c05432bd" title="Return whether the IOP type is scalar or not." alt="" coords="210,5,338,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,16,194,16,194,21,162,21"/>
-</map>

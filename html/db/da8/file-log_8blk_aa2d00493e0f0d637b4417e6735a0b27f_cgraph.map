@@ -1,9 +1,0 @@
-<map id="log_file_find_last_date" name="log_file_find_last_date">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,154,31"/>
-<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#a1905f98f28c7ab872ff53d40b100e63b" title="Get the creation timestamp of a log file from his full path." alt="" coords="202,5,354,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,16,186,16,186,21,154,21"/>
-<area shape="rect" id="Node000003" href="$d8/d17/str-num_8c.html#ae846bdcb22ccf7e1a1a22e9ad94c87ee" title=" " alt="" coords="402,5,473,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="355,16,386,16,386,21,355,21"/>
-<area shape="rect" id="Node000004" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="521,5,624,31"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="474,16,505,16,505,21,474,21"/>
-</map>

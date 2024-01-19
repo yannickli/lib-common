@@ -1,7 +1,0 @@
-<map id="lstr_utf8_cmp" name="lstr_utf8_cmp">
-<area shape="rect" id="Node000001" title="Performs utf8&#45;aware, case&#45;sensitive comparison." alt="" coords="5,5,106,31"/>
-<area shape="rect" id="Node000002" href="$d4/d9a/str-conv_8c.html#af94c356ad6f38a9807ea0f6014b89cd4" title="Return utf8 case&#45;senstive collating comparison as &#45;1, 0 or 1." alt="" coords="154,5,244,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,16,138,16,138,21,106,21"/>
-<area shape="rect" id="Node000003" href="$d4/d9a/str-conv_8c.html#aefa8f0aa3d4253041a6240e8823d6285" title=" " alt="" coords="292,5,389,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="245,16,276,16,276,21,245,21"/>
-</map>

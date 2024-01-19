@@ -1,7 +1,0 @@
-<map id="qhat_enumerator_get_value" name="qhat_enumerator_get_value">
-<area shape="rect" id="Node000001" title=" " alt="" coords="197,39,340,79"/>
-<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#ga829147f80d8a78b88ef4ecbdce1ab31c" title="Get the value associated to the current key (safe)." alt="" coords="5,5,149,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="181,46,148,41,149,36,182,41"/>
-<area shape="rect" id="Node000003" href="$d3/d0d/group__qkv____ll____hat.html#ga49117940e0addc0c50d83d292695f1d6" title="Get the value associated to the current key." alt="" coords="5,71,149,111"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="182,76,149,82,148,76,181,71"/>
-</map>

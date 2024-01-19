@@ -1,7 +1,0 @@
-<map id="strrand" name="strrand">
-<area shape="rect" id="Node000001" title="Put random characters from alphabet in destination buffer, and terminate with a &#39;\0&#39; character." alt="" coords="5,5,67,31"/>
-<area shape="rect" id="Node000002" href="$d6/df4/rand_8c.html#a67d27a4cb80856f44e2b5b64f0ac2c8e" title="Generate a random integer in the range [first,last]." alt="" coords="115,5,200,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,16,99,16,99,21,67,21"/>
-<area shape="rect" id="Node000003" href="$d6/df4/rand_8c.html#a988e5bd66ff6e9ccd7b38af4505e68e3" title="Generate a 64bit random integer." alt="" coords="248,5,308,31"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="201,16,232,16,232,21,201,21"/>
-</map>

@@ -1,8 +1,0 @@
-<map id="httpc_qinfo_t" name="httpc_qinfo_t">
-<area shape="rect" id="Node000001" title=" " alt="" coords="31,417,175,522"/>
-<area shape="rect" id="Node000002" href="$d7/d51/structpstream__t.html" title=" " alt="" coords="5,5,200,211"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,211,96,354,99,400,94,400,91,354,93,210"/>
-<area shape="rect" id="Node000003" href="$db/d8f/structhttp__qhdr__t.html" title=" " alt="" coords="163,289,240,354"/>
-<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="152,209,182,272,177,275,148,211"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="182,355,149,404,145,401,178,352"/>
-</map>

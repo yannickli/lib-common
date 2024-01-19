@@ -1,5 +1,0 @@
-<map id="time_parse" name="time_parse">
-<area shape="rect" id="Node000001" title="Parse a string as a date and builds the corresponding unix timestamp." alt="" coords="161,5,246,31"/>
-<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#a712ea3529b223312894698b7190fe481" title=" " alt="" coords="5,5,113,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,21,113,21,113,16,145,16"/>
-</map>

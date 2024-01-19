@@ -1,8 +1,0 @@
-<map id="iop_xwsdl_scan_types" name="iop_xwsdl_scan_types">
-<area shape="rect" id="Node000001" title=" " alt="" coords="321,29,472,55"/>
-<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="430,17,419,10,397,8,376,10,365,15,363,20,368,27,364,30,358,21,362,11,375,5,397,3,421,5,433,12"/>
-<area shape="rect" id="Node000002" href="$dd/dfb/xml-wsdl_8blk.html#a11e34fabf17b2da949fcf7b80a000a72" title=" " alt="" coords="132,29,273,55"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="306,45,273,45,273,40,306,40"/>
-<area shape="rect" id="Node000003" href="$dd/dfb/xml-wsdl_8blk.html#a1e1c4ce12aa0b7bf8bfec4c608c634d9" title=" " alt="" coords="5,29,84,55"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="116,45,84,45,84,40,116,40"/>
-</map>

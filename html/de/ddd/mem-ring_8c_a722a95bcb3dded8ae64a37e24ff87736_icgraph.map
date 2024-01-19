@@ -1,9 +1,0 @@
-<map id="r_pool" name="r_pool">
-<area shape="rect" id="Node000001" title="Just like the t_pool() we have the corresponding r_pool()" alt="" coords="132,55,188,80"/>
-<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a5755d8b8e2f270c120bf9058e4101f63" title="concatenates its argument to form a new lstr on the r_stack." alt="" coords="7,5,82,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,52,75,34,77,29,118,47"/>
-<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#ab2dd3a64ccf77787c30fdd2beb94c817" title="returns a duplicated lstr from the mem stack." alt="" coords="5,55,84,80"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="116,70,84,70,84,65,116,65"/>
-<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a737a59238ec672dd22523f3b0f1f48d5" title=" " alt="" coords="9,104,80,130"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="118,88,77,106,75,101,116,83"/>
-</map>

@@ -1,8 +1,0 @@
-<map id="httptokens.c" name="httptokens.c">
-<area shape="rect" id="Node000001" title=" " alt="" coords="23,5,115,31"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="5,153,133,178"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,32,58,65,56,104,63,137,58,138,50,105,53,64,62,31"/>
-<area shape="rect" id="Node000003" href="$d4/dbd/httptokens_8h.html" title=" " alt="" coords="66,79,158,105"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="78,30,99,64,94,67,74,33"/>
-<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="107,106,86,141,82,138,102,104"/>
-</map>

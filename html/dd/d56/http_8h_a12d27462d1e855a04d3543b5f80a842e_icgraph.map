@@ -1,7 +1,0 @@
-<map id="httpd_unlisten" name="httpd_unlisten">
-<area shape="rect" id="Node000001" title=" " alt="" coords="210,46,312,72"/>
-<area shape="rect" id="Node000002" href="$da/da7/prometheus-client_2http_8c.html#af984c1ffa062120c6992db308be7f5a9" title=" " alt="" coords="5,5,162,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,49,162,43,163,38,195,44"/>
-<area shape="rect" id="Node000003" href="$da/da7/prometheus-client_2http_8c.html#aee0b396dda91bbc788a6cb7e17e5a2bd" title=" " alt="" coords="5,71,162,111"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="195,74,163,79,162,74,194,68"/>
-</map>

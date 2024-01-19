@@ -1,8 +1,0 @@
-<map id="http2_conn_is_peer_stream_id" name="http2_conn_is_peer_stream_id">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,140,75"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#af7606f43afa09bca8c1f621a130b298e" title=" " alt="" coords="188,5,319,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="140,41,172,36,173,41,141,47"/>
-<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#ab9bc49ebbd0135e4c737460c35580c44" title=" " alt="" coords="367,35,498,75"/>
-<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="140,54,188,55,319,55,351,54,351,60,319,60,188,60,140,59"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="320,34,352,39,351,44,319,39"/>
-</map>

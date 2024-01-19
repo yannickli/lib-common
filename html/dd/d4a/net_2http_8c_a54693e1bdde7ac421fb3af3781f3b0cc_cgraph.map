@@ -1,9 +1,0 @@
-<map id="http2_conn_send_error" name="http2_conn_send_error">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,85,159,111"/>
-<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#a9f0687566a5f7c6898bd1f51cd63b306" title="Return the maximum id of the (non&#45;idle) peer stream or 0 if none." alt="" coords="218,5,367,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,82,215,49,217,54,123,87"/>
-<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#aa45ce2ff0b83b0ae8d501d01c2010963" title=" " alt="" coords="221,70,364,126"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,95,205,95,205,100,159,100"/>
-<area shape="rect" id="Node000004" href="$dd/d4a/net_2http_8c.html#a6f39590c8dfba1bfd7a695cf1f6db8ab" title=" " alt="" coords="207,150,378,176"/>
-<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="125,109,207,135,232,143,230,148,206,140,123,114"/>
-</map>

@@ -1,5 +1,0 @@
-<map id="iop_bunpack_ptr" name="iop_bunpack_ptr">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,122,31"/>
-<area shape="rect" id="Node000002" href="$d3/d40/iop_8h.html#a9422c3cbf0f124bcc192c939106b1951" title="Unpack a packed IOP object and (re)allocates the destination structure." alt="" coords="170,5,320,31"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,16,154,16,154,21,122,21"/>
-</map>

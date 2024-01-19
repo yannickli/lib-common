@@ -1,8 +1,0 @@
-<map id="t_add_mapping_flat_subfiles" name="t_add_mapping_flat_subfiles">
-<area shape="rect" id="Node000001" title=" " alt="" coords="288,29,421,70"/>
-<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="384,16,373,10,355,8,337,10,327,15,323,20,325,28,319,29,318,19,323,10,336,5,355,3,375,5,387,11"/>
-<area shape="rect" id="Node000002" href="$d1/d3c/yaml_8blk.html#a82e27ab51d69751619210747fb56b47e" title="Extract the list of subfiles from a YAML presentation." alt="" coords="100,29,240,70"/>
-<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="272,52,241,52,241,47,272,47"/>
-<area shape="rect" id="Node000003" href="$d0/db3/yamlfmt_8c.html#a2aa849041505f1cffbd903aeedd77634" title=" " alt="" coords="5,37,52,63"/>
-<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="84,52,52,52,52,47,84,47"/>
-</map>

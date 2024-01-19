@@ -1,9 +1,0 @@
-<map id="file_bin_get_cpu32" name="file_bin_get_cpu32">
-<area shape="rect" id="Node000001" title=" " alt="" coords="559,13,688,39"/>
-<area shape="rect" id="Node000002" href="$dc/d70/file-bin_8c.html#abd12f1c33a01e00e7624bada49a8d441" title=" " alt="" coords="387,5,511,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="543,28,512,28,512,23,543,23"/>
-<area shape="rect" id="Node000003" href="$dc/d70/file-bin_8c.html#a0fbb8c63c816eedd02255d440b0917a6" title="Get next record from a file." alt="" coords="179,13,339,39"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="371,28,340,28,340,23,371,23"/>
-<area shape="rect" id="Node000004" href="$dc/d70/file-bin_8c.html#adde9770634ca32cb435caae51ed98f72" title="Read last records from a binary file." alt="" coords="5,5,131,46"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="163,28,131,28,131,23,163,23"/>
-</map>
