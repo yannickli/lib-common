@@ -1,0 +1,9 @@
+<map id="ic_el_server_is_stopped" name="ic_el_server_is_stopped">
+<area shape="rect" id="Node000001" title="Callback used by wait_thread_cond() to check if the server has been stopped." alt="" coords="407,42,568,68"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a0df155ef9ba82109a7a7d8bc00db61a7" title="Wait for the IC EL server to be fully stopped by the event loop." alt="" coords="183,42,359,68"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="391,58,360,58,360,52,391,52"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#ac07f125f7ff190c68cd106bd3b3cb5e1" title="Make the IC EL server start listening until timeout elapsed or the server has been stopped." alt="" coords="5,5,135,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="167,42,135,38,136,32,168,37"/>
+<area shape="rect" id="Node000004" href="$db/dac/rpc-el_8c.html#a8c4a63302472770cb91fed95798a754f" title="Stop the IC EL server." alt="" coords="8,70,132,96"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="167,72,133,77,132,72,167,67"/>
+</map>

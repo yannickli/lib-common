@@ -1,0 +1,19 @@
+<map id="bsr16" name="bsr16">
+<area shape="rect" id="Node000001" title=" " alt="" coords="582,80,636,106"/>
+<area shape="rect" id="Node000002" href="$d4/d9a/str-conv_8c.html#af1a946a36fef5811d9dc8fc3a986eac0" title=" " alt="" coords="401,55,534,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="567,88,534,82,535,77,568,83"/>
+<area shape="rect" id="Node000007" href="$d4/d9a/str-conv_8c.html#a564512b8b976a021a838f939e4004b99" title=" " alt="" coords="405,104,531,130"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="568,102,532,109,531,103,567,97"/>
+<area shape="rect" id="Node000003" href="$d4/d9a/str-conv_8c.html#a53a4cc6cbfaaa8ad1bd34dadfe96f3fb" title=" " alt="" coords="219,55,345,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="386,70,345,70,345,65,386,65"/>
+<area shape="rect" id="Node000004" href="$de/d04/str-l_8c.html#ab53fa82791df65261c07b23a007a9b98" title="Returns whether \v s ends with \v p, in a case&#45;sensitive utf8&#45;aware way." alt="" coords="20,5,148,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="212,53,138,34,139,29,213,48"/>
+<area shape="rect" id="Node000005" href="$de/d04/str-l_8c.html#a53877d89f126037f58019544b326d9de" title="Returns whether \v s ends with \v p, in a case&#45;insensitive utf8&#45;aware way." alt="" coords="19,55,149,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="203,70,150,70,150,65,203,65"/>
+<area shape="rect" id="Node000006" href="$d1/dc0/group__log.html#gaa905443de7c51bd3994b38275d1389c4" title="Remove characters not accepted in logger names." alt="" coords="5,104,163,130"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="213,87,139,106,138,101,212,82"/>
+<area shape="rect" id="Node000008" href="$d4/d9a/str-conv_8c.html#a360a1f516f426d897c36f39f719232cf" title="append to sb the string describe by s with a lower case" alt="" coords="211,104,353,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="389,120,353,120,353,114,389,114"/>
+<area shape="rect" id="Node000009" href="$d4/d9a/str-conv_8c.html#a50a66195ee9c5ecb7b246656589521d4" title="append to sb the string describe by s with an upper case" alt="" coords="211,153,353,179"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="403,137,334,155,332,150,401,132"/>
+</map>

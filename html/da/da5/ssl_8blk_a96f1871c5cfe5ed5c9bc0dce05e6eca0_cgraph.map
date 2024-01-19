@@ -1,0 +1,16 @@
+<map id="ssl_change_rbio" name="ssl_change_rbio">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,121,82"/>
+<area shape="rect" id="Node000002" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="169,56,240,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,66,153,66,153,72,121,72"/>
+<area shape="rect" id="Node000003" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="288,56,373,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="240,66,272,66,272,72,240,72"/>
+<area shape="rect" id="Node000004" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="456,5,529,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="373,53,440,32,442,37,375,58"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="612,81,695,107"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="374,69,596,87,596,92,374,75"/>
+<area shape="rect" id="Node000007" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="421,107,564,132"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="375,80,436,99,434,104,373,85"/>
+<area shape="rect" id="Node000006" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="743,81,855,107"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="695,92,728,92,728,97,695,97"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="564,106,596,100,597,106,565,111"/>
+</map>

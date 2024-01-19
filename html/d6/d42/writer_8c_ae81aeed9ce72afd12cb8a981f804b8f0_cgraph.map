@@ -1,0 +1,28 @@
+<map id="asn1_get_ber_field" name="asn1_get_ber_field">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,94,135,120"/>
+<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#ae098817247881bad5d9318d4c6b712cf" title=" " alt="" coords="651,145,731,170"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,102,344,105,474,113,603,129,637,137,636,142,602,135,473,118,344,110,135,108"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="779,170,842,196"/>
+<area shape="poly" id="edge14_Node000001_Node000003" title=" " alt="" coords="94,91,146,65,218,36,302,13,346,5,389,3,539,3,582,14,641,41,733,94,766,125,793,156,789,160,762,128,729,98,638,46,580,19,538,8,389,8,346,11,303,18,220,41,149,70,97,96"/>
+<area shape="rect" id="Node000005" href="$d6/d42/writer_8c.html#a896dbc8b8acefd65874cf2046c5a0478" title=" " alt="" coords="472,43,603,69"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="134,93,182,85,328,70,457,59,457,64,328,75,183,91,135,98"/>
+<area shape="rect" id="Node000006" href="$d6/d36/asn1_8c.html#ae730d7b9be14a31eb2fb43f56525d8a6" title="Decode a ber&#45;encoded length to a 32 bits unsigned int." alt="" coords="183,170,309,196"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="103,118,201,161,199,166,101,123"/>
+<area shape="rect" id="Node000009" href="$d4/d86/str-stream_8h.html#a6519e4e29aa5ddc1017c2c4a197e6995" title=" " alt="" coords="504,297,571,322"/>
+<area shape="poly" id="edge15_Node000001_Node000009" title=" " alt="" coords="85,118,127,160,184,206,222,227,263,245,347,273,426,291,489,302,489,307,424,296,345,278,261,250,220,232,181,210,123,164,81,122"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="732,163,764,170,763,175,731,168"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="890,170,961,196"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="843,180,875,180,875,185,843,185"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="570,67,604,86,665,132,662,136,601,90,567,72"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="581,67,652,94,732,130,780,159,777,163,730,134,650,99,579,72"/>
+<area shape="poly" id="edge13_Node000006_Node000003" title=" " alt="" coords="274,194,320,216,358,231,414,239,471,242,529,240,585,234,686,215,764,195,765,200,687,220,585,239,529,245,471,247,413,245,356,236,318,221,272,199"/>
+<area shape="rect" id="Node000007" href="$d4/d86/str-stream_8h.html#ae7e79a0c55fae102e38e4362cc43dce1" title=" " alt="" coords="497,145,578,170"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="309,175,481,159,482,165,310,180"/>
+<area shape="rect" id="Node000008" href="$d4/d86/str-stream_8h.html#acfd192f4458058cc85b3bfdc7d9bb79d" title=" " alt="" coords="357,195,424,221"/>
+<area shape="poly" id="edge10_Node000006_Node000008" title=" " alt="" coords="310,191,342,197,341,202,309,196"/>
+<area shape="poly" id="edge9_Node000007_Node000002" title=" " alt="" coords="579,155,635,155,635,160,579,160"/>
+<area shape="poly" id="edge12_Node000008_Node000003" title=" " alt="" coords="425,203,763,183,763,188,425,209"/>
+<area shape="poly" id="edge11_Node000008_Node000007" title=" " alt="" coords="424,194,483,173,485,178,426,199"/>
+<area shape="poly" id="edge16_Node000009_Node000002" title=" " alt="" coords="550,294,664,179,668,183,554,298"/>
+<area shape="poly" id="edge17_Node000009_Node000003" title=" " alt="" coords="571,308,647,302,690,292,730,275,749,261,766,244,793,207,797,211,770,247,753,265,732,280,691,297,648,308,571,313"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="cmp_lstr_iutf8" name="cmp_lstr_iutf8">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,109,31"/>
+<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a6f963556568b3f589537fb039c6a2bc4" title="Performs utf8&#45;aware, case&#45;insensitive comparison." alt="" coords="157,5,260,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,16,141,16,141,21,109,21"/>
+<area shape="rect" id="Node000003" href="$d4/d9a/str-conv_8c.html#a2e78b3f126bae9d28fb840390af0f7ce" title="Return utf8 case&#45;insensitive collating comparison as &#45;1, 0, 1." alt="" coords="308,5,401,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="260,16,292,16,292,21,260,21"/>
+<area shape="rect" id="Node000004" href="$d4/d9a/str-conv_8c.html#aefa8f0aa3d4253041a6240e8823d6285" title=" " alt="" coords="449,5,547,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="402,16,434,16,434,21,402,21"/>
+</map>

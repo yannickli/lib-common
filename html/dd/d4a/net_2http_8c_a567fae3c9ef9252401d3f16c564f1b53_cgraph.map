@@ -1,0 +1,11 @@
+<map id="http2_conn_assert_idle_httpd_invariants" name="http2_conn_assert_idle_httpd_invariants">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,161,113"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#aee208fb0b9ee13e3e40b511c660c0b78" title="Return true if the list has &lt;= 1 element." alt="" coords="209,5,383,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="131,70,208,40,228,33,229,38,210,45,133,75"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#ae0ecd06e567e1eb714a1473e15d9485c" title="Return true if the list has exactly one element." alt="" coords="239,55,353,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,81,223,73,224,79,161,86"/>
+<area shape="rect" id="Node000004" href="$d7/dcb/container-htlist_8h.html#ad447ba65032263c290856d3718ce59ea" title=" " alt="" coords="242,104,350,130"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="161,99,227,106,226,112,161,104"/>
+<area shape="rect" id="Node000005" href="$d3/d83/str-outbuf_8h.html#a42072687446e713827648f3da773336a" title=" " alt="" coords="249,153,343,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="134,111,210,140,235,148,233,153,208,145,133,116"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="qhat_compute_counts" name="qhat_compute_counts">
+<area shape="rect" id="Node000001" title="Initiate computation of the number of nodes of the trie." alt="" coords="210,55,359,80"/>
+<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#ga18233af65d543adc2921b880d40afcc1" title=" " alt="" coords="43,5,124,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,53,124,31,125,25,215,48"/>
+<area shape="rect" id="Node000003" href="$d3/d0d/group__qkv____ll____hat.html#gad5ce03716e973ac070e88a11e28c0e70" title="Get the memory consumption of the trie." alt="" coords="5,55,162,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="194,70,162,70,162,65,194,65"/>
+<area shape="rect" id="Node000004" href="$d3/d0d/group__qkv____ll____hat.html#gac28cf761b77edc69f3b2d2650260dcb8" title="Get the amount of memory allocated but not used." alt="" coords="5,105,162,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="223,88,158,106,157,101,221,83"/>
+</map>

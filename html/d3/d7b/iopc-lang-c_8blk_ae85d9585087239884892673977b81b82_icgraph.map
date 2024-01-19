@@ -1,0 +1,20 @@
+<map id="iopc_dump_attrs_ref" name="iopc_dump_attrs_ref">
+<area shape="rect" id="Node000001" title=" " alt="" coords="655,55,794,80"/>
+<area shape="rect" id="Node000002" href="$d3/d7b/iopc-lang-c_8blk.html#a3e16b2467d10a5ddc2cf778af2ee3102" title="Dump the attributes associated to a given object." alt="" coords="469,5,586,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="655,53,581,34,582,29,656,48"/>
+<area shape="rect" id="Node000003" href="$d3/d7b/iopc-lang-c_8blk.html#aaf96e6f2eb5aa959ac16df2bee47cd99" title=" " alt="" coords="453,55,602,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="640,70,602,70,602,65,640,65"/>
+<area shape="rect" id="Node000009" href="$d3/d7b/iopc-lang-c_8blk.html#a9561a7ae07b731d59a3057073697f021" title=" " alt="" coords="448,104,607,130"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="656,87,582,106,581,101,655,82"/>
+<area shape="rect" id="Node000004" href="$d3/d7b/iopc-lang-c_8blk.html#ac633cc5263e2185fcaaaa32bff48aade" title=" " alt="" coords="320,80,400,106"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="439,84,401,89,400,84,438,78"/>
+<area shape="rect" id="Node000005" href="$df/d1f/iopc_8c.html#a693d2e305d9102c8dd03b6bd0bf61111" title=" " alt="" coords="161,55,272,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="304,86,272,80,273,75,305,80"/>
+<area shape="rect" id="Node000007" href="$db/d07/iopc-dso_8c.html#a95a19b847fb352eb92b539cf3495f093" title=" " alt="" coords="177,104,256,130"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="305,105,257,113,256,108,304,99"/>
+<area shape="rect" id="Node000006" href="$df/d1f/iopc_8c.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="34,55,84,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="145,70,84,70,84,65,145,65"/>
+<area shape="rect" id="Node000008" href="$db/d07/iopc-dso_8c.html#ab2da67841232fab2872190ddabd94a81" title="Build an IOP DSO." alt="" coords="5,104,113,130"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="161,120,113,120,113,114,161,114"/>
+<area shape="poly" id="edge9_Node000009_Node000004" title=" " alt="" coords="432,106,401,101,401,96,433,101"/>
+</map>

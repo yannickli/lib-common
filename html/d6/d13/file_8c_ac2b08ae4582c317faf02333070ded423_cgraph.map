@@ -1,0 +1,18 @@
+<map id="file_flush_obuf" name="file_flush_obuf">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,109,82"/>
+<area shape="rect" id="Node000002" href="$dc/d31/str-buf_8h.html#ab83eeb942ed3944470a82c220a999845" title=" " alt="" coords="157,56,223,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,66,141,66,141,72,109,72"/>
+<area shape="rect" id="Node000003" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="271,56,342,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="224,66,255,66,255,72,224,72"/>
+<area shape="rect" id="Node000004" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="390,56,476,82"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="342,66,375,66,375,72,342,72"/>
+<area shape="rect" id="Node000005" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="558,5,632,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="475,53,543,32,544,37,477,58"/>
+<area shape="rect" id="Node000006" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="714,81,797,107"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="476,69,698,87,698,92,476,75"/>
+<area shape="rect" id="Node000008" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="524,107,666,132"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="477,80,538,99,536,104,475,85"/>
+<area shape="rect" id="Node000007" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="845,81,958,107"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="798,92,830,92,830,97,798,97"/>
+<area shape="poly" id="edge8_Node000008_Node000006" title=" " alt="" coords="666,106,698,100,699,106,667,111"/>
+</map>

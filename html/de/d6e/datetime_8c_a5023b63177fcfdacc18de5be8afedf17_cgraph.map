@@ -1,0 +1,9 @@
+<map id="strtotm" name="strtotm">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,68,56"/>
+<area shape="rect" id="Node000002" href="$d8/d50/str-num_8h.html#afb473b08b9cb8830ba7e0ff48355301e" title=" " alt="" coords="139,5,196,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="68,35,123,24,124,29,69,40"/>
+<area shape="rect" id="Node000003" href="$de/d6e/datetime_8c.html#afd3520924b90403218b6d5651333c6e1" title="Check if the given date is valid." alt="" coords="116,55,219,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="69,47,101,53,100,58,68,52"/>
+<area shape="rect" id="Node000004" href="$de/d1b/datetime_8h.html#a70c26c84225cfd77f7cfe255cb2f4826" title="Check if a year is a leap year." alt="" coords="267,55,391,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="219,65,251,65,251,70,219,70"/>
+</map>

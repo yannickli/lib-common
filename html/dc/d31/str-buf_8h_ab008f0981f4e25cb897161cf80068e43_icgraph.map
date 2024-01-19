@@ -1,0 +1,5 @@
+<map id="sb_add_sanitized_out" name="sb_add_sanitized_out">
+<area shape="rect" id="Node000001" title="Appends content to a string buffer, replacing characters that are part of a given character set with ..." alt="" coords="187,5,333,31"/>
+<area shape="rect" id="Node000002" href="$d4/d02/str-buf_8c.html#a00dca25b51319fc6ed3eee3c45ab6ef5" title="Appends content to a string buffer, filtering out characters that are part of a given character set." alt="" coords="5,5,139,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="171,21,139,21,139,16,171,16"/>
+</map>

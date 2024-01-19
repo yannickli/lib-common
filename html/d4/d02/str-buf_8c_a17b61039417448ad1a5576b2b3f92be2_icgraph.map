@@ -1,0 +1,9 @@
+<map id="sb_add_ps_int_fmt" name="sb_add_ps_int_fmt">
+<area shape="rect" id="Node000001" title=" " alt="" coords="346,31,477,56"/>
+<area shape="rect" id="Node000002" href="$d4/d02/str-buf_8c.html#a8e341037acb0cd9ce61e38e4a02d8bae" title="Appends a pretty&#45;formated number to a string buffer." alt="" coords="164,5,298,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="330,35,298,30,299,25,331,30"/>
+<area shape="rect" id="Node000003" href="$d4/d02/str-buf_8c.html#a80b85b496fb029ce646ac5c2316b1937" title="Appends a pretty&#45;formated unsigned integer to a string buffer with a thousand separator." alt="" coords="172,55,290,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="331,57,291,62,290,57,330,52"/>
+<area shape="rect" id="Node000004" href="$d4/d02/str-buf_8c.html#a00f5689ab3896e90d0e9ebfb9493671f" title="Appends a pretty&#45;formated integer to a string buffer with a thousand separator." alt="" coords="5,55,116,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="157,70,116,70,116,65,157,65"/>
+</map>

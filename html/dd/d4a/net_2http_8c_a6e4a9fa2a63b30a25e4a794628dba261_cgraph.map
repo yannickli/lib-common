@@ -1,0 +1,9 @@
+<map id="httpc_pool_detach" name="httpc_pool_detach">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,133,56"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="181,31,276,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,41,165,41,165,46,133,46"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="324,5,433,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="276,33,308,27,309,33,277,38"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="344,55,413,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="277,48,329,57,328,62,276,54"/>
+</map>

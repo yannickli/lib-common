@@ -1,0 +1,8 @@
+<map id="mib_parseopt" name="mib_parseopt">
+<area shape="rect" id="Node000001" title=" " alt="" coords="269,5,368,31"/>
+<area shape="rect" id="Node000002" href="$d7/de6/snmp-mib_8c.html#a769486ac2f29a4d3da2e0645a8360811" title="Run a MIB generation tool." alt="" coords="155,5,221,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="254,21,222,21,222,16,254,16"/>
+<area shape="rect" id="Node000003" href="$d7/de6/snmp-mib_8c.html#a23cbfe4ffbcbbbfb7e77e16d9b47afc3" title="Generate a MIB into a sb_t." alt="" coords="5,5,107,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="139,30,107,30,107,24,139,24"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="122,7,155,8,154,13,122,12"/>
+</map>

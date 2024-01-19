@@ -1,0 +1,62 @@
+<map id="dlist_add_after" name="dlist_add_after">
+<area shape="rect" id="Node000001" title="Add a new element n after an element e." alt="" coords="1612,176,1719,202"/>
+<area shape="rect" id="Node000002" href="$da/d36/mem-stack_8c.html#a24f3c08445b0ec152f31d336fe00520e" title=" " alt="" coords="1483,151,1564,176"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1597,179,1564,173,1565,168,1598,174"/>
+<area shape="rect" id="Node000018" href="$de/ddd/mem-ring_8c.html#ac95c93f6aa1232001fa44a61e8b46f70" title=" " alt="" coords="812,225,893,251"/>
+<area shape="poly" id="edge17_Node000001_Node000018" title=" " alt="" coords="1597,201,1490,211,1369,217,1209,217,1033,224,894,236,893,231,1033,219,1209,212,1369,212,1490,206,1597,195"/>
+<area shape="rect" id="Node000003" href="$da/d36/mem-stack_8c.html#a4514038d26ab97f35c63d889a68febf7" title=" " alt="" coords="1301,137,1435,163"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1467,161,1435,159,1436,153,1468,156"/>
+<area shape="rect" id="Node000004" href="$da/d36/mem-stack_8c.html#a29b20c65e83261029b376369d9431d7c" title=" " alt="" coords="1167,123,1253,148"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1285,145,1253,142,1253,137,1285,140"/>
+<area shape="rect" id="Node000005" href="$da/d36/mem-stack_8c.html#a6423fdf814c1fba9107714e0b5213578" title=" " alt="" coords="964,123,1119,148"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1152,138,1120,138,1120,133,1152,133"/>
+<area shape="rect" id="Node000016" href="$da/d36/mem-stack_8c.html#a460c916b00b3fbb36d9a62c392158bff" title=" " alt="" coords="1007,45,1076,71"/>
+<area shape="poly" id="edge15_Node000004_Node000016" title=" " alt="" coords="1165,118,1070,74,1073,69,1167,113"/>
+<area shape="rect" id="Node000006" href="$d1/dc0/group__log.html#gaf3df45c3e36404b83a65fefb536b5144" title="Start buffer for logger and filter on log level." alt="" coords="789,130,916,171"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="949,145,917,148,916,143,948,140"/>
+<area shape="rect" id="Node000015" href="$d1/d10/mem-stack_8h.html#a7786cb5461f0cc9e3c6558fb5974d0e1" title=" " alt="" coords="790,80,915,106"/>
+<area shape="poly" id="edge14_Node000005_Node000015" title=" " alt="" coords="966,121,912,109,913,104,967,116"/>
+<area shape="rect" id="Node000007" href="$db/d07/iopc-dso_8c.html#ab2da67841232fab2872190ddabd94a81" title="Build an IOP DSO." alt="" coords="617,161,725,187"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="773,163,726,170,725,164,772,158"/>
+<area shape="rect" id="Node000008" href="$d1/dc0/group__log.html#ga75111e0c1191b025457989e02cea2c09" title="Start buffer for logger." alt="" coords="607,55,735,80"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="791,125,700,83,702,78,793,121"/>
+<area shape="rect" id="Node000011" href="$db/d6e/iopc-iopsq_8c.html#ad9d8b003c04a8df3421b09d35a688cdb" title="Generates an IOP package description from its IOP version." alt="" coords="601,112,741,138"/>
+<area shape="poly" id="edge10_Node000006_Node000011" title=" " alt="" coords="773,142,740,137,741,132,773,136"/>
+<area shape="rect" id="Node000009" href="$dd/dfc/iopc-parser_8c.html#abe3d6cfba80507c9ce5861308c77342d" title=" " alt="" coords="437,5,519,31"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="602,53,519,31,521,26,604,48"/>
+<area shape="rect" id="Node000010" href="$dc/df9/z_8blk.html#a7aecafd2b6d53feb0c5ba3a9b492099a" title=" " alt="" coords="452,55,504,80"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="592,70,505,70,505,65,592,65"/>
+<area shape="rect" id="Node000012" href="$db/d6e/iopc-iopsq_8c.html#ab249c992023713d970929acd2c1e9fed" title="Generates an dumb IOP package from a single package elem description." alt="" coords="403,105,553,145"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="586,128,554,128,554,122,586,122"/>
+<area shape="rect" id="Node000013" href="$db/d6e/iopc-iopsq_8c.html#aa37570289cdd73d2d1aacb686eb9bd3e" title=" " alt="" coords="204,115,355,140"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="388,129,356,129,356,124,388,123"/>
+<area shape="rect" id="Node000014" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,169,156,195"/>
+<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="216,147,131,171,129,166,215,142"/>
+<area shape="rect" id="Node000017" href="$da/d36/mem-stack_8c.html#a4605f7fb0f01ee45cd28c119423f56cf" title=" " alt="" coords="812,31,893,56"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="991,57,893,49,893,44,992,52"/>
+<area shape="rect" id="Node000019" href="$de/ddd/mem-ring_8c.html#a0dc519eb8e7f01fa6416ca8bc3d6b8dc" title=" " alt="" coords="604,299,738,324"/>
+<area shape="poly" id="edge18_Node000018_Node000019" title=" " alt="" coords="805,260,706,301,704,296,803,255"/>
+<area shape="rect" id="Node000025" href="$de/ddd/mem-ring_8c.html#a3985ede75cf06dabc280a095b4d0134e" title="Create a new memory ring&#45;pool." alt="" coords="616,225,726,251"/>
+<area shape="poly" id="edge26_Node000018_Node000025" title=" " alt="" coords="797,241,726,241,726,236,797,236"/>
+<area shape="rect" id="Node000020" href="$de/ddd/mem-ring_8c.html#a77ae562bc5326a7ed63c03f3f6dfd007" title=" " alt="" coords="437,368,519,394"/>
+<area shape="poly" id="edge19_Node000019_Node000020" title=" " alt="" coords="620,333,517,370,515,365,618,328"/>
+<area shape="rect" id="Node000021" href="$de/ddd/mem-ring_8c.html#adc9e7915b3feee706d436c0e3cb715a2" title="Seal the active frame." alt="" coords="225,368,334,394"/>
+<area shape="poly" id="edge20_Node000020_Node000021" title=" " alt="" coords="421,384,335,384,335,378,421,378"/>
+<area shape="rect" id="Node000023" href="$de/ddd/mem-ring_8c.html#a8fd215d6b37878630abcd626f7108b85" title=" " alt="" coords="246,417,313,443"/>
+<area shape="poly" id="edge23_Node000020_Node000023" title=" " alt="" coords="422,397,314,425,312,419,421,392"/>
+<area shape="poly" id="edge21_Node000021_Node000014" title=" " alt="" coords="210,364,202,359,160,319,126,273,101,229,85,196,90,194,105,227,130,270,164,315,205,355,212,359"/>
+<area shape="rect" id="Node000022" href="$de/ddd/mem-ring_8c.html#a3d93d1d071835d4ba0d25b057e8c2aac" title="Seal the ring&#45;pool and return a checkpoint." alt="" coords="6,368,155,394"/>
+<area shape="poly" id="edge22_Node000021_Node000022" title=" " alt="" coords="209,384,155,384,155,378,209,378"/>
+<area shape="poly" id="edge24_Node000023_Node000022" title=" " alt="" coords="230,421,135,397,136,392,232,416"/>
+<area shape="rect" id="Node000024" href="$de/ddd/mem-ring_8c.html#ad4af0cc50b53e845edf250cb06b26646" title=" " alt="" coords="42,417,119,443"/>
+<area shape="poly" id="edge25_Node000023_Node000024" title=" " alt="" coords="230,433,120,433,120,428,230,428"/>
+<area shape="poly" id="edge27_Node000025_Node000014" title=" " alt="" coords="601,234,355,210,156,192,156,186,355,205,601,229"/>
+<area shape="rect" id="Node000026" href="$de/ddd/mem-ring_8c.html#a722a95bcb3dded8ae64a37e24ff87736" title="Just like the t_pool() we have the corresponding r_pool()" alt="" coords="450,255,506,280"/>
+<area shape="poly" id="edge28_Node000025_Node000026" title=" " alt="" coords="601,251,507,266,506,261,600,246"/>
+<area shape="rect" id="Node000027" href="$df/d0a/str-l_8h.html#a5755d8b8e2f270c120bf9058e4101f63" title="concatenates its argument to form a new lstr on the r_stack." alt="" coords="242,269,317,295"/>
+<area shape="poly" id="edge29_Node000026_Node000027" title=" " alt="" coords="435,273,318,282,317,277,434,268"/>
+<area shape="rect" id="Node000028" href="$df/d0a/str-l_8h.html#ab2dd3a64ccf77787c30fdd2beb94c817" title="returns a duplicated lstr from the mem stack." alt="" coords="240,319,319,344"/>
+<area shape="poly" id="edge30_Node000026_Node000028" title=" " alt="" coords="436,284,356,310,320,322,318,317,354,305,434,279"/>
+<area shape="rect" id="Node000029" href="$dc/d31/str-buf_8h.html#a737a59238ec672dd22523f3b0f1f48d5" title=" " alt="" coords="244,220,315,246"/>
+<area shape="poly" id="edge31_Node000026_Node000029" title=" " alt="" coords="434,263,314,242,315,236,435,257"/>
+</map>

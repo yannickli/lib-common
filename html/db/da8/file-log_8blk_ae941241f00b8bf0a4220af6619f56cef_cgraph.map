@@ -1,0 +1,13 @@
+<map id="log_delete_file" name="log_delete_file">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,109,56"/>
+<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#a6d956c1fe0a8bd76a79960f86d250023" title=" " alt="" coords="178,5,288,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,33,162,26,163,31,109,39"/>
+<area shape="rect" id="Node000004" href="$db/da8/file-log_8blk.html#a1905f98f28c7ab872ff53d40b100e63b" title="Get the creation timestamp of a log file from his full path." alt="" coords="157,55,309,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="109,48,141,52,141,58,109,53"/>
+<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#a81370b304c3f96e19f8ea6d7a7d5e7ed" title=" " alt="" coords="357,5,476,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="288,16,342,16,342,21,288,21"/>
+<area shape="rect" id="Node000005" href="$d8/d17/str-num_8c.html#ae846bdcb22ccf7e1a1a22e9ad94c87ee" title=" " alt="" coords="381,55,452,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="309,65,365,65,365,70,309,70"/>
+<area shape="rect" id="Node000006" href="$d8/d17/str-num_8c.html#a8450512025b2b58bbdfdc7d5fbadbc99" title=" " alt="" coords="524,55,627,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="453,65,509,65,509,70,453,70"/>
+</map>

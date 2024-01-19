@@ -1,0 +1,14 @@
+<map id="ic_drop_ans_cb" name="ic_drop_ans_cb">
+<area shape="rect" id="Node000001" title=" " alt="" coords="800,42,912,68"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#ad5785edad9fce58e6f303b4a28df193d" title="Make an RPC call to an async RPC." alt="" coords="578,42,752,68"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="784,58,752,58,752,52,784,52"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#ab564d5690ba53152c1900e3ae9cdb33a" title="Make the asynchronous RPC call with the connected IC EL client." alt="" coords="393,5,520,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="563,43,521,37,521,32,564,38"/>
+<area shape="rect" id="Node000006" href="$db/dac/rpc-el_8c.html#ad2091c7b6c6d08d767130403a26c4230" title="Synchronously call an RPC with the IC EL client." alt="" coords="383,70,530,96"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="564,71,531,76,530,70,563,66"/>
+<area shape="rect" id="Node000004" href="$db/dac/rpc-el_8c.html#a6bcd2209ce7ff6879666d2d222dbd3d6" title="Asynchronously call an RPC with the IC EL client." alt="" coords="5,14,160,40"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="378,26,335,26,208,26,160,27,160,21,208,20,335,20,378,21"/>
+<area shape="rect" id="Node000005" href="$db/dac/rpc-el_8c.html#a406e0ad69521a457ec592294f76e267d" title=" " alt="" coords="208,35,335,75"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="378,41,336,48,335,42,377,36"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="192,46,160,41,160,36,193,41"/>
+</map>

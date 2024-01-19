@@ -1,0 +1,9 @@
+<map id="stristrn" name="stristrn">
+<area shape="rect" id="Node000001" title="Find the first occurrence of the substring needle in str, case insensitively." alt="" coords="231,31,292,56"/>
+<area shape="rect" id="Node000002" href="$d8/d6c/core_2str_8h.html#a596f450f323780266413da9a1607b940" title=" " alt="" coords="122,5,176,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,36,176,27,177,22,217,31"/>
+<area shape="rect" id="Node000004" href="$d8/d6c/core_2str_8h.html#af14ddd99d53bf7eff64aef937478d7ad" title=" " alt="" coords="115,55,183,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="217,56,184,63,183,58,216,51"/>
+<area shape="rect" id="Node000003" href="$d8/d6c/core_2str_8h.html#a2402f5e1a4fee126d90bcc05c8eb6143" title=" " alt="" coords="5,5,67,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="106,21,67,21,67,16,106,16"/>
+</map>

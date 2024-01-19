@@ -1,0 +1,9 @@
+<map id="load_su_from_uri" name="load_su_from_uri">
+<area shape="rect" id="Node000001" title=" " alt="" coords="183,55,303,80"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a3d119cca180d9fc33b3a3372f691ad25" title="Create an IC EL client." alt="" coords="5,5,135,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,52,117,34,119,29,181,47"/>
+<area shape="rect" id="Node000003" href="$db/dac/rpc-el_8c.html#a6b734e9aea95c3678e493969c78ddabf" title="Make the IC EL server start listening." alt="" coords="5,55,135,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="167,70,135,70,135,65,167,65"/>
+<area shape="rect" id="Node000004" href="$db/dac/rpc-el_8c.html#ac07f125f7ff190c68cd106bd3b3cb5e1" title="Make the IC EL server start listening until timeout elapsed or the server has been stopped." alt="" coords="5,105,135,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="188,88,134,106,133,101,186,83"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="utf8_str_startswith" name="utf8_str_startswith">
+<area shape="rect" id="Node000001" title="Return whether str1 starts with str2 utf8 case&#45;sensitive way." alt="" coords="186,5,315,31"/>
+<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a08a8440357651e939adcb1fafd531bc2" title="Returns whether \v s starts with \v p, in a case&#45;sensitive utf8&#45;aware way." alt="" coords="5,5,138,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,21,138,21,138,16,170,16"/>
+</map>

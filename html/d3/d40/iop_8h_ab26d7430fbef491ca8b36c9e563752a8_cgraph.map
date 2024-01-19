@@ -1,0 +1,7 @@
+<map id="iop_get_enum" name="iop_get_enum">
+<area shape="rect" id="Node000001" title="Get an enumeration from its fullname." alt="" coords="5,5,108,31"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#a4d49da8790a8a7c37cebb0db721dbb7c" title="Get an union/struct/class/enum from its fullname." alt="" coords="156,5,243,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,16,140,16,140,21,108,21"/>
+<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#a771bd23922ebaa381094a49ca4c1c7b1" title=" " alt="" coords="291,5,406,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="243,16,275,16,275,21,243,21"/>
+</map>

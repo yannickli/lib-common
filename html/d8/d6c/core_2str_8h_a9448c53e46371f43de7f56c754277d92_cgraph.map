@@ -1,0 +1,8 @@
+<map id="path_extnul" name="path_extnul">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,93,56"/>
+<area shape="rect" id="Node000002" href="$d7/dba/str-path_8c.html#a68f36632a1bc54aad8c798ca0b3848ba" title=" " alt="" coords="141,5,232,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,33,125,27,126,32,94,38"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#a81d5c1d3cdffd454c985d0ffdebfd2f8" title=" " alt="" coords="280,31,351,56"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="93,41,264,41,264,46,93,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="233,24,265,31,264,36,232,30"/>
+</map>

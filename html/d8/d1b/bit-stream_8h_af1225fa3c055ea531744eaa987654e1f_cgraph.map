@@ -1,0 +1,13 @@
+<map id="bs_get_bit" name="bs_get_bit">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,87,80"/>
+<area shape="rect" id="Node000002" href="$d8/d1b/bit-stream_8h.html#ac159215c47ad0135e1e9c8d03e9e456e" title=" " alt="" coords="135,29,230,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,57,119,51,120,56,88,63"/>
+<area shape="rect" id="Node000006" href="$d8/d1b/bit-stream_8h.html#a75ece4d468a17d53ff49a6d240c09800" title=" " alt="" coords="147,79,218,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="88,72,132,80,131,85,87,77"/>
+<area shape="rect" id="Node000003" href="$d8/d1b/bit-stream_8h.html#a555b8a042021f23331894d5eacee73d9" title=" " alt="" coords="278,5,383,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="230,32,262,27,263,32,231,37"/>
+<area shape="rect" id="Node000004" href="$d8/d1b/bit-stream_8h.html#a9314cf527c89c282a39950c0ef72b97f" title=" " alt="" coords="291,55,371,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="231,48,276,55,275,61,230,53"/>
+<area shape="rect" id="Node000005" href="$d8/d1b/bit-stream_8h.html#ac7c3f7fc264c42a4d53cf5bd3b4e8f49" title=" " alt="" coords="431,55,531,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="371,65,416,65,416,70,371,70"/>
+</map>

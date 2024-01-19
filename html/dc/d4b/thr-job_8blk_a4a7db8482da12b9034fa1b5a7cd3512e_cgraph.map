@@ -1,0 +1,8 @@
+<map id="thr_acc_reset" name="thr_acc_reset">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,106,31"/>
+<area shape="rect" id="Node000002" href="$de/d1b/datetime_8h.html#a1bd62cd344b57b3239087cd8f11f9793" title=" " alt="" coords="310,5,387,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,16,294,16,294,21,106,21"/>
+<area shape="rect" id="Node000003" href="$de/d1b/datetime_8h.html#aa0466daf139eea1f48e0d57162815ade" title=" " alt="" coords="154,31,262,56"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="107,24,139,29,138,35,106,29"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="262,31,294,25,295,30,263,36"/>
+</map>

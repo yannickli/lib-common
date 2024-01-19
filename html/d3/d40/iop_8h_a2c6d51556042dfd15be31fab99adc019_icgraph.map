@@ -1,0 +1,23 @@
+<map id="iop_get_snmp_attrs" name="iop_get_snmp_attrs">
+<area shape="rect" id="Node000001" title=" " alt="" coords="793,32,928,58"/>
+<area shape="rect" id="Node000002" href="$d2/d6a/snmp-doc_8c.html#a25c5eba731c390689700b371da9809c2" title=" " alt="" coords="650,7,743,32"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="777,35,743,29,743,24,778,29"/>
+<area shape="rect" id="Node000006" href="$d7/de6/snmp-mib_8c.html#a225a288cd7750bfc0a1b2883fe066c75" title=" " alt="" coords="648,56,745,82"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="778,60,746,64,745,59,777,54"/>
+<area shape="rect" id="Node000003" href="$d2/d6a/snmp-doc_8c.html#a077dfe3d2daceb917c783b08a8e93668" title=" " alt="" coords="480,5,594,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="634,22,594,21,594,16,635,16"/>
+<area shape="rect" id="Node000004" href="$d2/d6a/snmp-doc_8c.html#abcad19cc5aed615c4c7683e4ef18f77c" title="Generate a SNMP doc into string buffers." alt="" coords="280,5,420,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="464,21,420,21,420,16,464,16"/>
+<area shape="rect" id="Node000005" href="$d2/d6a/snmp-doc_8c.html#a28833530e076659246ee38e72f7d8467" title="Run a SNMP doc generation tool." alt="" coords="120,5,225,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="264,21,225,21,225,16,264,16"/>
+<area shape="rect" id="Node000007" href="$d7/de6/snmp-mib_8c.html#a000981bb661b7542487fd213de41bd5c" title=" " alt="" coords="273,81,426,107"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="632,76,427,91,427,86,632,71"/>
+<area shape="rect" id="Node000010" href="$d7/de6/snmp-mib_8c.html#a1ef75275431271295f84c7d9feeac7fb" title=" " alt="" coords="474,107,600,132"/>
+<area shape="poly" id="edge10_Node000006_Node000010" title=" " alt="" coords="640,90,580,109,579,104,638,84"/>
+<area shape="rect" id="Node000008" href="$d7/de6/snmp-mib_8c.html#a23cbfe4ffbcbbbfb7e77e16d9b47afc3" title="Generate a MIB into a sb_t." alt="" coords="122,81,223,107"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="258,97,223,97,223,92,258,92"/>
+<area shape="rect" id="Node000009" href="$d7/de6/snmp-mib_8c.html#a769486ac2f29a4d3da2e0645a8360811" title="Run a MIB generation tool." alt="" coords="5,81,72,107"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="106,106,72,105,72,99,106,101"/>
+<area shape="poly" id="edge9_Node000009_Node000008" title=" " alt="" coords="88,83,121,83,121,88,88,88"/>
+<area shape="poly" id="edge11_Node000010_Node000007" title=" " alt="" coords="459,112,426,107,427,102,459,106"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="ic_el_client_on_event" name="ic_el_client_on_event">
+<area shape="rect" id="Node000001" title="Called on event on the ic channel." alt="" coords="183,5,329,31"/>
+<area shape="rect" id="Node000002" href="$db/dac/rpc-el_8c.html#a3d119cca180d9fc33b3a3372f691ad25" title="Create an IC EL client." alt="" coords="5,5,135,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,21,135,21,135,16,167,16"/>
+</map>

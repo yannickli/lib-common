@@ -1,0 +1,7 @@
+<map id="log_file_init" name="log_file_init">
+<area shape="rect" id="Node000001" title=" " alt="" coords="355,5,440,31"/>
+<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#affacf12ff740726bdb74647cc9850773" title=" " alt="" coords="215,5,307,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="339,21,308,21,308,16,339,16"/>
+<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#ac9997f2839a3532fe5a7c59b77f145ef" title="Creates a log file from a configuration object, and opens it." alt="" coords="5,5,167,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="199,21,167,21,167,16,199,16"/>
+</map>

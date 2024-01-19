@@ -1,0 +1,49 @@
+<map id="wah_add_aligned" name="wah_add_aligned">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,207,127,232"/>
+<area shape="rect" id="Node000002" href="$d8/d96/bithacks_8h.html#a64c144144d2092c1fbda12546d879663" title=" " alt="" coords="190,5,272,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,205,105,129,135,82,173,40,176,37,180,42,177,44,139,85,110,131,75,207"/>
+<area shape="rect" id="Node000003" href="$d6/d2b/bithacks_8c.html#a6edf0de4bf9928970cf9cc878c784a43" title="Find the first bit at 1 or 0 in a sequence of bits." alt="" coords="211,55,251,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="75,204,115,155,173,97,196,82,199,86,176,102,119,158,79,208"/>
+<area shape="rect" id="Node000006" href="$da/dff/group__qkv____ll____wah.html#ga7f0f5bd637de144a657f136f2a8ba2b2" title=" " alt="" coords="187,207,275,232"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="127,217,171,217,171,222,127,222"/>
+<area shape="rect" id="Node000011" href="$df/df4/bit-wah_8c.html#aca7141da56c51bb22d65567f5eee8643" title=" " alt="" coords="967,207,1110,232"/>
+<area shape="poly" id="edge28_Node000001_Node000011" title=" " alt="" coords="94,204,152,178,232,149,326,125,374,118,423,116,647,116,696,118,746,124,842,146,928,172,994,198,992,203,926,177,841,151,745,129,696,123,647,121,423,121,375,123,327,131,234,154,154,183,96,208"/>
+<area shape="rect" id="Node000016" href="$da/dff/group__qkv____ll____wah.html#gadd1e426630c75b41ff7eca84b2388b71" title=" " alt="" coords="187,283,275,308"/>
+<area shape="poly" id="edge21_Node000001_Node000016" title=" " alt="" coords="97,230,189,273,186,278,95,235"/>
+<area shape="rect" id="Node000017" href="$df/df4/bit-wah_8c.html#a6d11c1445a38d54f09bd0cc6afd76a39" title=" " alt="" coords="590,409,701,435"/>
+<area shape="poly" id="edge25_Node000001_Node000017" title=" " alt="" coords="80,231,119,275,146,298,176,319,226,343,279,363,388,392,490,409,574,417,574,422,489,414,386,397,277,368,224,348,173,323,143,303,115,278,76,235"/>
+<area shape="rect" id="Node000018" href="$df/df4/bit-wah_8c.html#a396ab72da599b7142ec28c16b9718795" title=" " alt="" coords="175,460,287,486"/>
+<area shape="poly" id="edge29_Node000001_Node000018" title=" " alt="" coords="73,232,85,270,106,325,137,384,177,439,188,449,185,453,173,443,132,387,101,327,80,272,68,233"/>
+<area shape="rect" id="Node000004" href="$d6/d2b/bithacks_8c.html#abfabad13a2d9cd704eff61b1090a60cf" title="Allow to access to a byte as an uint64_t without valgrind warnings." alt="" coords="335,55,513,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="251,65,320,65,320,70,251,70"/>
+<area shape="rect" id="Node000005" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="561,55,730,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="514,65,546,65,546,70,514,70"/>
+<area shape="rect" id="Node000007" href="$df/df4/bit-wah_8c.html#a3b42e09c9457638f3261018c62bc37a8" title=" " alt="" coords="572,333,719,359"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="275,213,325,212,386,215,451,224,514,242,546,258,576,279,623,320,620,324,573,283,544,263,512,247,450,229,385,220,325,218,275,219"/>
+<area shape="poly" id="edge18_Node000006_Node000011" title=" " alt="" coords="275,213,386,203,546,194,730,191,918,198,951,202,951,207,918,203,730,196,546,200,387,209,275,218"/>
+<area shape="rect" id="Node000015" href="$df/df4/bit-wah_8c.html#a9131f23b69d3047eee377b53681e6403" title=" " alt="" coords="358,257,490,283"/>
+<area shape="poly" id="edge19_Node000006_Node000015" title=" " alt="" coords="276,228,358,250,357,255,274,233"/>
+<area shape="rect" id="Node000008" href="$df/df4/bit-wah_8c.html#a5465ab9f3c3aadf570d3dfd42bfacdb4" title=" " alt="" coords="778,257,918,283"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="681,330,796,286,798,291,683,335"/>
+<area shape="rect" id="Node000009" href="$df/df4/bit-wah_8c.html#a65d98c5439f6a5909baa6b18d4f9ffbd" title=" " alt="" coords="972,460,1104,486"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="674,357,731,395,745,409,754,423,764,435,779,445,822,461,868,471,914,476,956,476,956,482,914,481,867,476,821,467,776,450,760,439,750,426,741,413,728,399,671,362"/>
+<area shape="rect" id="Node000010" href="$df/df4/bit-wah_8c.html#afa97d9c8aca9f7f5126dcf775f5aa360" title=" " alt="" coords="778,409,918,435"/>
+<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="683,357,798,401,796,406,681,362"/>
+<area shape="rect" id="Node000013" href="$df/df4/bit-wah_8c.html#a5a95ffd92f8dca7a256cc23b6614a19c" title=" " alt="" coords="1168,359,1305,384"/>
+<area shape="poly" id="edge16_Node000007_Node000013" title=" " alt="" coords="719,338,897,333,1004,335,1111,344,1165,352,1165,358,1110,349,1004,341,897,338,719,344"/>
+<area shape="rect" id="Node000014" href="$df/df4/bit-wah_8c.html#af9ce1d9755574430bed00583c13c6a8c" title=" " alt="" coords="966,359,1110,384"/>
+<area shape="poly" id="edge17_Node000007_Node000014" title=" " alt="" coords="719,348,950,363,950,369,719,354"/>
+<area shape="poly" id="edge10_Node000010_Node000009" title=" " alt="" coords="900,433,974,453,972,458,898,438"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="860,407,1013,242,1017,245,863,411"/>
+<area shape="poly" id="edge14_Node000010_Node000013" title=" " alt="" coords="918,415,1009,407,1110,394,1160,385,1161,391,1111,399,1010,412,918,420"/>
+<area shape="poly" id="edge15_Node000010_Node000014" title=" " alt="" coords="898,406,972,386,974,391,900,411"/>
+<area shape="rect" id="Node000012" href="$df/df4/bit-wah_8c.html#a62c3e890b52764c0292c77491da5f7d9" title=" " alt="" coords="1158,207,1315,232"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1110,217,1142,217,1142,222,1110,222"/>
+<area shape="poly" id="edge13_Node000011_Node000013" title=" " alt="" coords="1059,231,1208,347,1205,351,1055,235"/>
+<area shape="poly" id="edge20_Node000015_Node000007" title=" " alt="" coords="465,281,592,325,590,330,463,286"/>
+<area shape="poly" id="edge22_Node000016_Node000007" title=" " alt="" coords="257,307,294,323,336,337,392,346,450,351,557,350,557,356,450,356,392,351,334,342,292,328,255,311"/>
+<area shape="poly" id="edge23_Node000016_Node000011" title=" " alt="" coords="275,295,383,298,513,293,588,283,645,270,703,256,777,242,951,223,951,229,778,247,704,261,646,275,589,288,514,298,383,303,275,301"/>
+<area shape="poly" id="edge24_Node000016_Node000015" title=" " alt="" coords="275,287,342,278,343,284,275,292"/>
+<area shape="poly" id="edge26_Node000017_Node000010" title=" " alt="" coords="701,420,763,420,763,425,701,425"/>
+<area shape="poly" id="edge27_Node000017_Node000013" title=" " alt="" coords="670,433,719,459,778,481,871,507,947,524,983,526,1020,523,1062,513,1109,496,1143,476,1173,450,1217,396,1221,399,1177,454,1146,480,1111,501,1063,518,1021,528,983,531,946,529,870,512,777,486,717,463,668,438"/>
+</map>

@@ -1,0 +1,24 @@
+<map id="httpc_pool_t" name="httpc_pool_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="156,612,335,867"/>
+<area shape="rect" id="Node000002" href="$d7/da4/structhttpc__cfg__t.html" title=" " alt="" coords="153,269,337,534"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="248,534,248,595,243,595,243,534"/>
+<area shape="rect" id="Node000003" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="5,5,171,191"/>
+<area shape="poly" id="edge11_Node000001_Node000003" title=" " alt="" coords="79,191,74,266,74,353,83,445,104,533,123,578,149,621,144,624,119,581,99,535,77,445,68,354,68,266,73,190"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="125,189,150,243,155,252,150,255,146,246,120,191"/>
+<area shape="rect" id="Node000004" href="$d6/de6/structhttp2__pool__t.html" title=" " alt="" coords="203,65,287,131"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="248,130,248,252,243,252,243,130"/>
+<area shape="rect" id="Node000005" href="$de/d2d/structobject__class__t.html" title=" " alt="" coords="312,35,469,161"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="363,162,319,254,314,252,359,159"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="470,72,488,81,496,98,493,109,487,116,483,113,489,106,491,98,485,85,468,77"/>
+<area shape="rect" id="Node000006" href="$d7/d57/structobject__t.html" title=" " alt="" coords="471,359,619,444"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="409,160,422,202,440,243,470,296,504,344,499,347,466,299,435,246,417,204,404,161"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="544,359,537,289,528,252,514,216,498,192,479,170,483,167,502,189,518,213,533,250,543,289,549,359"/>
+<area shape="rect" id="Node000007" href="$d4/de3/structmem__pool__t.html" title=" " alt="" coords="560,25,720,171"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="620,171,566,343,561,342,615,170"/>
+<area shape="poly" id="edge9_Node000007_Node000007" title=" " alt="" coords="721,72,739,81,747,98,744,109,738,116,734,113,739,106,741,98,735,85,719,77"/>
+<area shape="rect" id="Node000008" href="$d0/db7/structobj__tagged__ref__list__t.html" title=" " alt="" coords="869,65,1003,131"/>
+<area shape="poly" id="edge10_Node000006_Node000008" title=" " alt="" coords="918,132,892,164,859,193,827,211,798,221,744,230,691,240,663,251,634,271,600,306,574,345,569,343,596,302,630,267,661,247,689,235,743,225,796,216,825,206,856,188,888,160,913,129"/>
+<area shape="rect" id="Node000009" href="$db/ddb/structdlist__t.html" title=" " alt="" coords="644,369,692,434"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="669,434,659,485,649,511,634,536,605,568,572,597,499,646,423,683,352,711,350,706,421,679,496,641,569,593,601,564,630,532,644,509,654,483,664,433"/>
+<area shape="poly" id="edge13_Node000009_Node000009" title=" " alt="" coords="691,368,701,367,711,372,717,384,719,401,717,419,711,430,706,427,711,417,713,401,711,386,707,376,700,372,692,373"/>
+</map>

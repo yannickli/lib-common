@@ -1,0 +1,32 @@
+<map id="http2_stream_do_recv_push_promise" name="http2_stream_do_recv_push_promise">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,79,156,119"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#af353849ce97358838ae76686e00c94ec" title="Return the stream (info) with id = stream_id." alt="" coords="214,86,336,112"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,96,198,96,198,102,156,102"/>
+<area shape="rect" id="Node000007" href="$dd/d4a/net_2http_8c.html#ab9bc49ebbd0135e4c737460c35580c44" title=" " alt="" coords="624,5,756,46"/>
+<area shape="poly" id="edge17_Node000001_Node000007" title=" " alt="" coords="155,80,203,71,423,43,609,28,609,33,424,48,204,76,156,85"/>
+<area shape="rect" id="Node000008" href="$dd/d4a/net_2http_8c.html#a87d9799c9e38e419d43feb55501f1eda" title="Handle Stream States according RFC9113 §5.1." alt="" coords="204,164,346,205"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="130,117,214,155,212,160,128,122"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="641,97,739,123"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="327,83,394,71,485,63,526,65,577,71,642,88,641,94,576,76,525,70,485,68,394,76,328,88"/>
+<area shape="rect" id="Node000005" href="$dd/d4a/net_2http_8c.html#aa27ab393af5bebf566f7b8ad885b6dcf" title="Return the number of streams (of the same class) upto to stream_id." alt="" coords="394,86,576,112"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="336,96,378,96,378,102,336,102"/>
+<area shape="rect" id="Node000006" href="$dd/d4a/net_2http_8c.html#af7606f43afa09bca8c1f621a130b298e" title=" " alt="" coords="420,136,551,177"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="326,110,405,132,404,137,324,115"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="804,97,891,123"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="739,107,788,107,788,112,739,112"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="550,134,575,122,653,55,657,59,578,127,552,139"/>
+<area shape="poly" id="edge14_Node000008_Node000005" title=" " alt="" coords="311,161,393,122,414,114,416,119,395,127,314,166"/>
+<area shape="poly" id="edge16_Node000008_Node000006" title=" " alt="" coords="346,172,404,164,404,170,347,177"/>
+<area shape="rect" id="Node000009" href="$de/d1a/container-dlist_8h.html#a7a9ef8311171b9472b641e48aefc2a29" title="Remove element e from its list and add it at the tail of l." alt="" coords="431,201,539,227"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="347,192,416,201,415,207,346,197"/>
+<area shape="rect" id="Node000011" href="$de/d1a/container-dlist_8h.html#a14167c2a5ebeec326a085645ab7ca07d" title="Remove element e from the list and re&#45;init e." alt="" coords="438,250,533,276"/>
+<area shape="poly" id="edge11_Node000008_Node000011" title=" " alt="" coords="317,203,395,237,424,246,422,251,393,241,315,208"/>
+<area shape="rect" id="Node000013" href="$dd/d4a/net_2http_8c.html#a7a1ea188bcb489778907aea23e38daeb" title="Get effective HTTP2 settings." alt="" coords="421,300,549,325"/>
+<area shape="poly" id="edge15_Node000008_Node000013" title=" " alt="" coords="296,203,339,245,366,267,395,286,408,292,405,297,393,291,363,272,335,249,292,207"/>
+<area shape="poly" id="edge10_Node000009_Node000003" title=" " alt="" coords="539,199,575,186,621,159,660,130,663,135,624,164,577,191,541,204"/>
+<area shape="rect" id="Node000010" href="$de/d1a/container-dlist_8h.html#a1ea330e4089b402d22627e6c7596f2ce" title=" " alt="" coords="635,201,745,227"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="540,211,620,211,620,216,540,216"/>
+<area shape="poly" id="edge12_Node000011_Node000010" title=" " alt="" coords="533,249,620,228,621,233,534,254"/>
+<area shape="rect" id="Node000012" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="655,250,725,276"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="533,260,640,260,640,266,533,266"/>
+</map>

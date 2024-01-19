@@ -1,0 +1,15 @@
+<map id="ic_el_client_init" name="ic_el_client_init">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,116,56"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="164,5,233,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,31,148,25,149,30,117,36"/>
+<area shape="rect" id="Node000003" href="$db/d0c/rpc-channel_8blk.html#a90d9c67aa69b74b264fde1bc9922c057" title=" " alt="" coords="171,55,226,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="116,50,156,57,155,63,116,56"/>
+<area shape="rect" id="Node000004" href="$db/d0c/rpc-channel_8blk.html#a7b3f2dae81d73cc864f4b1886fc7ae2e" title=" " alt="" coords="281,29,378,55"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="226,60,265,52,266,57,227,65"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a28a37219e3d2287e3ead464da4894790" title=" " alt="" coords="300,79,359,104"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="227,70,285,81,284,86,226,75"/>
+<area shape="rect" id="Node000006" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="426,79,510,104"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="360,89,411,89,411,94,360,94"/>
+<area shape="rect" id="Node000007" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="558,79,670,104"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="510,89,542,89,542,94,510,94"/>
+</map>

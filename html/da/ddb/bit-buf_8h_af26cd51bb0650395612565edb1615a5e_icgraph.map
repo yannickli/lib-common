@@ -1,0 +1,17 @@
+<map id="bb_add_bits" name="bb_add_bits">
+<area shape="rect" id="Node000001" title=" " alt="" coords="534,121,626,147"/>
+<area shape="rect" id="Node000002" href="$da/ddb/bit-buf_8h.html#a0358016a3b6d58df6b689c8ddba91184" title=" " alt="" coords="347,5,486,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="549,113,485,67,455,49,458,44,488,62,552,109"/>
+<area shape="rect" id="Node000003" href="$da/ddb/bit-buf_8h.html#a8b035cc83c774011211ca46c31636d58" title=" " alt="" coords="198,70,299,96"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="518,124,486,118,299,91,300,86,487,112,519,118"/>
+<area shape="rect" id="Node000005" href="$d2/d6f/bit-buf_8c.html#af31a575e22f67942b78c9ef715ca77c3" title=" " alt="" coords="5,120,150,145"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="519,136,150,135,150,130,519,131"/>
+<area shape="rect" id="Node000006" href="$da/ddb/bit-buf_8h.html#ab226708c2230aae71d4cab11ebe8d79a" title=" " alt="" coords="370,172,464,197"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="523,154,461,174,459,168,521,149"/>
+<area shape="rect" id="Node000007" href="$d2/d6f/bit-buf_8c.html#afd420c09d759332d6ae2d49a13f9e088" title=" " alt="" coords="370,221,464,247"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="557,159,525,186,488,212,465,223,462,218,485,207,522,182,553,155"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="342,54,289,72,288,67,340,49"/>
+<area shape="rect" id="Node000004" href="$d2/d6f/bit-buf_8c.html#a2aa19565572a2bd686ad5aeecc4f2a29" title=" " alt="" coords="35,70,120,96"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="183,86,120,86,120,80,183,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="187,103,125,121,124,116,186,98"/>
+</map>

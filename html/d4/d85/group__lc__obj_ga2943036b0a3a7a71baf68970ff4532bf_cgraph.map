@@ -1,0 +1,9 @@
+<map id="obj_retain_scope" name="obj_retain_scope">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,125,56"/>
+<area shape="rect" id="Node000002" href="$d4/d85/group__lc__obj.html#ga38859e998c4295043ba583a12dc9f5ee" title=" " alt="" coords="173,5,307,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="125,32,157,27,158,33,125,37"/>
+<area shape="rect" id="Node000003" href="$d4/d85/group__lc__obj.html#ga4651285ce16b85ef73af3be50d6a7b6c" title=" " alt="" coords="175,55,305,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="125,49,160,54,159,59,125,54"/>
+<area shape="rect" id="Node000004" href="$d8/d6c/core_2str_8h.html#a92b107f7a7bb4e0fb29239f766a3e328" title=" " alt="" coords="355,55,422,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="305,65,339,65,339,70,305,70"/>
+</map>

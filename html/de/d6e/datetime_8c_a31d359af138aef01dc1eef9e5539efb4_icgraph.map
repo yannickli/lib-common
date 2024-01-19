@@ -1,0 +1,29 @@
+<map id="localtime_" name="localtime_">
+<area shape="rect" id="Node000001" title=" " alt="" coords="369,277,449,303"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#a7a83739a257ef28bf1a939644dbc22ae" title="Return timestamp of the start of the n&#39;th day that follow the one which contains the timestamp date." alt="" coords="189,5,310,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="403,262,396,215,382,157,357,96,340,69,319,44,305,34,308,29,323,40,344,66,362,94,387,155,402,214,408,261"/>
+<area shape="rect" id="Node000004" href="$de/d6e/datetime_8c.html#a51dcedb0b024318c0a1bf1d829abf885" title="Return timestamp of the start of the day which contains the timestamp date." alt="" coords="190,55,309,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="400,263,391,225,375,179,352,133,319,93,304,83,307,79,323,90,356,130,380,177,396,223,406,261"/>
+<area shape="rect" id="Node000005" href="$de/d6e/datetime_8c.html#ab11c14766da5a1a237b8372723932c09" title="Return timestamp of the start of the hour which contains the timestamp date." alt="" coords="188,104,311,130"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="396,264,368,203,346,171,319,143,303,133,305,128,323,139,350,167,372,200,401,261"/>
+<area shape="rect" id="Node000006" href="$de/d6e/datetime_8c.html#a6184679ce9e3aaeda80fe082c0db0c1b" title="Return timestamp of the start of the minute which contains the timestamp date." alt="" coords="181,153,318,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="389,266,359,228,319,192,299,182,302,177,323,188,363,224,393,263"/>
+<area shape="rect" id="Node000007" href="$de/d6e/datetime_8c.html#a9c36c073f8e5011333e18c0a87de6422" title="Return timestamp of the start of the month which contains the timestamp date." alt="" coords="182,203,317,228"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="373,271,320,242,293,231,295,226,322,237,376,266"/>
+<area shape="rect" id="Node000008" href="$de/d6e/datetime_8c.html#af6a3ba11b781bb47637f6b344e095c69" title="Return timestamp of the start of the week which contains the timestamp date." alt="" coords="185,252,314,278"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="353,284,314,278,315,272,354,279"/>
+<area shape="rect" id="Node000009" href="$de/d6e/datetime_8c.html#ac55dc714f9ca681048cc66eb37842e43" title="Return timestamp of the start of the year which contains the timestamp date." alt="" coords="188,301,311,327"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="354,301,311,308,310,302,353,296"/>
+<area shape="rect" id="Node000010" href="$de/d6e/datetime_8c.html#a1c88437edfc63c6f0880c39d661e9e1f" title="Return timestamp of the start of the hour that follows the one which contains the timestamp date." alt="" coords="185,351,314,376"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="375,314,322,342,295,353,293,348,320,337,373,309"/>
+<area shape="rect" id="Node000011" href="$de/d6e/datetime_8c.html#a0d6a8012ca450e7b872b81b979349799" title="Return timestamp of the start of the minute that follows the one which contains the timestamp date." alt="" coords="178,400,321,426"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="393,318,363,355,323,391,302,402,299,397,319,387,359,352,389,314"/>
+<area shape="rect" id="Node000012" href="$de/d6e/datetime_8c.html#a89aff1eb505ea085aa9ad7b2c5d235d0" title="Return timestamp of the start of the month that follows the one which contains the timestamp date." alt="" coords="179,449,320,475"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="401,319,372,380,350,412,323,440,305,451,302,447,319,436,346,409,368,377,396,316"/>
+<area shape="rect" id="Node000013" href="$de/d6e/datetime_8c.html#a36afecc78821d4b705e474e5756e0fe5" title="Return timestamp of the start of the week that follows the one which contains the timestamp date." alt="" coords="182,499,317,524"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="406,319,396,357,380,402,356,449,323,489,307,500,304,496,319,486,352,446,375,400,391,355,400,317"/>
+<area shape="rect" id="Node000014" href="$de/d6e/datetime_8c.html#a6dbac9ff329b2819802c234727aa66a3" title="Count the number of days between two timestamps, in local time." alt="" coords="197,548,302,574"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="408,319,402,366,387,425,362,485,344,514,323,539,303,552,300,547,319,535,340,510,357,483,382,423,396,365,403,318"/>
+<area shape="rect" id="Node000003" href="$de/d6e/datetime_8c.html#ae538633eeeae8139156e9c7986491a9f" title="Return timestamp of the start of the day that follows the one which contains the timestamp date." alt="" coords="5,5,130,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="173,21,130,21,130,16,173,16"/>
+</map>

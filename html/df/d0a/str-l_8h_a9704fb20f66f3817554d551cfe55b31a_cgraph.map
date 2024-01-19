@@ -1,0 +1,9 @@
+<map id="lstr_utf8_equal" name="lstr_utf8_equal">
+<area shape="rect" id="Node000001" title="Performs utf8&#45;aware, case&#45;sensitive equality check." alt="" coords="5,5,112,31"/>
+<area shape="rect" id="Node000002" href="$d6/dc3/str-conv_8h.html#ab45d75d80cf19287c82f50fba71607d7" title=" " alt="" coords="160,5,256,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,16,144,16,144,21,112,21"/>
+<area shape="rect" id="Node000003" href="$d4/d9a/str-conv_8c.html#af94c356ad6f38a9807ea0f6014b89cd4" title="Return utf8 case&#45;senstive collating comparison as &#45;1, 0 or 1." alt="" coords="304,5,394,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="257,16,288,16,288,21,257,21"/>
+<area shape="rect" id="Node000004" href="$d4/d9a/str-conv_8c.html#aefa8f0aa3d4253041a6240e8823d6285" title=" " alt="" coords="442,5,540,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="395,16,426,16,426,21,395,21"/>
+</map>

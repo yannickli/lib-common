@@ -1,0 +1,62 @@
+<map id="path_extnul" name="path_extnul">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1424,241,1511,267"/>
+<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#a5080bd91b3c4bf843ab06d86b536e542" title=" " alt="" coords="1231,135,1375,160"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1440,233,1410,206,1374,180,1340,163,1342,159,1377,176,1413,202,1444,229"/>
+<area shape="rect" id="Node000014" href="$d9/d27/http-srv-static_8c.html#a8d3cfcef2563659ce7c1b3af7a87114c" title=" " alt="" coords="1230,191,1376,216"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="1408,239,1346,219,1348,214,1410,234"/>
+<area shape="rect" id="Node000018" href="$d0/df7/qps_8blk.html#adc0acfee96dc0c2c4a30477e88d38200" title=" " alt="" coords="1245,241,1361,267"/>
+<area shape="poly" id="edge17_Node000001_Node000018" title=" " alt="" coords="1408,257,1361,257,1361,252,1408,252"/>
+<area shape="rect" id="Node000028" href="$d4/d36/group__qkv____ll____qps.html#gaf6b2d3117a0f9e1563868fa25403c6d7" title="destroy a QPS in the given path." alt="" coords="1261,291,1345,316"/>
+<area shape="poly" id="edge30_Node000001_Node000028" title=" " alt="" coords="1410,274,1346,294,1344,288,1408,269"/>
+<area shape="rect" id="Node000029" href="$d8/d6c/core_2str_8h.html#a84ab6a8207052de13c0aec84c191681f" title=" " alt="" coords="1256,340,1350,366"/>
+<area shape="poly" id="edge31_Node000001_Node000029" title=" " alt="" coords="1444,280,1414,306,1377,331,1352,342,1350,338,1374,327,1410,302,1441,276"/>
+<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#afd7ee1bc7a72c00ed491a88f661b602e" title=" " alt="" coords="1040,116,1167,142"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1216,142,1167,137,1168,132,1216,137"/>
+<area shape="rect" id="Node000004" href="$db/da8/file-log_8blk.html#a07fef4953498f74c6154aa2a84a8cb22" title="Open a log file." alt="" coords="857,43,953,68"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1051,113,941,71,943,66,1053,108"/>
+<area shape="rect" id="Node000006" href="$db/da8/file-log_8blk.html#aa1eabb6ae4e1887f9dce759c17c5b5d8" title=" " alt="" coords="851,116,959,142"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="1024,132,959,132,959,126,1024,126"/>
+<area shape="rect" id="Node000005" href="$db/da8/file-log_8blk.html#ac9997f2839a3532fe5a7c59b77f145ef" title="Creates a log file from a configuration object, and opens it." alt="" coords="624,29,786,55"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="841,54,786,50,786,45,842,49"/>
+<area shape="rect" id="Node000007" href="$db/da8/file-log_8blk.html#af691a940781675fe1b40fdf41d24f230" title=" " alt="" coords="645,79,765,104"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="835,119,765,105,766,100,836,113"/>
+<area shape="rect" id="Node000013" href="$db/da8/file-log_8blk.html#a8ce89c3f10c656834b18a9ce5d3890c2" title=" " alt="" coords="654,128,756,154"/>
+<area shape="poly" id="edge12_Node000006_Node000013" title=" " alt="" coords="835,136,756,140,756,135,835,130"/>
+<area shape="rect" id="Node000008" href="$db/da8/file-log_8blk.html#a242c917fdef070824408024eb4a7e4d1" title="Re&#45;enable file rotations after &#39;log_file_disable_rotation&#39; has been called and trigger a rotation if ..." alt="" coords="420,5,576,31"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="639,76,623,70,575,45,546,34,548,29,577,40,625,65,641,71"/>
+<area shape="rect" id="Node000010" href="$db/da8/file-log_8blk.html#af0c37fd6a0bbee39669d78ee929fbe82" title=" " alt="" coords="459,55,537,80"/>
+<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="629,85,537,75,538,69,630,80"/>
+<area shape="rect" id="Node000011" href="$db/da8/file-log_8blk.html#aba54e4e7e1f5b88148e9fd8e0a3447ea" title=" " alt="" coords="460,104,537,130"/>
+<area shape="poly" id="edge10_Node000007_Node000011" title=" " alt="" coords="630,103,538,115,537,110,629,98"/>
+<area shape="rect" id="Node000012" href="$db/da8/file-log_8blk.html#a3ec4414d6a8bde342cdcf39036e01ead" title=" " alt="" coords="456,153,540,179"/>
+<area shape="poly" id="edge11_Node000007_Node000012" title=" " alt="" coords="640,112,625,118,577,145,542,157,540,152,575,140,623,113,638,107"/>
+<area shape="rect" id="Node000009" href="$db/da8/file-log_8blk.html#aa74655031af03892b62093d9b1938ce9" title=" " alt="" coords="211,5,359,31"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="405,21,360,21,360,16,405,16"/>
+<area shape="rect" id="Node000015" href="$d9/d27/http-srv-static_8c.html#ae0365322a5263c5aa88271524a6c86c7" title=" " alt="" coords="1050,189,1157,215"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="1215,206,1157,205,1157,200,1215,200"/>
+<area shape="rect" id="Node000016" href="$d9/d27/http-srv-static_8c.html#a38b56f04074629d209af411f44421511" title=" " alt="" coords="834,188,976,214"/>
+<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="1034,204,976,204,976,199,1034,199"/>
+<area shape="rect" id="Node000017" href="$d9/d27/http-srv-static_8c.html#af21be49c6b5e0df76cc9b5482ba556e6" title=" " alt="" coords="635,178,775,219"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="818,202,775,202,775,196,818,197"/>
+<area shape="rect" id="Node000019" href="$d4/d36/group__qkv____ll____qps.html#ga7fcf8c35ae2a77fdc10451bbddbf423c" title="open a qps store." alt="" coords="243,243,327,268"/>
+<area shape="poly" id="edge18_Node000018_Node000019" title=" " alt="" coords="1230,257,906,258,704,258,328,258,328,253,704,253,906,253,1230,252"/>
+<area shape="rect" id="Node000020" href="$d0/df7/qps_8blk.html#a3a0afd6ac4190b0b1c99d4dad4e2ff3b" title=" " alt="" coords="1024,293,1182,319"/>
+<area shape="poly" id="edge19_Node000018_Node000020" title=" " alt="" coords="1237,274,1156,295,1155,290,1236,269"/>
+<area shape="rect" id="Node000021" href="$d0/df7/qps_8blk.html#a913ee1fd5c281f44c36b47e9c7bfd7dd" title="take a qps snapshot." alt="" coords="854,293,956,319"/>
+<area shape="poly" id="edge20_Node000020_Node000021" title=" " alt="" coords="1008,309,957,309,957,304,1008,304"/>
+<area shape="rect" id="Node000022" href="$d4/d36/group__qkv____ll____qps.html#ga9c886707978c7b09cb5e0cca7752bf00" title="Wait until an ongoing synchronization is done and notified." alt="" coords="838,343,972,368"/>
+<area shape="poly" id="edge21_Node000020_Node000022" title=" " alt="" coords="1034,326,960,345,959,339,1033,321"/>
+<area shape="rect" id="Node000023" href="$d0/df7/qps_8blk.html#a10090dba7b3bba16501d53f56ee44ef8" title=" " alt="" coords="658,341,752,367"/>
+<area shape="poly" id="edge22_Node000022_Node000023" title=" " alt="" coords="823,358,752,357,752,352,823,352"/>
+<area shape="rect" id="Node000027" href="$d0/df7/qps_8blk.html#a2eec5fe1fdd3084848e1b331db77c178" title=" " alt="" coords="5,392,150,418"/>
+<area shape="poly" id="edge29_Node000022_Node000027" title=" " alt="" coords="832,375,786,382,607,399,429,408,271,410,150,409,150,404,271,405,429,402,607,394,785,377,831,369"/>
+<area shape="rect" id="Node000024" href="$d4/d36/group__qkv____ll____qps.html#ga958e17dd9a04754517c8548d61524c45" title="close an allocated qps object." alt="" coords="458,341,538,367"/>
+<area shape="poly" id="edge23_Node000023_Node000024" title=" " alt="" coords="642,357,539,357,539,352,642,352"/>
+<area shape="poly" id="edge25_Node000024_Node000019" title=" " alt="" coords="464,335,421,308,371,282,327,267,328,262,373,277,424,303,467,330"/>
+<area shape="rect" id="Node000025" href="$d4/d36/group__qkv____ll____qps.html#ga286e9176847ddee51c7ca8c813d54233" title=" " alt="" coords="198,292,372,318"/>
+<area shape="poly" id="edge24_Node000024_Node000025" title=" " alt="" coords="442,344,343,321,344,316,444,339"/>
+<area shape="rect" id="Node000026" href="$d4/d36/group__qkv____ll____qps.html#ga0d8bcc972fdb8b3cac760318950d3f38" title="create a qps store." alt="" coords="242,341,328,367"/>
+<area shape="poly" id="edge26_Node000024_Node000026" title=" " alt="" coords="443,357,328,357,328,352,443,352"/>
+<area shape="poly" id="edge28_Node000024_Node000027" title=" " alt="" coords="444,369,372,382,255,396,150,404,150,398,255,390,372,377,443,364"/>
+<area shape="poly" id="edge27_Node000026_Node000027" title=" " alt="" coords="228,371,134,394,132,389,226,366"/>
+</map>

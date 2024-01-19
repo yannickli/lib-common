@@ -1,0 +1,15 @@
+<map id="asn1_pack_value_size" name="asn1_pack_value_size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="780,80,932,106"/>
+<area shape="rect" id="Node000002" href="$d6/d42/writer_8c.html#a4e43dd8fe25ac5fb3a3ba3d3fb10f2ef" title=" " alt="" coords="587,55,732,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="764,84,732,79,732,74,764,78"/>
+<area shape="rect" id="Node000003" href="$d6/d42/writer_8c.html#a3cde22cff22f3cdf8b70e8e48b625341" title=" " alt="" coords="371,5,530,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="586,53,508,34,509,29,588,48"/>
+<area shape="rect" id="Node000006" href="$d6/d42/writer_8c.html#a1f85b74ba9ce43f6e8f8d0ab9bf48fcc" title=" " alt="" coords="362,55,539,80"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="572,70,540,70,540,65,572,65"/>
+<area shape="rect" id="Node000004" href="$d6/d42/writer_8c.html#a923707a757d8270fc95fc68207f43862" title="Compute all field lengths to prepare serialization." alt="" coords="175,55,314,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="380,38,302,57,301,51,378,33"/>
+<area shape="poly" id="edge5_Node000004_Node000001" title=" " alt="" coords="311,82,362,90,476,98,589,101,779,95,779,100,589,106,475,104,362,95,311,87"/>
+<area shape="rect" id="Node000005" href="$d6/d42/writer_8c.html#a6ca9dde6a045c2d25439aad7b73798a4" title=" " alt="" coords="5,55,127,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="159,70,127,70,127,65,159,65"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="347,70,314,70,314,65,347,65"/>
+</map>

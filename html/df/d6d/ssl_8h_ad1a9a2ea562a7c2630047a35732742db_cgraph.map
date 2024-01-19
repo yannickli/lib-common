@@ -1,0 +1,13 @@
+<map id="ssl_writev" name="ssl_writev">
+<area shape="rect" id="Node000001" title="A writev&#45;like callback using SSL_write." alt="" coords="5,5,86,31"/>
+<area shape="rect" id="Node000002" href="$da/da5/ssl_8blk.html#a04de8b21a1ae5013f23b1ff60c5df337" title=" " alt="" coords="134,5,249,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,16,118,16,118,21,86,21"/>
+<area shape="rect" id="Node000003" href="$da/da5/ssl_8blk.html#a46e11de89824956ed90e51340833d824" title="Wrapper to SSL_write that mimic write(2)." alt="" coords="297,5,370,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="249,16,281,16,281,21,249,21"/>
+<area shape="rect" id="Node000004" href="$da/da5/ssl_8blk.html#a43e1df139c257b3b3cb06e77e45837aa" title="Helper to convert openssl errors to classical system errors." alt="" coords="418,5,550,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="371,16,403,16,403,21,371,21"/>
+<area shape="rect" id="Node000005" href="$da/da5/ssl_8blk.html#aeba371daba7f6b6f5ff75f70b0003965" title=" " alt="" coords="598,5,704,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="550,16,582,16,582,21,550,21"/>
+<area shape="rect" id="Node000006" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="752,5,813,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="704,16,737,16,737,21,704,21"/>
+</map>

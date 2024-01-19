@@ -1,0 +1,11 @@
+<map id="_iop_core_obj_map_new_obj" name="_iop_core_obj_map_new_obj">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,194,56"/>
+<area shape="rect" id="Node000002" href="$d3/dc8/core-obj_8blk.html#aa7101547ea58bdca2c208378b8f4a9d0" title=" " alt="" coords="242,5,424,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,31,226,27,227,32,194,36"/>
+<area shape="rect" id="Node000004" href="$d3/d40/iop_8h.html#a683bc90d92f7295fa2b6b62dba747f5d" title=" " alt="" coords="260,55,406,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="194,51,245,56,244,61,194,56"/>
+<area shape="rect" id="Node000003" href="$d3/d40/iop_8h.html#a07f21da2d3381b98dd6f6bbd642d2130" title=" " alt="" coords="496,5,629,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="424,16,480,16,480,21,424,21"/>
+<area shape="rect" id="Node000005" href="$d3/d40/iop_8h.html#a1dcb37c8b1e1c86c5ed3c9ac9da80049" title="Duplicate an IOP structure." alt="" coords="472,55,652,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="407,65,457,65,457,70,407,70"/>
+</map>

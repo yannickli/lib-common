@@ -1,0 +1,5 @@
+<map id="qhat_path_sync_write_access" name="qhat_path_sync_write_access">
+<area shape="rect" id="Node000001" title="Re&#45;synchronize the write access counter." alt="" coords="5,5,153,46"/>
+<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#ga7f55a57d477814f0ea3e65eada1f2f26" title="Return &#39;false&#39; if modifications in the QHAT made the path out of sync." alt="" coords="201,13,330,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="153,23,185,23,185,28,153,28"/>
+</map>

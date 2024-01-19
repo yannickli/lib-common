@@ -1,0 +1,33 @@
+<map id="blk_destroy" name="blk_destroy">
+<area shape="rect" id="Node000001" title=" " alt="" coords="760,105,847,131"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a46e2665eca3ad83041424003cca3e840" title=" " alt="" coords="580,55,709,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="745,103,686,83,688,78,747,97"/>
+<area shape="rect" id="Node000007" href="$de/ddd/mem-ring_8c.html#a0dc519eb8e7f01fa6416ca8bc3d6b8dc" title=" " alt="" coords="577,180,712,206"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="762,140,675,182,673,177,759,136"/>
+<area shape="rect" id="Node000013" href="$de/ddd/mem-ring_8c.html#aff9eaa948c0e409bb9e9f3c18b0f73fa" title="Delete the given memory ring&#45;pool." alt="" coords="584,105,705,131"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="744,121,705,121,705,116,744,116"/>
+<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#af77a9c34439db748b2b2e4989c5c965f" title="Release the frame identified by the given cookie." alt="" coords="402,55,529,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="565,70,530,70,530,65,565,65"/>
+<area shape="rect" id="Node000006" href="$de/ddd/mem-ring_8c.html#a4833b3049c110c86fe85645ba1627c52" title="Force clean the ring pool from empty memory blocks." alt="" coords="409,5,523,31"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="580,53,514,34,516,29,581,47"/>
+<area shape="rect" id="Node000004" href="$db/d6e/iopc-iopsq_8c.html#a5b83115db34f7935c32c3adcfab9143a" title="Wipe an iopsq_iop_struct_t object." alt="" coords="204,105,354,131"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="401,88,329,107,328,102,400,82"/>
+<area shape="rect" id="Node000005" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="5,105,156,131"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="188,121,156,121,156,116,188,116"/>
+<area shape="rect" id="Node000008" href="$de/ddd/mem-ring_8c.html#a77ae562bc5326a7ed63c03f3f6dfd007" title=" " alt="" coords="425,205,507,231"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="562,207,508,215,507,210,562,202"/>
+<area shape="rect" id="Node000009" href="$de/ddd/mem-ring_8c.html#adc9e7915b3feee706d436c0e3cb715a2" title="Seal the active frame." alt="" coords="224,156,334,182"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="409,206,330,185,331,180,410,201"/>
+<area shape="rect" id="Node000011" href="$de/ddd/mem-ring_8c.html#a8fd215d6b37878630abcd626f7108b85" title=" " alt="" coords="246,205,312,231"/>
+<area shape="poly" id="edge11_Node000008_Node000011" title=" " alt="" coords="409,221,313,221,313,216,409,216"/>
+<area shape="poly" id="edge9_Node000009_Node000005" title=" " alt="" coords="210,154,133,134,134,129,211,149"/>
+<area shape="rect" id="Node000010" href="$de/ddd/mem-ring_8c.html#a3d93d1d071835d4ba0d25b057e8c2aac" title="Seal the ring&#45;pool and return a checkpoint." alt="" coords="6,156,155,182"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="209,172,155,172,155,166,209,166"/>
+<area shape="poly" id="edge12_Node000011_Node000010" title=" " alt="" coords="230,209,135,185,136,180,231,204"/>
+<area shape="rect" id="Node000012" href="$de/ddd/mem-ring_8c.html#ad4af0cc50b53e845edf250cb06b26646" title=" " alt="" coords="42,205,119,231"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="230,221,120,221,120,216,230,216"/>
+<area shape="poly" id="edge16_Node000013_Node000003" title=" " alt="" coords="581,103,513,83,514,78,583,98"/>
+<area shape="poly" id="edge15_Node000013_Node000004" title=" " alt="" coords="569,121,354,121,354,116,569,116"/>
+<area shape="rect" id="Node000014" href="$de/ddd/mem-ring_8c.html#aa5ae1efac41f407624fbc340a51d01d4" title="Destroy the r_pool()" alt="" coords="413,156,518,182"/>
+<area shape="poly" id="edge17_Node000013_Node000014" title=" " alt="" coords="583,138,514,158,513,153,581,133"/>
+</map>

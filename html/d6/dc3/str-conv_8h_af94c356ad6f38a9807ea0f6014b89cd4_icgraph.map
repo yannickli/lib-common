@@ -1,0 +1,9 @@
+<map id="utf8_strcmp" name="utf8_strcmp">
+<area shape="rect" id="Node000001" title="Return utf8 case&#45;senstive collating comparison as &#45;1, 0 or 1." alt="" coords="308,31,398,56"/>
+<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a93b1fbc415632b310f04b4b84b5c2432" title="Performs utf8&#45;aware, case&#45;sensitive comparison." alt="" coords="160,5,260,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="292,36,260,30,261,24,293,30"/>
+<area shape="rect" id="Node000003" href="$d6/dc3/str-conv_8h.html#ab45d75d80cf19287c82f50fba71607d7" title=" " alt="" coords="162,55,258,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="293,56,259,62,258,57,292,51"/>
+<area shape="rect" id="Node000004" href="$df/d0a/str-l_8h.html#a9704fb20f66f3817554d551cfe55b31a" title="Performs utf8&#45;aware, case&#45;sensitive equality check." alt="" coords="5,55,112,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="146,70,112,70,112,65,146,65"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="iopc_write_file" name="iopc_write_file">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,109,31"/>
+<area shape="rect" id="Node000002" href="$d4/d02/str-buf_8c.html#abe7cdf050a035d2d94916c97e7b38cf7" title=" " alt="" coords="157,5,250,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,16,141,16,141,21,109,21"/>
+<area shape="rect" id="Node000003" href="$d6/dea/unix_8h.html#a4c726986670312c9c6833199883251e9" title=" " alt="" coords="298,5,376,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="251,16,283,16,283,21,251,21"/>
+<area shape="rect" id="Node000004" href="$d6/dd2/unix_8blk.html#a69f303f03ea7bfc3c045ad826efd81b3" title=" " alt="" coords="424,5,562,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="377,16,409,16,409,21,377,21"/>
+<area shape="rect" id="Node000005" href="$d6/dd2/unix_8blk.html#a1f194b0267f303fcdc17e3df7a8bcfac" title=" " alt="" coords="610,5,665,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="562,16,594,16,594,21,562,21"/>
+</map>

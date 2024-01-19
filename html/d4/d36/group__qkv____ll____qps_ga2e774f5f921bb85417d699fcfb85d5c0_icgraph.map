@@ -1,0 +1,67 @@
+<map id="qps_w_deref_" name="qps_w_deref_">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1106,225,1209,251"/>
+<area shape="rect" id="Node000002" href="$d4/d36/group__qkv____ll____qps.html#ga3c5dd197e58bb2924d3a03839e2c1caa" title=" " alt="" coords="963,225,1058,251"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1091,241,1059,241,1059,236,1091,236"/>
+<area shape="rect" id="Node000003" href="$d4/d36/group__qkv____ll____qps.html#gae693a754c2953e592c112c2c14223be3" title=" " alt="" coords="775,136,915,162"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="970,220,869,165,872,160,973,215"/>
+<area shape="rect" id="Node000005" href="$d4/d36/group__qkv____ll____qps.html#gad860e8b4fa0f4a72c8faec7da29807a2" title=" " alt="" coords="783,249,907,275"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="948,250,908,256,907,251,947,245"/>
+<area shape="rect" id="Node000004" href="$d0/df7/qps_8blk.html#a2eec5fe1fdd3084848e1b331db77c178" title=" " alt="" coords="572,71,717,96"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="792,133,726,110,692,99,693,94,727,105,794,128"/>
+<area shape="rect" id="Node000006" href="$da/d7d/qps-bitmap_8c.html#a7d2e81905c804729c4466b45abc1bf0f" title=" " alt="" coords="389,689,473,715"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="844,291,835,351,815,431,800,473,781,515,757,554,729,589,700,615,668,636,598,668,530,688,474,700,473,694,529,683,596,663,665,631,697,610,725,586,753,551,776,512,795,471,810,429,830,350,838,290"/>
+<area shape="rect" id="Node000009" href="$d3/d0d/group__qkv____ll____hat.html#ga5b986036b56ba141bd4b88f7f32ae03d" title="Perform a check on the structure of the HAT&#45;Trie." alt="" coords="562,719,727,760"/>
+<area shape="poly" id="edge8_Node000005_Node000009" title=" " alt="" coords="842,291,830,359,809,452,776,555,754,607,729,656,702,692,673,721,669,717,698,688,724,653,749,605,771,554,804,450,825,358,837,290"/>
+<area shape="rect" id="Node000011" href="$d3/d0d/group__qkv____ll____hat.html#ga18233af65d543adc2921b880d40afcc1" title=" " alt="" coords="390,120,471,146"/>
+<area shape="poly" id="edge10_Node000005_Node000011" title=" " alt="" coords="767,263,718,258,666,249,612,234,561,211,545,198,536,185,527,172,513,159,471,142,473,137,516,155,531,168,540,182,549,195,564,207,614,229,667,244,719,253,767,258"/>
+<area shape="rect" id="Node000012" href="$d3/d0d/group__qkv____ll____hat.html#ga478e6c020e26fed3962a584a2eeb2177" title="Initiate computation of the number of nodes of the trie." alt="" coords="570,120,719,146"/>
+<area shape="poly" id="edge11_Node000005_Node000012" title=" " alt="" coords="820,239,778,199,725,160,699,149,701,144,728,156,782,195,824,236"/>
+<area shape="rect" id="Node000015" href="$d3/d0d/group__qkv____ll____hat.html#ga7fc803627033c58323f637b64230590e" title=" " alt="" coords="573,277,716,303"/>
+<area shape="poly" id="edge15_Node000005_Node000015" title=" " alt="" coords="767,276,717,283,716,278,767,270"/>
+<area shape="rect" id="Node000023" href="$d7/d31/group__qkv____ll____bitmap.html#ga50f7ab9922c73d8975f6e6ecf3ba114a" title=" " alt="" coords="583,171,706,196"/>
+<area shape="poly" id="edge29_Node000005_Node000023" title=" " alt="" coords="795,246,679,199,681,194,797,241"/>
+<area shape="rect" id="Node000024" href="$da/d7d/qps-bitmap_8c.html#a7f2722fee09e24b9aecaef1d7562b1bb" title=" " alt="" coords="583,549,706,575"/>
+<area shape="poly" id="edge31_Node000005_Node000024" title=" " alt="" coords="829,290,657,550,652,547,824,287"/>
+<area shape="rect" id="Node000007" href="$d7/d31/group__qkv____ll____bitmap.html#ga982c61c58073ec5e10506ebf4895e110" title=" " alt="" coords="158,588,296,614"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="395,683,350,656,298,629,269,617,271,612,300,624,352,651,398,678"/>
+<area shape="rect" id="Node000008" href="$d7/d31/group__qkv____ll____bitmap.html#gac5b993d6b8d7106b97325f2b72873e4f" title=" " alt="" coords="165,639,289,664"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="373,691,281,668,282,662,374,685"/>
+<area shape="rect" id="Node000010" href="$d3/d0d/group__qkv____ll____hat.html#ga7b2919042a21055b5e11c9fd17d52b34" title="Same as running qhat_check_consistency_flags with flag QHAT_CHECK_CONTENT." alt="" coords="349,739,513,764"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="547,748,513,750,513,744,547,742"/>
+<area shape="poly" id="edge12_Node000012_Node000011" title=" " alt="" coords="554,136,472,136,472,130,554,130"/>
+<area shape="rect" id="Node000013" href="$d3/d0d/group__qkv____ll____hat.html#gad5ce03716e973ac070e88a11e28c0e70" title="Get the memory consumption of the trie." alt="" coords="353,5,509,31"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="567,115,561,111,544,94,536,77,528,61,513,46,490,34,493,29,516,41,532,58,541,75,549,91,564,107,570,111"/>
+<area shape="rect" id="Node000014" href="$d3/d0d/group__qkv____ll____hat.html#gac28cf761b77edc69f3b2d2650260dcb8" title="Get the amount of memory allocated but not used." alt="" coords="353,55,509,96"/>
+<area shape="poly" id="edge14_Node000012_Node000014" title=" " alt="" coords="578,118,509,99,510,94,580,113"/>
+<area shape="rect" id="Node000016" href="$d3/d0d/group__qkv____ll____hat.html#gaa65d41e02f937dab67e7585f7e4963ff" title=" " alt="" coords="372,169,489,195"/>
+<area shape="poly" id="edge16_Node000015_Node000016" title=" " alt="" coords="590,273,561,258,537,237,513,216,474,198,476,193,516,212,540,233,564,253,593,268"/>
+<area shape="rect" id="Node000017" href="$d3/d0d/group__qkv____ll____hat.html#ga8390a84f58b6985830e5a160bfa16498" title=" " alt="" coords="5,277,107,303"/>
+<area shape="poly" id="edge17_Node000015_Node000017" title=" " alt="" coords="585,275,514,261,413,250,334,248,256,254,155,267,101,279,100,274,154,262,255,249,334,243,414,245,515,256,586,270"/>
+<area shape="rect" id="Node000018" href="$d3/d0d/group__qkv____ll____hat.html#gae3a4e09cb8cdeb67814939ae450e6214" title=" " alt="" coords="155,351,299,376"/>
+<area shape="poly" id="edge18_Node000015_Node000018" title=" " alt="" coords="580,310,515,325,402,344,300,358,299,353,401,339,514,320,579,305"/>
+<area shape="rect" id="Node000019" href="$d3/d0d/group__qkv____ll____hat.html#gaaa078525cdffeb7c3dad680f49b36799" title=" " alt="" coords="174,419,280,444"/>
+<area shape="poly" id="edge21_Node000015_Node000019" title=" " alt="" coords="629,318,584,375,552,404,515,426,454,444,391,451,331,450,280,444,280,439,331,444,391,446,453,439,513,421,549,400,580,372,625,315"/>
+<area shape="rect" id="Node000020" href="$d3/d0d/group__qkv____ll____hat.html#gab96616b0f99052f4e3e8dc0f00b91f63" title=" " alt="" coords="363,270,498,311"/>
+<area shape="poly" id="edge22_Node000015_Node000020" title=" " alt="" coords="558,293,499,293,499,288,558,288"/>
+<area shape="rect" id="Node000022" href="$d3/d0d/group__qkv____ll____hat.html#gacdb912a63223ae4d6dea61149f1e292e" title=" " alt="" coords="347,385,514,411"/>
+<area shape="poly" id="edge25_Node000015_Node000022" title=" " alt="" coords="611,314,516,369,471,387,469,382,513,364,609,309"/>
+<area shape="poly" id="edge19_Node000018_Node000017" title=" " alt="" coords="180,346,87,306,89,301,182,341"/>
+<area shape="poly" id="edge20_Node000018_Node000018" title=" " alt="" coords="256,338,246,332,227,329,209,331,200,336,198,341,202,349,198,352,192,342,196,332,208,326,227,324,248,327,259,333"/>
+<area shape="rect" id="Node000021" href="$d3/d0d/group__qkv____ll____hat.html#gae99c7409abc00cbf0d41493220eed5b2" title=" " alt="" coords="159,277,295,303"/>
+<area shape="poly" id="edge23_Node000020_Node000021" title=" " alt="" coords="347,293,295,293,295,288,347,288"/>
+<area shape="poly" id="edge24_Node000021_Node000017" title=" " alt="" coords="143,293,107,293,107,288,143,288"/>
+<area shape="poly" id="edge26_Node000022_Node000018" title=" " alt="" coords="336,385,299,378,300,373,337,380"/>
+<area shape="poly" id="edge27_Node000022_Node000019" title=" " alt="" coords="334,417,280,426,279,420,333,411"/>
+<area shape="poly" id="edge28_Node000022_Node000021" title=" " alt="" coords="398,378,352,347,298,317,272,306,274,301,300,312,355,342,401,374"/>
+<area shape="poly" id="edge30_Node000023_Node000011" title=" " alt="" coords="572,169,471,145,472,140,573,164"/>
+<area shape="poly" id="edge32_Node000024_Node000006" title=" " alt="" coords="609,586,564,619,541,646,531,659,516,672,474,693,472,688,513,668,528,655,537,643,561,615,606,581"/>
+<area shape="poly" id="edge33_Node000024_Node000007" title=" " alt="" coords="567,565,463,568,347,578,282,590,281,585,347,573,462,563,567,559"/>
+<area shape="poly" id="edge34_Node000024_Node000008" title=" " alt="" coords="611,586,566,609,515,629,456,642,396,650,290,655,290,650,396,645,455,637,514,624,564,604,608,581"/>
+<area shape="rect" id="Node000025" href="$d7/d31/group__qkv____ll____bitmap.html#ga782981973b3605894bd65a988b24285b" title=" " alt="" coords="170,512,284,538"/>
+<area shape="poly" id="edge35_Node000024_Node000025" title=" " alt="" coords="582,548,514,534,391,525,284,525,284,520,391,520,515,529,583,542"/>
+<area shape="rect" id="Node000026" href="$da/d7d/qps-bitmap_8c.html#a5a2e2dafb100d6e3f3ac043732635516" title=" " alt="" coords="383,588,478,614"/>
+<area shape="poly" id="edge36_Node000024_Node000026" title=" " alt="" coords="568,579,479,595,478,590,567,573"/>
+<area shape="poly" id="edge37_Node000026_Node000007" title=" " alt="" coords="368,604,296,604,296,598,368,598"/>
+<area shape="poly" id="edge38_Node000026_Node000008" title=" " alt="" coords="369,619,282,641,281,635,367,614"/>
+<area shape="poly" id="edge39_Node000026_Node000025" title=" " alt="" coords="379,585,263,541,265,536,381,580"/>
+</map>

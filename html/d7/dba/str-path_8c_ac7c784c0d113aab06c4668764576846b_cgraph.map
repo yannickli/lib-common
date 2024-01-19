@@ -1,0 +1,9 @@
+<map id="path_dirpart" name="path_dirpart">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,95,56"/>
+<area shape="rect" id="Node000002" href="$d7/dba/str-path_8c.html#a68f36632a1bc54aad8c798ca0b3848ba" title=" " alt="" coords="143,5,235,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="95,33,128,27,129,32,96,38"/>
+<area shape="rect" id="Node000004" href="$d9/d9a/mem_8h.html#a65a75486be9aedadf3b957fbd5fdc146" title="Copies at n characters from the string pointed to by src to the buffer dest of size bytes." alt="" coords="143,55,235,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="96,49,128,54,127,60,95,54"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#a81d5c1d3cdffd454c985d0ffdebfd2f8" title=" " alt="" coords="283,5,354,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="235,16,267,16,267,21,235,21"/>
+</map>

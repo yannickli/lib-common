@@ -1,0 +1,9 @@
+<map id="log_new_data" name="log_new_data">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,107,56"/>
+<area shape="rect" id="Node000002" href="$d7/d75/yaml_8c.html#a4e6addcc021b0aa01a9343ec297e5be2" title=" " alt="" coords="155,5,291,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="107,33,139,28,140,33,107,38"/>
+<area shape="rect" id="Node000004" href="$d7/d75/yaml_8c.html#a9569f1b4b3adff40ba9162204569dd04" title="Return a lstr set to the contents described by the span." alt="" coords="160,55,286,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="107,48,144,54,144,59,107,53"/>
+<area shape="rect" id="Node000003" href="$d7/d75/yaml_8c.html#abc4e82ef16bf165de0f8638ca65b6ace" title=" " alt="" coords="339,5,485,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="292,16,323,16,323,21,292,21"/>
+</map>

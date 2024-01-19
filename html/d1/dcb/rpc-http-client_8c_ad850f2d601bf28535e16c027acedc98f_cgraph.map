@@ -1,0 +1,9 @@
+<map id="http_iop_get_ready_remote" name="http_iop_get_ready_remote">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,23,136,64"/>
+<area shape="rect" id="Node000002" href="$dd/d56/http_8h.html#a439434518cf613aaaec75e199cc865cf" title="Get a ready to use connection." alt="" coords="204,5,311,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,32,189,25,190,30,137,37"/>
+<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a96ac3a2484cab382a99fd7c819b90be9" title="Check if the pool has a connection ready." alt="" coords="184,55,331,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="137,49,168,53,168,59,136,55"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a09103296d7ba39784005e7402529a9c0" title="Return true if the list has no element." alt="" coords="379,55,483,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="331,65,363,65,363,70,331,70"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="localtime_addday" name="localtime_addday">
+<area shape="rect" id="Node000001" title="Return timestamp of the start of the n&#39;th day that follow the one which contains the timestamp date." alt="" coords="178,5,299,31"/>
+<area shape="rect" id="Node000002" href="$de/d6e/datetime_8c.html#ae538633eeeae8139156e9c7986491a9f" title="Return timestamp of the start of the day that follows the one which contains the timestamp date." alt="" coords="5,5,130,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,21,130,21,130,16,162,16"/>
+</map>

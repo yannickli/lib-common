@@ -1,0 +1,5 @@
+<map id="qhat_set_path" name="qhat_set_path">
+<area shape="rect" id="Node000001" title="Get a read&#45;write pointer to the value described by a path." alt="" coords="5,5,109,31"/>
+<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#ga8c154562db9d526b221cf5021b13862c" title="Increment the write access counter." alt="" coords="157,5,274,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,16,141,16,141,21,109,21"/>
+</map>

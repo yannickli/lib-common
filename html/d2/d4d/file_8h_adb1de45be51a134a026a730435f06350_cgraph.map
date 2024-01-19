@@ -1,0 +1,11 @@
+<map id="file_open" name="file_open">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,42,78,68"/>
+<area shape="rect" id="Node000002" href="$d6/d13/file_8c.html#a51a500fc35e0ab21ecb657b00afa96f9" title=" " alt="" coords="126,5,250,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="77,45,110,39,111,44,79,50"/>
+<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#a28a37219e3d2287e3ead464da4894790" title=" " alt="" coords="158,70,218,96"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="78,59,143,72,142,77,77,64"/>
+<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="298,70,381,96"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="218,80,283,80,283,86,218,86"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="429,70,542,96"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="382,80,414,80,414,86,382,86"/>
+</map>

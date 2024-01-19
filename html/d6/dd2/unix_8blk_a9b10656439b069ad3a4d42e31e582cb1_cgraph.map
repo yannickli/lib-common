@@ -1,0 +1,9 @@
+<map id="mkdirat_p" name="mkdirat_p">
+<area shape="rect" id="Node000001" title="Create a subdirectory path as mkdir &#45;p." alt="" coords="5,31,84,56"/>
+<area shape="rect" id="Node000002" href="$d9/d9a/mem_8h.html#a2802b921775732b82e8bdd44313fe24a" title=" " alt="" coords="132,5,204,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="83,33,116,26,117,31,85,38"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#ac6666dfc404402cb2de833e453df3a60" title="Copies the string pointed to by src to the buffer dest of size bytes." alt="" coords="136,55,200,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="85,48,122,56,120,61,83,54"/>
+<area shape="rect" id="Node000004" href="$d9/d9a/mem_8h.html#a65a75486be9aedadf3b957fbd5fdc146" title="Copies at n characters from the string pointed to by src to the buffer dest of size bytes." alt="" coords="252,55,344,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="200,65,237,65,237,70,200,70"/>
+</map>

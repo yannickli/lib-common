@@ -1,0 +1,7 @@
+<map id="mp_lstr_copys" name="mp_lstr_copys">
+<area shape="rect" id="Node000001" title="Sets dst to a new mp allocated lstr from its arguments." alt="" coords="145,31,250,56"/>
+<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#acd0eeba65b88d154fc0cb0f7304bf0a1" title="sets \v dst to a new libc allocated lstr from its arguments." alt="" coords="11,5,91,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,34,91,28,92,22,130,29"/>
+<area shape="rect" id="Node000003" href="$df/d0a/str-l_8h.html#a0039c01a214e142b51f96d7939fd66ab" title="sets \v dst to a mem stack allocated copy of its arguments." alt="" coords="5,55,97,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="129,57,97,63,97,57,129,52"/>
+</map>

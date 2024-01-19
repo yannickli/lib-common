@@ -1,0 +1,9 @@
+<map id="yaml.h" name="yaml.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="218,5,277,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,151,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="222,34,135,75,133,70,220,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="175,79,320,120"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="250,31,250,64,245,64,245,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="344,87,522,112"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="277,29,391,78,389,83,275,34"/>
+</map>

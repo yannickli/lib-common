@@ -1,0 +1,18 @@
+<map id="qps_m_blk_remove" name="qps_m_blk_remove">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,140,80"/>
+<area shape="rect" id="Node000002" href="$d8/d37/mem_8blk.html#a194c1be7b1e9d2742e6c11ea6fed3790" title=" " alt="" coords="188,5,373,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,51,208,33,209,38,131,57"/>
+<area shape="rect" id="Node000003" href="$d0/df7/qps_8blk.html#acf8867d97f0e4f7e4d757b36afeff7b0" title=" " alt="" coords="223,55,338,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="140,65,208,65,208,70,140,70"/>
+<area shape="rect" id="Node000004" href="$d0/df7/qps_8blk.html#aa4d7c6bc420bd73c79720a3111762b89" title=" " alt="" coords="208,104,353,130"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="131,78,209,97,208,102,129,84"/>
+<area shape="rect" id="Node000005" href="$d8/d96/bithacks_8h.html#aa893adf22bc8fa53d8db678eca4151bd" title=" " alt="" coords="464,55,517,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="338,101,448,75,449,80,339,106"/>
+<area shape="rect" id="Node000006" href="$d0/df7/qps_8blk.html#a3fdf375724fd82f3c3b27a25639e11ff" title=" " alt="" coords="421,104,559,130"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="354,114,406,114,406,120,354,120"/>
+<area shape="rect" id="Node000008" href="$d0/df7/qps_8blk.html#ab588e567193a97732f47325d2d563b0d" title=" " alt="" coords="423,153,558,179"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="339,128,418,147,417,152,338,133"/>
+<area shape="rect" id="Node000007" href="$d0/df7/qps_8blk.html#af621c0d782e18b33d42b32fd1a1c3412" title=" " alt="" coords="607,129,729,155"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="560,124,592,129,592,134,559,129"/>
+<area shape="poly" id="edge8_Node000008_Node000007" title=" " alt="" coords="558,154,592,150,592,155,559,160"/>
+</map>

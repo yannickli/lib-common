@@ -1,0 +1,9 @@
+<map id="farch.c" name="farch.c">
+<area shape="rect" id="Node000001" title=" " alt="" coords="204,5,264,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,87,137,112"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,34,111,82,108,77,207,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="161,79,306,120"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="236,31,236,64,231,64,231,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="331,87,456,112"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="259,29,357,77,355,82,257,34"/>
+</map>

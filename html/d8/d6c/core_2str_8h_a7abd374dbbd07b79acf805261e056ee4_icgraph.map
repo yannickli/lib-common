@@ -1,0 +1,7 @@
+<map id="strrand" name="strrand">
+<area shape="rect" id="Node000001" title="Put random characters from alphabet in destination buffer, and terminate with a &#39;\0&#39; character." alt="" coords="198,31,259,56"/>
+<area shape="rect" id="Node000002" href="$df/d5f/str_8c.html#ae550b4e2e8310430c038087eb0e05433" title="Put random hexadecimal digits in destination buffer." alt="" coords="43,5,112,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,38,111,26,112,21,183,33"/>
+<area shape="rect" id="Node000003" href="$da/da5/ssl_8blk.html#aaf0c6e28f452e20200a08c3080cdb806" title=" " alt="" coords="5,55,150,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="182,53,150,59,149,53,181,48"/>
+</map>

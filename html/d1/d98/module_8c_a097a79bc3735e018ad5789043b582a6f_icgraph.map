@@ -1,0 +1,10 @@
+<map id="set_require_type" name="set_require_type">
+<area shape="rect" id="Node000001" title=" " alt="" coords="493,29,610,55"/>
+<area shape="rect" id="Node000002" href="$d1/d98/module_8c.html#ae6772d5fb70ba4eb0a22eb02aa97def9" title="Require a module." alt="" coords="336,29,445,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="478,45,446,45,446,40,478,40"/>
+<area shape="poly" id="edge4_Node000002_Node000002" title=" " alt="" coords="418,16,408,10,391,8,374,10,365,15,363,20,368,28,363,30,358,21,361,11,372,5,391,3,410,5,421,12"/>
+<area shape="rect" id="Node000003" href="$d1/d4a/mem-bench_8c.html#a059f4b1884e844ba41e49ae3b53e3958" title="Require mem_bench module manually." alt="" coords="150,29,288,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="320,45,289,45,289,40,320,40"/>
+<area shape="rect" id="Node000004" href="$d7/df8/log_8c.html#a083b2e840cc4afee2f08f66c46f4d64d" title=" " alt="" coords="5,29,102,55"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="134,45,102,45,102,40,134,40"/>
+</map>

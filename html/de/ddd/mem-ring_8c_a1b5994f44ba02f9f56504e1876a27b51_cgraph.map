@@ -1,0 +1,9 @@
+<map id="frame_getsize" name="frame_getsize">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,108,80"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#ade729b3a4fafd9430e7d426e2ae2b780" title=" " alt="" coords="156,5,250,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,51,147,34,149,39,98,57"/>
+<area shape="rect" id="Node000003" href="$de/ddd/mem-ring_8c.html#a4adb2327c305325713c2510082fcd536" title=" " alt="" coords="170,55,236,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="108,65,154,65,154,70,108,70"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a3f459d35e525b03fbd6c8f578cfaf34e" title="Return true if e is the tail of l." alt="" coords="158,104,248,130"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="98,78,149,96,147,101,96,84"/>
+</map>

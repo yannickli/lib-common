@@ -1,0 +1,9 @@
+<map id="file_bin_get_cpu32" name="file_bin_get_cpu32">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,134,56"/>
+<area shape="rect" id="Node000002" href="$de/d06/file-bin_8h.html#a60e80a81260003b07a499089b48694a9" title="Tell if the file_bin has at least len bytes from the current position." alt="" coords="182,5,271,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,30,166,25,167,30,134,36"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#a8c72cf3833ab9273d676151a583336a2" title=" " alt="" coords="197,55,256,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="134,51,182,58,181,63,134,56"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a3b4fe44eb26c6eb77b5c58ab8f6a0b46" title=" " alt="" coords="319,55,393,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="257,65,303,65,303,70,257,70"/>
+</map>

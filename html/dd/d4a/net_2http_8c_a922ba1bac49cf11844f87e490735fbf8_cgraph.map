@@ -1,0 +1,15 @@
+<map id="http2_stream_do_recv_priority" name="http2_stream_do_recv_priority">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,156,88"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#af353849ce97358838ae76686e00c94ec" title="Return the stream (info) with id = stream_id." alt="" coords="204,55,326,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,65,188,65,188,70,156,70"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a66c1c2e99436b710c76a19f5ad5333c6" title="Add a new element e at the tail of list l (suited for FIFO)." alt="" coords="417,5,514,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="320,51,400,31,402,36,321,57"/>
+<area shape="rect" id="Node000005" href="$dd/d4a/net_2http_8c.html#aa27ab393af5bebf566f7b8ad885b6dcf" title="Return the number of streams (of the same class) upto to stream_id." alt="" coords="374,55,556,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="327,65,359,65,359,70,327,70"/>
+<area shape="rect" id="Node000006" href="$dd/d4a/net_2http_8c.html#af7606f43afa09bca8c1f621a130b298e" title=" " alt="" coords="400,105,531,145"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="313,78,385,99,384,104,312,84"/>
+<area shape="rect" id="Node000004" href="$de/d1a/container-dlist_8h.html#a71e7667ca0e4b896923788c5851afd24" title="Put element e between prev and next." alt="" coords="626,5,714,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="514,16,611,16,611,21,514,21"/>
+<area shape="rect" id="Node000007" href="$dd/d4a/net_2http_8c.html#ab9bc49ebbd0135e4c737460c35580c44" title=" " alt="" coords="604,105,736,145"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="531,122,589,122,589,128,531,128"/>
+</map>

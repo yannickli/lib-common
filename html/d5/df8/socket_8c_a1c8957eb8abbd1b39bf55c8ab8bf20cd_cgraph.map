@@ -1,0 +1,9 @@
+<map id="bindx" name="bindx">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,57,56"/>
+<area shape="rect" id="Node000002" href="$d6/dd2/unix_8blk.html#a49ce04bc27f124999ef20359ed0bb764" title=" " alt="" coords="106,5,217,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="56,36,90,29,91,35,57,41"/>
+<area shape="rect" id="Node000004" href="$d5/df8/socket_8c.html#a5ab6198acd2e2bc4cc52a6dce281aa68" title=" " alt="" coords="105,55,218,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="57,46,90,52,89,57,56,51"/>
+<area shape="rect" id="Node000003" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="266,5,327,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="217,16,250,16,250,21,217,21"/>
+</map>

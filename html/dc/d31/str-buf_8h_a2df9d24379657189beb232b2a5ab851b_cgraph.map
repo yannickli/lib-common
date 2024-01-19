@@ -1,0 +1,14 @@
+<map id="sb_wipe" name="sb_wipe">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,56,75,82"/>
+<area shape="rect" id="Node000002" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="123,56,208,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="75,66,107,66,107,72,75,72"/>
+<area shape="rect" id="Node000003" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="291,5,364,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="208,53,275,32,277,37,209,58"/>
+<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="446,81,530,107"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="209,69,431,87,430,92,208,75"/>
+<area shape="rect" id="Node000006" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="256,107,398,132"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="209,80,270,99,269,104,208,85"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="578,81,690,107"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="530,92,562,92,562,97,530,97"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="398,106,431,100,432,106,399,111"/>
+</map>

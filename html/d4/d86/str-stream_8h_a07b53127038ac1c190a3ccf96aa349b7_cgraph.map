@@ -1,0 +1,11 @@
+<map id="ps_skip_after_str" name="ps_skip_after_str">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,127,56"/>
+<area shape="rect" id="Node000002" href="$d4/d86/str-stream_8h.html#a6e979271e0143d31e3287fe24d2bb914" title="Skips after the (data, len) word." alt="" coords="175,31,306,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,41,159,41,159,46,127,46"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#a480df44ba10bffdce2e5f376a138d534" title=" " alt="" coords="354,5,466,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,31,338,26,339,31,307,36"/>
+<area shape="rect" id="Node000005" href="$d4/d86/str-stream_8h.html#a792bf8e215595e8fd225339902c447bf" title=" " alt="" coords="381,55,440,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="307,50,366,59,365,64,306,55"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#a25629ed82260cb18f7703e4bd8e8c0a4" title=" " alt="" coords="514,5,606,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="467,16,499,16,499,21,467,21"/>
+</map>

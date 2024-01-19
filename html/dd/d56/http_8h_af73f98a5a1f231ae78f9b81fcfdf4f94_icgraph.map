@@ -1,0 +1,7 @@
+<map id="httpd_bufferize" name="httpd_bufferize">
+<area shape="rect" id="Node000001" title="XXX: the function can call httpd_reject." alt="" coords="388,5,493,31"/>
+<area shape="rect" id="Node000002" href="$dd/de9/rpc-http-server_8c.html#a99f4d0b0719988496aa4496ad91d0b82" title=" " alt="" coords="202,5,340,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="372,21,340,21,340,16,372,16"/>
+<area shape="rect" id="Node000003" href="$dd/de9/rpc-http-server_8c.html#a30f581d1d1e0c0a8ff0bd69f9b6316b9" title=" " alt="" coords="5,5,154,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="186,21,154,21,154,16,186,16"/>
+</map>

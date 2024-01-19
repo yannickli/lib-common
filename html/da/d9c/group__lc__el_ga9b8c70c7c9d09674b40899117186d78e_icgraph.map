@@ -1,0 +1,7 @@
+<map id="el_spawn_child" name="el_spawn_child">
+<area shape="rect" id="Node000001" title=" " alt="" coords="378,5,488,31"/>
+<area shape="rect" id="Node000002" href="$da/d9c/group__lc__el.html#ga057f6efdd634208080a54149d793da89" title=" " alt="" coords="170,5,330,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="363,21,330,21,330,16,363,16"/>
+<area shape="rect" id="Node000003" href="$d7/db0/zchk-helpers_8blk.html#afc37f26b932dbbf5b9667a3d54607995" title="Z helper to run a command, check its status and capture its output." alt="" coords="5,5,122,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="154,21,122,21,122,16,154,16"/>
+</map>

@@ -1,0 +1,43 @@
+<map id="http2_conn_write" name="http2_conn_write">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,126,83"/>
+<area shape="rect" id="Node000002" href="$d3/d83/str-outbuf_8h.html#a7724e6991772705d7a286c49d693ce49" title=" " alt="" coords="189,8,260,34"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,54,174,34,175,39,110,59"/>
+<area shape="rect" id="Node000004" href="$d6/d7f/str-outbuf_8c.html#a9366b777e116c7a03009232dab54e0f4" title=" " alt="" coords="174,57,275,83"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="126,68,158,68,158,73,126,73"/>
+<area shape="rect" id="Node000015" href="$da/da5/ssl_8blk.html#ad1a9a2ea562a7c2630047a35732742db" title="A writev&#45;like callback using SSL_write." alt="" coords="184,107,265,132"/>
+<area shape="poly" id="edge16_Node000001_Node000015" title=" " alt="" coords="110,81,170,100,168,105,109,86"/>
+<area shape="rect" id="Node000003" href="$d3/d83/str-outbuf_8h.html#af524ad51e75d22f207e0d9f29d2d24db" title=" " alt="" coords="330,8,431,34"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="260,18,314,18,314,24,260,24"/>
+<area shape="rect" id="Node000005" href="$d6/d7f/str-outbuf_8c.html#a5e6f04feeeea2708be3cd01fb2498f1f" title=" " alt="" coords="333,57,428,83"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="276,68,317,68,317,73,276,73"/>
+<area shape="rect" id="Node000006" href="$d7/dcb/container-htlist_8h.html#ad447ba65032263c290856d3718ce59ea" title=" " alt="" coords="623,7,732,32"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="414,54,437,44,460,29,486,17,548,8,608,9,608,14,548,13,487,22,463,33,440,49,416,59"/>
+<area shape="rect" id="Node000007" href="$d7/dcb/container-htlist_8h.html#aad5936297176d1d2025cc6258ad79a1b" title=" " alt="" coords="486,32,564,58"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="428,59,470,52,471,57,429,64"/>
+<area shape="rect" id="Node000008" href="$dc/d31/str-buf_8h.html#ab83eeb942ed3944470a82c220a999845" title=" " alt="" coords="492,81,558,107"/>
+<area shape="poly" id="edge8_Node000005_Node000008" title=" " alt="" coords="429,75,477,84,476,89,428,81"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="564,36,608,28,609,34,565,41"/>
+<area shape="rect" id="Node000009" href="$d4/d02/str-buf_8c.html#a565dca690544eca5eb3516d506ea086f" title=" " alt="" coords="642,81,713,107"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="559,92,627,92,627,97,559,97"/>
+<area shape="rect" id="Node000010" href="$d4/d02/str-buf_8c.html#a4a2eff2f7383d95c9ede6af667197566" title=" " alt="" coords="802,81,887,107"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="713,92,786,92,786,97,713,97"/>
+<area shape="rect" id="Node000011" href="$d9/d9a/mem_8h.html#a3fd6d5b3dcb24f194848ce86f988fb13" title=" " alt="" coords="980,5,1053,31"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="874,78,970,35,973,40,877,83"/>
+<area shape="rect" id="Node000012" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="1136,81,1219,107"/>
+<area shape="poly" id="edge12_Node000010_Node000012" title=" " alt="" coords="887,92,1121,92,1121,97,887,97"/>
+<area shape="rect" id="Node000014" href="$d4/d02/str-buf_8c.html#a7ab29759b9a4ccea4138a4f64031ce08" title="Resets the buffer but keeps the allocated memory, however big it is." alt="" coords="945,107,1088,132"/>
+<area shape="poly" id="edge14_Node000010_Node000014" title=" " alt="" coords="888,98,931,104,930,109,887,103"/>
+<area shape="rect" id="Node000013" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="1267,81,1379,107"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="1219,92,1252,92,1252,97,1219,97"/>
+<area shape="poly" id="edge15_Node000014_Node000012" title=" " alt="" coords="1088,106,1120,100,1121,106,1089,111"/>
+<area shape="rect" id="Node000016" href="$da/da5/ssl_8blk.html#a04de8b21a1ae5013f23b1ff60c5df337" title=" " alt="" coords="323,107,438,132"/>
+<area shape="poly" id="edge17_Node000015_Node000016" title=" " alt="" coords="265,117,308,117,308,122,265,122"/>
+<area shape="rect" id="Node000017" href="$da/da5/ssl_8blk.html#a46e11de89824956ed90e51340833d824" title="Wrapper to SSL_write that mimic write(2)." alt="" coords="488,131,562,156"/>
+<area shape="poly" id="edge18_Node000016_Node000017" title=" " alt="" coords="439,126,473,132,473,138,438,132"/>
+<area shape="rect" id="Node000018" href="$da/da5/ssl_8blk.html#a43e1df139c257b3b3cb06e77e45837aa" title="Helper to convert openssl errors to classical system errors." alt="" coords="612,131,743,156"/>
+<area shape="poly" id="edge19_Node000017_Node000018" title=" " alt="" coords="562,141,596,141,596,146,562,146"/>
+<area shape="rect" id="Node000019" href="$da/da5/ssl_8blk.html#aeba371daba7f6b6f5ff75f70b0003965" title=" " alt="" coords="791,131,897,156"/>
+<area shape="poly" id="edge20_Node000018_Node000019" title=" " alt="" coords="744,141,775,141,775,146,744,146"/>
+<area shape="rect" id="Node000020" href="$d7/df8/log_8c.html#ab9aebc66105141ee67ddf3882842c29e" title=" " alt="" coords="986,156,1047,182"/>
+<area shape="poly" id="edge21_Node000019_Node000020" title=" " alt="" coords="898,149,971,160,971,165,897,154"/>
+</map>

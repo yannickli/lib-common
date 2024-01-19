@@ -1,0 +1,15 @@
+<map id="t_set_string_from_stream" name="t_set_string_from_stream">
+<area shape="rect" id="Node000001" title=" " alt="" coords="572,78,742,104"/>
+<area shape="rect" id="Node000002" href="$d1/d3c/yaml_8blk.html#a07ddf6fb07c025d9529dc1ee7476c440" title=" " alt="" coords="385,5,517,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="599,76,517,49,518,44,601,70"/>
+<area shape="rect" id="Node000005" href="$d1/d3c/yaml_8blk.html#abfdce7d061a841231a3dede113ba121b" title=" " alt="" coords="378,71,524,111"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="557,94,524,94,524,88,557,88"/>
+<area shape="rect" id="Node000006" href="$d1/d3c/yaml_8blk.html#aa6c26b5f4149908d5a8feb4a99858ad1" title=" " alt="" coords="387,136,516,177"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="600,112,517,138,516,133,599,107"/>
+<area shape="rect" id="Node000003" href="$d1/d3c/yaml_8blk.html#ab76893340fb8f5bb59618e20d30afb29" title=" " alt="" coords="187,71,330,111"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="376,54,321,73,320,68,374,49"/>
+<area shape="rect" id="Node000004" href="$d1/d3c/yaml_8blk.html#a8748fa3ecd69585940577c1c2c05e5b7" title=" " alt="" coords="5,71,139,111"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="171,94,139,94,139,88,171,88"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="362,94,331,94,331,88,362,88"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="374,133,320,114,321,109,376,128"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="httpc_pool_reach_limit" name="httpc_pool_reach_limit">
+<area shape="rect" id="Node000001" title=" " alt="" coords="201,31,352,56"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#ae621567183c9e40761b28dbd45c8b917" title="Check if the pool has either a connection ready or if a new connection can be done." alt="" coords="5,5,153,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,34,153,30,154,25,186,29"/>
+<area shape="rect" id="Node000003" href="$dd/d4a/net_2http_8c.html#a13fe4b4dc9d8e2b66738d7bc50745860" title=" " alt="" coords="26,55,132,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,57,133,64,132,58,185,52"/>
+</map>

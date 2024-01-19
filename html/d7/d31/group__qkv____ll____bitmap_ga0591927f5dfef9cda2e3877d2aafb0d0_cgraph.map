@@ -1,0 +1,17 @@
+<map id="qps_bitmap_compute_stats" name="qps_bitmap_compute_stats">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,125,151,165"/>
+<area shape="rect" id="Node000002" href="$d4/d36/group__qkv____ll____qps.html#ga2d7125ef4f289943afeecf2dbcafb199" title=" " alt="" coords="199,107,306,132"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="151,132,183,127,184,132,152,137"/>
+<area shape="rect" id="Node000006" href="$d4/d36/group__qkv____ll____qps.html#ga84180dfcbb44d7244b1ec0b81022e09c" title=" " alt="" coords="785,56,885,82"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="151,154,260,167,398,174,474,173,551,168,628,158,702,142,730,132,757,119,803,89,806,94,760,124,732,137,703,147,629,164,551,174,474,179,398,179,259,172,151,159"/>
+<area shape="rect" id="Node000003" href="$d4/d36/group__qkv____ll____qps.html#ga0a47f47d60aa3639eeb02904b772dbf0" title=" " alt="" coords="354,81,477,107"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,109,338,103,339,109,307,114"/>
+<area shape="rect" id="Node000004" href="$d4/d36/group__qkv____ll____qps.html#ga7c134b98e149f056c7e16308663cc3ff" title=" " alt="" coords="525,5,703,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="448,78,524,48,560,34,562,39,526,53,450,83"/>
+<area shape="poly" id="edge7_Node000003_Node000006" title=" " alt="" coords="477,88,769,70,770,75,478,93"/>
+<area shape="rect" id="Node000007" href="$d4/d36/group__qkv____ll____qps.html#ga308fba36a1e8e39cefd304a3502fbf27" title=" " alt="" coords="556,107,672,132"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="478,99,541,108,541,113,477,105"/>
+<area shape="rect" id="Node000005" href="$d8/d37/mem_8blk.html#ab1e585a4f25d3d3c3dd6512cf31f923e" title=" " alt="" coords="751,5,919,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="703,16,735,16,735,21,703,21"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="674,29,770,51,769,57,673,34"/>
+</map>

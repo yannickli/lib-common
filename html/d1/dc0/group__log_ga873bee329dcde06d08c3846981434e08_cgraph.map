@@ -1,0 +1,28 @@
+<map id="logger_get_by_name" name="logger_get_by_name">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,153,146,179"/>
+<area shape="rect" id="Node000002" href="$df/d0a/str-l_8h.html#a963c22b229774d4b7c106bae4011cb8e" title="Returns whether \v s1 and \v s2 contents are equal." alt="" coords="238,5,315,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,151,128,102,159,73,192,48,222,33,224,37,195,52,162,77,132,106,89,155"/>
+<area shape="rect" id="Node000003" href="$d4/d86/str-stream_8h.html#a171f7ecffb1d3846b226cd8d7016aed7" title=" " alt="" coords="722,81,792,107"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="123,150,250,118,328,103,407,92,489,86,571,84,706,88,706,94,571,89,489,91,407,97,329,108,251,124,124,155"/>
+<area shape="rect" id="Node000004" href="$d4/d86/str-stream_8h.html#ac725025db4399b257caac530505f6c63" title=" " alt="" coords="194,153,359,179"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="146,164,178,164,178,169,146,169"/>
+<area shape="rect" id="Node000011" href="$d4/d86/str-stream_8h.html#a8c72cf3833ab9273d676151a583336a2" title=" " alt="" coords="441,255,500,280"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="130,177,426,254,425,259,128,182"/>
+<area shape="rect" id="Node000012" href="$d4/d86/str-stream_8h.html#a01f510bc60b3e1efa55cf7c371dadfee" title=" " alt="" coords="238,255,315,280"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="98,177,142,204,195,233,224,246,222,251,192,238,139,209,96,182"/>
+<area shape="rect" id="Node000005" href="$d4/d86/str-stream_8h.html#a0cabc922ee6509017454cd14b7cd9fc5" title=" " alt="" coords="407,205,534,231"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="328,177,406,198,405,203,326,182"/>
+<area shape="rect" id="Node000008" href="$d4/d86/str-stream_8h.html#ae098817247881bad5d9318d4c6b712cf" title=" " alt="" coords="431,107,511,132"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="332,150,414,130,416,135,334,155"/>
+<area shape="rect" id="Node000010" href="$d4/d86/str-stream_8h.html#a792bf8e215595e8fd225339902c447bf" title=" " alt="" coords="441,156,500,182"/>
+<area shape="poly" id="edge10_Node000004_Node000010" title=" " alt="" coords="360,165,425,166,425,171,359,170"/>
+<area shape="rect" id="Node000006" href="$d4/d86/str-stream_8h.html#a25629ed82260cb18f7703e4bd8e8c0a4" title=" " alt="" coords="582,205,674,231"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="535,216,567,216,567,221,535,221"/>
+<area shape="rect" id="Node000007" href="$d4/d86/str-stream_8h.html#a3b4fe44eb26c6eb77b5c58ab8f6a0b46" title=" " alt="" coords="591,255,665,280"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="515,229,576,249,575,254,513,234"/>
+<area shape="rect" id="Node000009" href="$d4/d86/str-stream_8h.html#ab34e4ed4459c611a797df76cab2e8846" title=" " alt="" coords="596,107,660,132"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="511,117,581,117,581,122,511,122"/>
+<area shape="poly" id="edge9_Node000009_Node000003" title=" " alt="" coords="659,111,706,101,707,107,660,116"/>
+<area shape="poly" id="edge12_Node000011_Node000007" title=" " alt="" coords="501,265,575,265,575,270,501,270"/>
+<area shape="poly" id="edge14_Node000012_Node000011" title=" " alt="" coords="316,265,426,265,426,270,316,270"/>
+</map>

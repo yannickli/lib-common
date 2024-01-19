@@ -1,0 +1,15 @@
+<map id="qhat_path_touch" name="qhat_path_touch">
+<area shape="rect" id="Node000001" title="Increment the write access counter." alt="" coords="326,55,443,80"/>
+<area shape="rect" id="Node000002" href="$d3/d0d/group__qkv____ll____hat.html#ga02fffbf462e9a9d428311299418189e6" title="Remove the value described by a path." alt="" coords="150,5,278,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="322,52,260,34,262,29,324,47"/>
+<area shape="rect" id="Node000004" href="$d3/d0d/group__qkv____ll____hat.html#ga2c1c75ce16258136005196bab598c6d4" title="Clear an entry." alt="" coords="159,55,269,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="310,70,269,70,269,65,310,65"/>
+<area shape="rect" id="Node000006" href="$d3/d0d/group__qkv____ll____hat.html#ga849c4cdaf23b08320eda43aa86c6b901" title="Get a read&#45;write pointer to the value described by a path." alt="" coords="162,104,266,130"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="324,88,262,106,260,101,322,83"/>
+<area shape="rect" id="Node000003" href="$d3/d0d/group__qkv____ll____hat.html#gacaa316dce42759bcc03c9d39e3490b02" title="Remove the slot associated to the given key." alt="" coords="5,5,102,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="134,21,102,21,102,16,134,16"/>
+<area shape="rect" id="Node000005" href="$d3/d0d/group__qkv____ll____hat.html#ga1c918b8a0a75ee7248e1b0c8a9335955" title="Clear an entry." alt="" coords="14,55,93,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="143,70,93,70,93,65,143,65"/>
+<area shape="rect" id="Node000007" href="$d3/d0d/group__qkv____ll____hat.html#gaa580dac570cec6a636547bfb30b98c5f" title="Get a read&#45;only pointer to the value associated with a key." alt="" coords="18,104,89,130"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="146,120,90,120,90,114,146,114"/>
+</map>

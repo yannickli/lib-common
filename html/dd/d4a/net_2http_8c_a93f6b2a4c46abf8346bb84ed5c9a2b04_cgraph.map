@@ -1,0 +1,11 @@
+<map id="httpc_query_init" name="httpc_query_init">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,118,56"/>
+<area shape="rect" id="Node000002" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="166,5,235,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,31,150,25,151,30,119,36"/>
+<area shape="rect" id="Node000003" href="$dc/d31/str-buf_8h.html#a28a37219e3d2287e3ead464da4894790" title=" " alt="" coords="171,55,230,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="119,51,156,57,155,62,118,56"/>
+<area shape="rect" id="Node000004" href="$dc/d31/str-buf_8h.html#a6dc2ca5bc1506b37f95463e6abe4e201" title=" " alt="" coords="283,55,366,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="230,65,267,65,267,70,230,70"/>
+<area shape="rect" id="Node000005" href="$dc/d31/str-buf_8h.html#a01c1a4f8ed76b6a919595b803c7d7376" title=" " alt="" coords="414,55,527,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="367,65,399,65,399,70,367,70"/>
+</map>

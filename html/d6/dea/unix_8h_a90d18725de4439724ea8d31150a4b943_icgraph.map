@@ -1,0 +1,13 @@
+<map id="ifork_in_progress" name="ifork_in_progress">
+<area shape="rect" id="Node000001" title="Are we inside a ifork() call?" alt="" coords="372,55,492,80"/>
+<area shape="rect" id="Node000002" href="$d1/d98/module_8c.html#a15b9822035e58eb81e18366bf3ba73e4" title=" " alt="" coords="154,5,320,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="363,53,290,34,291,29,364,48"/>
+<area shape="rect" id="Node000004" href="$d1/d98/module_8c.html#a209a1bc2b46cf5413d7bd7c3260b6cc9" title=" " alt="" coords="150,55,324,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="356,70,325,70,325,65,356,65"/>
+<area shape="rect" id="Node000005" href="$d1/d98/module_8c.html#a72b22f4c5a76edcac269321928b4d2fc" title=" " alt="" coords="157,104,317,130"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="364,87,291,106,290,101,363,82"/>
+<area shape="rect" id="Node000003" href="$d1/d98/module_8c.html#a083b2e840cc4afee2f08f66c46f4d64d" title=" " alt="" coords="5,55,102,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="172,38,103,57,102,52,171,33"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="134,70,102,70,102,65,134,65"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="171,102,102,83,103,78,172,97"/>
+</map>

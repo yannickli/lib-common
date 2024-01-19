@@ -1,0 +1,11 @@
+<map id="mem_fifo_pools_print_stats" name="mem_fifo_pools_print_stats">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,150,71"/>
+<area shape="rect" id="Node000002" href="$d1/d4a/mem-bench_8c.html#ae4fa7693b556e3e38a8a6b7370bfc07b" title="Print stats in human&#45;readable form." alt="" coords="198,13,368,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,39,182,35,182,41,151,45"/>
+<area shape="rect" id="Node000005" href="$d8/d37/mem_8blk.html#ab30c4d68e3fc8e12a843f8e027146a08" title="Check whether the memory pools are active." alt="" coords="208,62,358,88"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="151,57,193,62,192,67,150,62"/>
+<area shape="rect" id="Node000003" href="$d1/d4a/mem-bench_8c.html#a116d5989939bd5e2f6405862609395ce" title=" " alt="" coords="416,5,572,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="368,23,401,23,401,28,368,28"/>
+<area shape="rect" id="Node000004" href="$de/d6e/datetime_8c.html#a212cb00d35998d0ddc014613ef320479" title=" " alt="" coords="620,13,758,39"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="573,23,605,23,605,28,573,28"/>
+</map>

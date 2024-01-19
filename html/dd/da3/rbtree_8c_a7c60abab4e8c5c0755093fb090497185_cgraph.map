@@ -1,0 +1,15 @@
+<map id="rb_del_fix_color" name="rb_del_fix_color">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,116,80"/>
+<area shape="rect" id="Node000002" href="$dd/da3/rbtree_8c.html#ab165018ab82389142e2574f238640f4d" title=" " alt="" coords="165,5,267,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="103,51,158,34,159,39,104,57"/>
+<area shape="rect" id="Node000003" href="$dd/da3/rbtree_8c.html#a24f917518f3c4284c3a24b3e28528940" title=" " alt="" coords="167,104,265,130"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="104,78,159,96,158,101,103,84"/>
+<area shape="rect" id="Node000006" href="$dd/da3/rbtree_8c.html#a1ecd7c0e9f63d03f07462fd319d06fb5" title=" " alt="" coords="164,55,268,80"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="116,65,148,65,148,70,116,70"/>
+<area shape="rect" id="Node000004" href="$dd/da3/rbtree_8c.html#a43696d41515ccbd437a4a9ab9677814a" title=" " alt="" coords="323,55,409,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="257,101,309,83,311,88,258,106"/>
+<area shape="rect" id="Node000005" href="$dd/da3/rbtree_8c.html#a9252f82aaa63e04f466adc29f282fa59" title=" " alt="" coords="316,104,416,130"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="265,114,300,114,300,120,265,120"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="268,65,307,65,307,70,268,70"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="258,78,311,96,309,101,257,84"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="ring_setup_frame" name="ring_setup_frame">
+<area shape="rect" id="Node000001" title=" " alt="" coords="487,105,609,131"/>
+<area shape="rect" id="Node000002" href="$de/ddd/mem-ring_8c.html#a3985ede75cf06dabc280a095b4d0134e" title="Create a new memory ring&#45;pool." alt="" coords="330,80,439,106"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="472,109,439,104,440,99,472,104"/>
+<area shape="rect" id="Node000008" href="$de/ddd/mem-ring_8c.html#adc9e7915b3feee706d436c0e3cb715a2" title="Seal the active frame." alt="" coords="330,129,439,155"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="472,132,440,137,439,132,471,127"/>
+<area shape="rect" id="Node000003" href="$db/d6e/iopc-iopsq_8c.html#a29da93a7e88dca9ad6e854548eb1ad54" title="Build iopsq_iop_struct_t object." alt="" coords="132,104,282,130"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="315,105,283,109,282,104,314,100"/>
+<area shape="rect" id="Node000004" href="$de/ddd/mem-ring_8c.html#a722a95bcb3dded8ae64a37e24ff87736" title="Just like the t_pool() we have the corresponding r_pool()" alt="" coords="179,55,235,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="314,85,235,74,236,69,315,80"/>
+<area shape="rect" id="Node000005" href="$df/d0a/str-l_8h.html#a5755d8b8e2f270c120bf9058e4101f63" title="concatenates its argument to form a new lstr on the r_stack." alt="" coords="7,5,82,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="163,57,82,32,83,27,164,52"/>
+<area shape="rect" id="Node000006" href="$df/d0a/str-l_8h.html#ab2dd3a64ccf77787c30fdd2beb94c817" title="returns a duplicated lstr from the mem stack." alt="" coords="5,55,84,80"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="163,70,84,70,84,65,163,65"/>
+<area shape="rect" id="Node000007" href="$dc/d31/str-buf_8h.html#a737a59238ec672dd22523f3b0f1f48d5" title=" " alt="" coords="9,104,80,130"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="164,83,81,109,79,104,163,78"/>
+<area shape="poly" id="edge8_Node000008_Node000003" title=" " alt="" coords="314,135,282,130,283,125,315,130"/>
+<area shape="rect" id="Node000009" href="$de/ddd/mem-ring_8c.html#a3d93d1d071835d4ba0d25b057e8c2aac" title="Seal the ring&#45;pool and return a checkpoint." alt="" coords="133,153,281,179"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="315,154,282,159,281,153,314,149"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="http_iop_channel_remote_init" name="http_iop_channel_remote_init">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,196,31"/>
+<area shape="rect" id="Node000002" href="$dd/d4a/net_2http_8c.html#abf9d37aa75a301f7b94e2db4d22556e7" title=" " alt="" coords="244,5,349,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,16,228,16,228,21,196,21"/>
+<area shape="rect" id="Node000003" href="$de/d1a/container-dlist_8h.html#a0a69e401f6ec15966c891e96ad864c77" title="Put a dlist_t element in a safe and detached state." alt="" coords="397,5,466,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="349,16,381,16,381,21,349,21"/>
+</map>

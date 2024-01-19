@@ -1,0 +1,5 @@
+<map id="fd_get_path" name="fd_get_path">
+<area shape="rect" id="Node000001" title="Get the path of the file opened by that file descriptor." alt="" coords="126,5,215,31"/>
+<area shape="rect" id="Node000002" href="$d3/dbd/unix-fts_8c.html#ab73ae13228e610443945ace64fb8c9ad" title=" " alt="" coords="5,5,78,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="110,21,78,21,78,16,110,16"/>
+</map>

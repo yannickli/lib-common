@@ -1,0 +1,17 @@
+<map id="log_file_rotate_" name="log_file_rotate_">
+<area shape="rect" id="Node000001" title=" " alt="" coords="574,105,683,131"/>
+<area shape="rect" id="Node000002" href="$db/da8/file-log_8blk.html#af691a940781675fe1b40fdf41d24f230" title=" " alt="" coords="406,80,526,106"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="559,110,526,105,527,100,559,105"/>
+<area shape="rect" id="Node000008" href="$db/da8/file-log_8blk.html#a8ce89c3f10c656834b18a9ce5d3890c2" title=" " alt="" coords="416,129,517,155"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="559,131,518,137,517,132,559,126"/>
+<area shape="rect" id="Node000003" href="$db/da8/file-log_8blk.html#a242c917fdef070824408024eb4a7e4d1" title="Re&#45;enable file rotations after &#39;log_file_disable_rotation&#39; has been called and trigger a rotation if ..." alt="" coords="202,5,358,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="425,75,357,45,327,34,329,29,359,40,427,70"/>
+<area shape="rect" id="Node000005" href="$db/da8/file-log_8blk.html#af0c37fd6a0bbee39669d78ee929fbe82" title=" " alt="" coords="241,55,319,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="390,85,319,75,320,70,391,80"/>
+<area shape="rect" id="Node000006" href="$db/da8/file-log_8blk.html#aba54e4e7e1f5b88148e9fd8e0a3447ea" title=" " alt="" coords="241,104,319,130"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="391,105,319,115,318,109,390,100"/>
+<area shape="rect" id="Node000007" href="$db/da8/file-log_8blk.html#a3ec4414d6a8bde342cdcf39036e01ead" title=" " alt="" coords="238,153,322,179"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="418,115,407,119,359,145,323,157,321,152,357,140,405,114,415,110"/>
+<area shape="rect" id="Node000004" href="$db/da8/file-log_8blk.html#aa74655031af03892b62093d9b1938ce9" title=" " alt="" coords="5,5,154,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="186,21,154,21,154,16,186,16"/>
+</map>

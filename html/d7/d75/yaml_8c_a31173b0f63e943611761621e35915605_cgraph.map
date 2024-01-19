@@ -1,0 +1,10 @@
+<map id="yaml_env_data_can_use_flow_mode" name="yaml_env_data_can_use_flow_mode">
+<area shape="rect" id="Node000001" title="Make sure the data can be packed using flow mode." alt="" coords="5,51,170,92"/>
+<area shape="rect" id="Node000002" href="$d7/d75/yaml_8c.html#afbbaff6fe1f0db91b3599a2adafc7dfc" title=" " alt="" coords="218,29,386,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,58,202,53,202,58,170,63"/>
+<area shape="rect" id="Node000003" href="$d7/d75/yaml_8c.html#a0e372700a436e50f72ab1436f78b03d2" title=" " alt="" coords="220,79,384,120"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="170,80,205,84,204,89,170,85"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="271,30,265,21,268,11,281,5,302,3,324,5,336,12,333,16,322,10,302,8,283,10,272,15,270,20,275,27"/>
+<area shape="rect" id="Node000004" href="$df/d0a/str-l_8h.html#ad59ae7d1cffab5d7e597658868f09075" title="Returns whether \v s starts with \v p." alt="" coords="434,87,537,112"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="384,97,418,97,418,102,384,102"/>
+</map>

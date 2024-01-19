@@ -1,0 +1,20 @@
+<map id="t_aper_decode_seq_of" name="t_aper_decode_seq_of">
+<area shape="rect" id="Node000001" title=" " alt="" coords="829,144,981,170"/>
+<area shape="rect" id="Node000002" href="$db/dfd/per_8c.html#a1f1e087bcc1964a0347044fce93f6a7c" title=" " alt="" coords="599,93,781,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="832,142,747,122,748,117,833,137"/>
+<area shape="rect" id="Node000003" href="$db/dfd/per_8c.html#ab63f464a0d939fde54f1a6365c47bedb" title=" " alt="" coords="409,143,550,168"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="617,126,538,145,537,139,616,121"/>
+<area shape="rect" id="Node000004" href="$db/dfd/per_8c.html#ad241b250dff184dcd0a44ca475aaf70e" title=" " alt="" coords="407,93,551,119"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="584,109,552,109,552,104,584,104"/>
+<area shape="rect" id="Node000005" href="$db/dfd/per_8c.html#adedfcb81b5e27cfaa3679c443107fd60" title=" " alt="" coords="223,93,359,119"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="391,109,359,109,359,104,391,104"/>
+<area shape="rect" id="Node000006" href="$db/dfd/per_8c.html#a6e95f8cdc72c7432a7773ca9db9bfca2" title=" " alt="" coords="14,5,166,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="245,89,121,34,123,29,247,84"/>
+<area shape="rect" id="Node000007" href="$db/dfd/per_8c.html#a73f9c9a06039b6798b47b73b8cc274c0" title=" " alt="" coords="14,151,166,192"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="235,127,156,153,154,148,234,122"/>
+<area shape="rect" id="Node000008" href="$db/dfd/per_8c.html#a21384fcb7cf727f5e2e124c51b614075" title=" " alt="" coords="5,80,175,106"/>
+<area shape="poly" id="edge9_Node000005_Node000008" title=" " alt="" coords="207,103,175,101,175,96,207,98"/>
+<area shape="poly" id="edge6_Node000006_Node000002" title=" " alt="" coords="181,17,354,28,454,40,552,57,608,72,657,90,656,95,607,78,551,62,453,45,354,34,181,23"/>
+<area shape="poly" id="edge8_Node000007_Node000001" title=" " alt="" coords="182,172,407,178,551,178,699,170,828,161,828,166,699,176,551,183,407,183,182,178"/>
+<area shape="poly" id="edge10_Node000008_Node000002" title=" " alt="" coords="190,80,223,78,387,71,459,72,552,78,629,90,628,95,551,83,459,77,387,76,223,83,191,85"/>
+</map>

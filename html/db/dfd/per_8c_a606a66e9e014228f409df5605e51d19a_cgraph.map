@@ -1,0 +1,13 @@
+<map id="aper_decode_len_extension_bit" name="aper_decode_len_extension_bit">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,208,80"/>
+<area shape="rect" id="Node000002" href="$d8/d1b/bit-stream_8h.html#a5ae8b276975dc224cdc2a4f49d320baa" title=" " alt="" coords="256,29,372,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="207,52,240,48,240,54,208,58"/>
+<area shape="rect" id="Node000006" href="$d8/d1b/bit-stream_8h.html#a75ece4d468a17d53ff49a6d240c09800" title=" " alt="" coords="279,79,349,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="208,77,263,83,263,88,207,82"/>
+<area shape="rect" id="Node000003" href="$d8/d1b/bit-stream_8h.html#a785b49afc5f57872e0f6cd66adac4067" title=" " alt="" coords="420,5,546,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="372,31,404,27,405,32,373,37"/>
+<area shape="rect" id="Node000004" href="$d8/d1b/bit-stream_8h.html#a9314cf527c89c282a39950c0ef72b97f" title=" " alt="" coords="443,55,523,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="373,48,428,57,427,62,372,54"/>
+<area shape="rect" id="Node000005" href="$d8/d1b/bit-stream_8h.html#ac7c3f7fc264c42a4d53cf5bd3b4e8f49" title=" " alt="" coords="594,55,694,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="524,65,579,65,579,70,524,70"/>
+</map>

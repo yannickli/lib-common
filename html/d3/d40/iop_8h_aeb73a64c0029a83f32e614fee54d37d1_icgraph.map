@@ -1,0 +1,30 @@
+<map id="c_to_camelcase" name="c_to_camelcase">
+<area shape="rect" id="Node000001" title="Convert an identifier from C underscored naming to CamelCase naming." alt="" coords="722,214,838,240"/>
+<area shape="rect" id="Node000002" href="$da/d15/json_8blk.html#a27e7b54c13f1ef6ca370923cd8cdc4ab" title="Unpack a json struct into a C struct." alt="" coords="571,157,674,182"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="727,211,659,185,661,180,729,206"/>
+<area shape="rect" id="Node000008" href="$da/d15/json_8blk.html#a35e658b504c6ad782a36fe53356cb57d" title=" " alt="" coords="304,94,405,120"/>
+<area shape="poly" id="edge20_Node000001_Node000008" title=" " alt="" coords="706,222,640,213,570,197,464,160,381,122,383,117,466,155,571,192,641,207,707,217"/>
+<area shape="rect" id="Node000003" href="$da/d15/json_8blk.html#a15830199ba94987c87edfef60871591c" title=" " alt="" coords="166,177,256,202"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="573,190,523,203,450,209,377,209,256,199,256,193,377,204,450,204,522,197,572,185"/>
+<area shape="rect" id="Node000005" href="$da/d15/json_8blk.html#ac3e2708e183ae06d065ec3d9f5b6efe6" title=" " alt="" coords="453,94,523,120"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="560,152,503,122,506,117,562,147"/>
+<area shape="rect" id="Node000007" href="$da/d15/json_8blk.html#a6c0ea4d53fbd6a0f997bac5dbc305e8d" title=" " alt="" coords="167,94,255,120"/>
+<area shape="poly" id="edge19_Node000002_Node000007" title=" " alt="" coords="555,176,437,167,303,147,261,136,226,122,228,117,263,131,305,141,438,162,555,171"/>
+<area shape="rect" id="Node000004" href="$da/d15/json_8blk.html#a95647e5808c60fc30643e189b80fafc4" title=" " alt="" coords="5,177,118,202"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="150,192,118,192,118,187,150,187"/>
+<area shape="poly" id="edge16_Node000005_Node000002" title=" " alt="" coords="538,118,607,154,605,159,535,123"/>
+<area shape="rect" id="Node000006" href="$da/d15/json_8blk.html#a9d7093d9643fe6a219c97bb34534d8ac" title="Unpack a JSON array into a C array." alt="" coords="19,59,104,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="456,85,432,65,404,49,365,38,324,33,282,32,241,36,165,50,105,66,104,61,164,44,241,30,282,27,324,27,366,33,406,44,435,60,460,81"/>
+<area shape="poly" id="edge18_Node000005_Node000007" title=" " alt="" coords="458,87,433,72,405,60,355,51,305,60,265,76,232,96,229,91,262,71,303,55,355,46,406,55,435,67,461,83"/>
+<area shape="poly" id="edge17_Node000005_Node000008" title=" " alt="" coords="437,118,406,118,406,113,437,113"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="95,49,154,27,233,9,276,4,320,3,364,8,406,20,432,34,454,53,484,92,480,95,451,57,429,39,404,25,363,14,320,9,277,9,234,14,156,32,97,54"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="120,74,184,91,182,96,119,79"/>
+<area shape="poly" id="edge9_Node000007_Node000002" title=" " alt="" coords="270,110,304,117,449,140,570,155,570,160,448,145,304,123,269,115"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="151,104,89,88,90,83,153,99"/>
+<area shape="poly" id="edge15_Node000007_Node000007" title=" " alt="" coords="235,81,227,75,211,73,196,74,188,79,187,85,191,92,186,95,181,85,184,76,194,69,211,67,229,70,238,76"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="270,95,304,95,304,101,270,100"/>
+<area shape="poly" id="edge11_Node000008_Node000003" title=" " alt="" coords="319,130,236,178,233,174,316,125"/>
+<area shape="poly" id="edge12_Node000008_Node000005" title=" " alt="" coords="421,95,453,96,453,101,420,100"/>
+<area shape="poly" id="edge14_Node000008_Node000007" title=" " alt="" coords="288,118,255,118,255,112,288,113"/>
+<area shape="poly" id="edge13_Node000008_Node000008" title=" " alt="" coords="377,81,369,75,355,73,341,74,334,79,332,85,336,92,331,95,327,85,330,76,339,69,355,67,371,70,380,77"/>
+</map>

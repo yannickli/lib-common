@@ -1,0 +1,10 @@
+<map id="file_bin_t" name="file_bin_t">
+<area shape="rect" id="Node000001" title=" " alt="" coords="59,462,183,647"/>
+<area shape="rect" id="Node000002" href="$d1/ddc/structlstr__t.html" title="representation of a string with length." alt="" coords="5,214,171,399"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="103,398,109,445,104,446,98,399"/>
+<area shape="rect" id="Node000003" href="$d8/d4d/structsb__t.html" title=" " alt="" coords="195,244,279,369"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="211,370,174,448,169,445,206,367"/>
+<area shape="rect" id="Node000004" href="$d4/de3/structmem__pool__t.html" title=" " alt="" coords="157,5,317,151"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="240,150,240,227,235,227,235,150"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="318,57,336,64,344,78,341,87,335,93,331,89,337,84,339,78,333,68,316,62"/>
+</map>

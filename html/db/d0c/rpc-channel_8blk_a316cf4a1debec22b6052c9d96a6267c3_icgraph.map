@@ -1,0 +1,5 @@
+<map id="ic_verify_callback" name="ic_verify_callback">
+<area shape="rect" id="Node000001" title="Check the peer certificate is the Intersec&#39;s one." alt="" coords="138,5,262,31"/>
+<area shape="rect" id="Node000002" href="$db/d0c/rpc-channel_8blk.html#a04841c3503d602f02a59221a753909d1" title=" " alt="" coords="5,5,90,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,21,90,21,90,16,122,16"/>
+</map>

@@ -1,0 +1,27 @@
+<map id="unpack_struct" name="unpack_struct">
+<area shape="rect" id="Node000001" title="Unpack a json struct into a C struct." alt="" coords="571,155,674,180"/>
+<area shape="rect" id="Node000002" href="$da/d15/json_8blk.html#a15830199ba94987c87edfef60871591c" title=" " alt="" coords="166,5,256,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="575,151,404,83,256,34,257,29,406,78,577,146"/>
+<area shape="rect" id="Node000004" href="$da/d15/json_8blk.html#ac3e2708e183ae06d065ec3d9f5b6efe6" title=" " alt="" coords="453,155,523,180"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="555,179,523,178,523,173,555,174"/>
+<area shape="rect" id="Node000006" href="$da/d15/json_8blk.html#a6c0ea4d53fbd6a0f997bac5dbc305e8d" title=" " alt="" coords="167,155,255,180"/>
+<area shape="poly" id="edge18_Node000001_Node000006" title=" " alt="" coords="585,189,530,205,460,219,382,225,303,218,257,203,221,183,224,178,259,198,305,213,382,219,459,213,529,200,583,184"/>
+<area shape="rect" id="Node000003" href="$da/d15/json_8blk.html#a95647e5808c60fc30643e189b80fafc4" title=" " alt="" coords="5,5,118,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="150,21,118,21,118,16,150,16"/>
+<area shape="poly" id="edge15_Node000004_Node000001" title=" " alt="" coords="538,156,570,156,570,161,538,161"/>
+<area shape="rect" id="Node000005" href="$da/d15/json_8blk.html#a9d7093d9643fe6a219c97bb34534d8ac" title="Unpack a JSON array into a C array." alt="" coords="19,111,104,136"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="442,149,405,133,364,124,323,118,240,116,164,120,105,126,104,120,164,114,240,110,323,113,365,119,406,128,444,144"/>
+<area shape="poly" id="edge17_Node000004_Node000006" title=" " alt="" coords="439,188,406,195,355,200,304,195,251,184,253,178,304,190,355,195,405,190,438,183"/>
+<area shape="rect" id="Node000007" href="$da/d15/json_8blk.html#a35e658b504c6ad782a36fe53356cb57d" title=" " alt="" coords="304,155,405,180"/>
+<area shape="poly" id="edge16_Node000004_Node000007" title=" " alt="" coords="437,179,406,179,406,174,437,174"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="109,104,170,93,244,87,326,89,406,104,429,113,451,125,481,152,478,156,447,130,427,117,405,109,325,95,244,93,170,99,110,109"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="120,129,188,152,186,157,118,134"/>
+<area shape="poly" id="edge8_Node000006_Node000001" title=" " alt="" coords="270,179,304,189,376,195,448,192,515,182,570,172,571,177,516,187,449,197,376,201,304,194,269,185"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="151,162,84,139,86,134,153,157"/>
+<area shape="poly" id="edge14_Node000006_Node000006" title=" " alt="" coords="235,142,227,136,211,133,196,135,188,140,187,146,191,153,186,155,181,146,184,137,194,130,211,128,229,131,238,137"/>
+<area shape="poly" id="edge9_Node000006_Node000007" title=" " alt="" coords="270,156,304,156,304,162,270,161"/>
+<area shape="poly" id="edge10_Node000007_Node000002" title=" " alt="" coords="329,145,223,33,227,30,332,141"/>
+<area shape="poly" id="edge11_Node000007_Node000004" title=" " alt="" coords="421,156,453,157,453,162,420,161"/>
+<area shape="poly" id="edge13_Node000007_Node000006" title=" " alt="" coords="288,179,255,179,255,173,288,174"/>
+<area shape="poly" id="edge12_Node000007_Node000007" title=" " alt="" coords="377,142,369,136,355,133,341,135,334,140,332,146,336,153,331,155,327,146,330,137,339,130,355,128,371,131,380,137"/>
+</map>

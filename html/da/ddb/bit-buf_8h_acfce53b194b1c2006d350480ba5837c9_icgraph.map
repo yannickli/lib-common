@@ -1,0 +1,7 @@
+<map id="bb_transfer_to_sb" name="bb_transfer_to_sb">
+<area shape="rect" id="Node000001" title="Transfer ownership of the memory to a sb." alt="" coords="198,31,323,56"/>
+<area shape="rect" id="Node000002" href="$db/dfd/per_8c.html#a810ff2f8052e07179fb09eaa4a8a08c3" title=" " alt="" coords="12,5,143,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,35,143,30,143,25,183,30"/>
+<area shape="rect" id="Node000003" href="$d2/d6f/bit-buf_8c.html#af31a575e22f67942b78c9ef715ca77c3" title=" " alt="" coords="5,55,150,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="183,56,150,61,150,55,182,51"/>
+</map>

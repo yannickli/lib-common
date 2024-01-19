@@ -1,0 +1,14 @@
+<map id="formatter_write" name="formatter_write">
+<area shape="rect" id="Node000001" title="Write data to file or buffer." alt="" coords="689,31,797,56"/>
+<area shape="rect" id="Node000002" href="$d0/d2d/iop_8blk.html#a1b89024427d7af91af5482489cb91b24" title=" " alt="" coords="489,5,626,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="673,37,626,30,627,25,674,31"/>
+<area shape="rect" id="Node000006" href="$d0/d2d/iop_8blk.html#a930c705ec7449f3361bbd5339989eccf" title=" " alt="" coords="474,55,641,80"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="674,55,641,59,641,54,673,50"/>
+<area shape="rect" id="Node000003" href="$d0/d2d/iop_8blk.html#a88cd2aeefcd61b9fa99e631290c46997" title=" " alt="" coords="335,31,426,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="474,33,427,40,426,34,474,27"/>
+<area shape="rect" id="Node000004" href="$d0/d2d/iop_8blk.html#a95bd9efc9a7e7d477e6db0a82e383fde" title=" " alt="" coords="150,31,287,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="319,46,287,46,287,41,319,41"/>
+<area shape="rect" id="Node000005" href="$d7/df8/log_8c.html#a083b2e840cc4afee2f08f66c46f4d64d" title=" " alt="" coords="5,31,102,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="134,46,102,46,102,41,134,41"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="458,57,426,52,427,47,459,51"/>
+</map>

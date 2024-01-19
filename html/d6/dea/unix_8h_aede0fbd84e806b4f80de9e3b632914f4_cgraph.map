@@ -1,0 +1,13 @@
+<map id="close_fds_higher_than" name="close_fds_higher_than">
+<area shape="rect" id="Node000001" title="Close all open file descriptors strictly higher than fd_min." alt="" coords="5,55,157,80"/>
+<area shape="rect" id="Node000002" href="$d6/dd2/unix_8blk.html#af03d63725ce7ca3a53cc0d21cff7309c" title="Close all open file descriptors strictly higher than fd_min and not in to_keep." alt="" coords="205,55,282,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,65,189,65,189,70,157,70"/>
+<area shape="rect" id="Node000003" href="$d6/dd2/unix_8blk.html#a73b796fed7ba02b5cd97595a31f9bb90" title="Unix (non&#45;linux) implementation of close_fds." alt="" coords="330,55,437,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="283,65,314,65,314,70,283,70"/>
+<area shape="rect" id="Node000004" href="$d7/d50/sort_8h.html#a483f3145cb3c052cf73e101978f3ebf9" title=" " alt="" coords="485,5,570,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="423,52,473,34,474,39,424,57"/>
+<area shape="rect" id="Node000005" href="$d7/d50/sort_8h.html#a54b121fa24cae30d5ed51a8a093ddedc" title=" " alt="" coords="495,55,560,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="438,65,480,65,480,70,438,70"/>
+<area shape="rect" id="Node000006" href="$d7/d50/sort_8h.html#a625de9b5d87b642403b1ab0f068d3ce3" title=" " alt="" coords="498,104,557,130"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="424,78,484,99,482,104,423,83"/>
+</map>

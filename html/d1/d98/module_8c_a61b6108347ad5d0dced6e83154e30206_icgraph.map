@@ -1,0 +1,6 @@
+<map id="add_dependencies_to_qh" name="add_dependencies_to_qh">
+<area shape="rect" id="Node000001" title="Adds to qh all the modules that are dependent of the module m." alt="" coords="267,29,435,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="393,17,379,11,351,8,325,10,312,15,309,20,315,27,311,31,304,21,308,11,324,5,351,3,381,6,395,13"/>
+<area shape="rect" id="Node000002" href="$d1/d98/module_8c.html#a264aabb6ddc1f97d732a3eb3d33bb6af" title="Checks if the given modules are independent from each other." alt="" coords="5,29,219,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="251,45,219,45,219,40,251,40"/>
+</map>

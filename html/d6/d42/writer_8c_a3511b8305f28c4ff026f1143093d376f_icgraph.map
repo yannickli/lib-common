@@ -1,0 +1,15 @@
+<map id="asn1_pack_choice" name="asn1_pack_choice">
+<area shape="rect" id="Node000001" title=" " alt="" coords="691,107,820,132"/>
+<area shape="rect" id="Node000002" href="$d6/d42/writer_8c.html#a128222fdce8c0c78c1155f5ff9ab691d" title="Serialize a given amount of data following specs." alt="" coords="533,57,643,83"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="694,104,634,86,635,81,695,99"/>
+<area shape="rect" id="Node000003" href="$d6/d42/writer_8c.html#ac86b070d6067201631ef42ad751c75bc" title=" " alt="" coords="379,32,470,58"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="517,62,470,55,471,49,518,57"/>
+<area shape="rect" id="Node000004" href="$d6/d42/writer_8c.html#a87696125c11137fce1e2f60c0d8e2648" title="Serialize a single given field following specs." alt="" coords="363,81,485,107"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="518,83,486,88,485,83,518,78"/>
+<area shape="rect" id="Node000005" href="$d6/d42/writer_8c.html#a6028a3821fcd71c6fc31bea5f6fa008c" title=" " alt="" coords="201,81,315,107"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="347,97,316,97,316,92,347,92"/>
+<area shape="poly" id="edge5_Node000005_Node000001" title=" " alt="" coords="319,109,363,117,452,124,540,126,690,122,690,127,540,131,451,129,363,122,318,114"/>
+<area shape="rect" id="Node000006" href="$d6/d42/writer_8c.html#a4caf7eeb30244526884efc022ec61101" title=" " alt="" coords="5,32,153,58"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="193,79,128,61,129,56,195,74"/>
+<area shape="poly" id="edge7_Node000006_Node000002" title=" " alt="" coords="149,26,220,14,304,5,396,4,441,9,486,17,531,34,568,54,565,59,529,39,485,22,441,14,395,10,305,10,220,19,150,31"/>
+</map>

@@ -1,0 +1,14 @@
+<map id="z_arithint" name="z_arithint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,81,79,107"/>
+<area shape="rect" id="Node000002" href="$dc/df4/int_8c.html#ac8f0d565ecc96980dd88bc8921df851c" title=" " alt="" coords="174,5,216,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,78,125,48,159,32,161,36,128,53,69,83"/>
+<area shape="rect" id="Node000003" href="$dc/df4/int_8c.html#ab971c30a5b04a783d79ffb0714fa320c" title=" " alt="" coords="311,31,388,56"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="78,86,295,50,296,55,79,91"/>
+<area shape="rect" id="Node000005" href="$dc/df4/int_8c.html#a752311ac891f5fa0fd6129de5bf575cd" title=" " alt="" coords="153,107,237,132"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="80,98,138,107,137,113,79,103"/>
+<area shape="rect" id="Node000006" href="$dc/df4/int_8c.html#aa6b102564b371e557f6f2e9c5e1fa013" title="Count the number of multiples of a number in a range." alt="" coords="127,157,263,197"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="65,105,128,143,136,147,133,151,125,147,63,110"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="216,19,296,32,295,37,216,24"/>
+<area shape="rect" id="Node000004" href="$d8/d96/bithacks_8h.html#ad499101939162d9ff6a78d271292f890" title=" " alt="" coords="436,31,490,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="388,41,421,41,421,46,388,46"/>
+</map>
