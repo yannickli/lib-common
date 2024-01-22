@@ -13,55 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -y && \
-          sudo apt-get install -y \
-            clang \
-            curl \
-            exuberant-ctags \
-            flex \
-            gperf \
-            libclang-dev \
-            libssl-dev \
-            libxml2-dev \
-            llvm-dev \
-            pkg-config \
-            python3-dev \
-            python3-pip \
-            smitools \
-            snmp-mibs-downloader \
-            valgrind \
-            doxygen \
-            graphviz
-        env:
-          DEBIAN_FRONTEND: noninteractive
-
-      - name: Update pip and install virtualenv
-        run: |
-          sudo python3 -m pip install --upgrade pip && \
-          sudo python3 -m pip install virtualenv
-
-      - name: Install poetry
-        run: curl -sL https://install.python-poetry.org | python3 - -y
-
-      - name: Update PATH for poetry
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install waf
-        run: |
-          sudo curl https://waf.io/waf-2.0.24 -o /usr/local/bin/waf && \
-          sudo chmod +x /usr/local/bin/waf && \
-          sudo waf --help 2>&1 >/dev/null
-
-      - name: Configure with Clang, default
-        run: waf configure
-        env:
-          CC: clang
-          CXX: clang++
-
-      - name: Build doc using doxygen
-        run: waf doxygen
+      - name: Doxygen Action
+        uses: mattnotmitt/doxygen-action@v1.1.0
+        with:
+          # Path to Doxyfile
+          doxyfile-path: "./Doxyfile" # default is ./Doxyfile
+          # Working directory
+          working-directory: "." # default is .
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
