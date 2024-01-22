@@ -34,7 +34,7 @@
 <text text-anchor="start" x="14" y="-169" font-family="Helvetica,sans-Serif" font-size="10.00">const uint64_t * p</text>
 <text text-anchor="start" x="4" y="-154" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="14" y="-154" font-family="Helvetica,sans-Serif" font-size="10.00">union bit_ptroff::</text>
-<text text-anchor="start" x="14" y="-142.75" font-family="Helvetica,sans-Serif" font-size="10.00">@9 @10</text>
+<text text-anchor="start" x="14" y="-142.75" font-family="Helvetica,sans-Serif" font-size="10.00">@11 @12</text>
 <text text-anchor="start" x="4" y="-128" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="14" y="-128" font-family="Helvetica,sans-Serif" font-size="10.00">size_t offset</text>
 <text text-anchor="start" x="44.5" y="-113" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>

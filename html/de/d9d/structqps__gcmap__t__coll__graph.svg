@@ -52,7 +52,7 @@
 <text text-anchor="start" x="17" y="-740" font-family="Helvetica,sans-Serif" font-size="10.00">uint32_t disk_usage</text>
 <text text-anchor="start" x="7" y="-725" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="17" y="-725" font-family="Helvetica,sans-Serif" font-size="10.00">struct qps_map_t::</text>
-<text text-anchor="start" x="17" y="-713.75" font-family="Helvetica,sans-Serif" font-size="10.00">@180 hdr</text>
+<text text-anchor="start" x="17" y="-713.75" font-family="Helvetica,sans-Serif" font-size="10.00">@189 hdr</text>
 <text text-anchor="start" x="7" y="-699" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="17" y="-699" font-family="Helvetica,sans-Serif" font-size="10.00">uint8_t data</text>
 <text text-anchor="start" x="53.5" y="-684" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>
@@ -109,9 +109,9 @@
 <text text-anchor="start" x="396" y="-110.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="406" y="-110.5" font-family="Helvetica,sans-Serif" font-size="10.00">uint32_t l2_bitmap</text>
 <text text-anchor="start" x="396" y="-95.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
-<text text-anchor="start" x="406" y="-95.5" font-family="Helvetica,sans-Serif" font-size="10.00">struct qps_t::@181 pgs</text>
+<text text-anchor="start" x="406" y="-95.5" font-family="Helvetica,sans-Serif" font-size="10.00">struct qps_t::@190 pgs</text>
 <text text-anchor="start" x="396" y="-80.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
-<text text-anchor="start" x="406" y="-80.5" font-family="Helvetica,sans-Serif" font-size="10.00">struct qps_t::@182 m</text>
+<text text-anchor="start" x="406" y="-80.5" font-family="Helvetica,sans-Serif" font-size="10.00">struct qps_t::@191 m</text>
 <text text-anchor="start" x="396" y="-65.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="406" y="-65.5" font-family="Helvetica,sans-Serif" font-size="10.00">qv_t(qpsm) maps</text>
 <text text-anchor="start" x="396" y="-50.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>

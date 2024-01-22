@@ -60,7 +60,7 @@
 <text text-anchor="start" x="25.5" y="-329.75" font-family="Helvetica,sans-Serif" font-size="10.00">unsigned compact</text>
 <text text-anchor="start" x="15.5" y="-314.75" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="25.5" y="-314.75" font-family="Helvetica,sans-Serif" font-size="10.00">struct qhat_node_t</text>
-<text text-anchor="start" x="25.5" y="-303.5" font-family="Helvetica,sans-Serif" font-size="10.00">::@183 @184</text>
+<text text-anchor="start" x="25.5" y="-303.5" font-family="Helvetica,sans-Serif" font-size="10.00">::@181 @182</text>
 <text text-anchor="start" x="15.5" y="-288.75" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="25.5" y="-288.75" font-family="Helvetica,sans-Serif" font-size="10.00">uint32_t value</text>
 <text text-anchor="start" x="59" y="-273.75" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>

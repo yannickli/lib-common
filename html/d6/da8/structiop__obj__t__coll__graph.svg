@@ -17,7 +17,7 @@
 <text text-anchor="start" x="593" y="-35.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="603" y="-35.5" font-family="Helvetica,sans-Serif" font-size="10.00">iop_obj_type_t type</text>
 <text text-anchor="start" x="593" y="-20.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
-<text text-anchor="start" x="603" y="-20.5" font-family="Helvetica,sans-Serif" font-size="10.00">union iop_obj_t::@138 desc</text>
+<text text-anchor="start" x="603" y="-20.5" font-family="Helvetica,sans-Serif" font-size="10.00">union iop_obj_t::@134 desc</text>
 <text text-anchor="start" x="655.5" y="-5.5" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>
 <polygon fill="#666666" stroke="#666666" points="589,-47 589,-47 725,-47 725,-47 589,-47"/>
 <polygon fill="#666666" stroke="#666666" points="589,-17 589,-17 601,-17 601,-17 589,-17"/>

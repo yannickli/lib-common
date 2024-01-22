@@ -125,10 +125,10 @@ $(function() { codefold.init(1); });
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="keyword">static</span> <span class="keyword">struct </span>{</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno"><a class="line" href="../../d6/dcc/thr_8c.html#a82c482fb4128b8458fca1eb0218b6f7a">   39</a></span>    pthread_once_t <a class="code hl_variable" href="../../d6/dcc/thr_8c.html#a82c482fb4128b8458fca1eb0218b6f7a">key_once</a>;</div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno"><a class="line" href="../../d6/dcc/thr_8c.html#ac256ecc480ba7aaf877e07aed0a791bf">   40</a></span>    pthread_key_t  <a class="code hl_variable" href="../../d6/dcc/thr_8c.html#ac256ecc480ba7aaf877e07aed0a791bf">key</a>;</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>} <a class="code hl_variable" href="../../d6/dcc/thr_8c.html#a6495adaf58196be54f8b074d55e4a48a">core_thread_g</a> = {</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>} <a class="code hl_variable" href="../../d6/dcc/thr_8c.html#a98d6314b8e076f4d40d386c829286592">core_thread_g</a> = {</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="preprocessor">#define _G  core_thread_g</span></div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    .key_once = PTHREAD_ONCE_INIT,</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno"><a class="line" href="../../d6/dcc/thr_8c.html#a6495adaf58196be54f8b074d55e4a48a">   44</a></span>};</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno"><a class="line" href="../../d6/dcc/thr_8c.html#a98d6314b8e076f4d40d386c829286592">   44</a></span>};</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
 <div class="foldopen" id="foldopen00046" data-start="{" data-end="}">
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno"><a class="line" href="../../d6/dcc/thr_8c.html#ace5cc2add50fda5c6610a9ff6c6134c0">   46</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="../../d6/dcc/thr_8c.html#ace5cc2add50fda5c6610a9ff6c6134c0">thr_detach</a>(<span class="keywordtype">void</span>)</div>
@@ -292,9 +292,9 @@ $(function() { codefold.init(1); });
 <div class="ttc" id="athr_8c_html_a44fed46bf53a27a3a7a2f4e30b0a00c1"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a44fed46bf53a27a3a7a2f4e30b0a00c1">thr_hooks_shutdown</a></div><div class="ttdeci">static int thr_hooks_shutdown(void)</div><div class="ttdef"><b>Definition</b> <a href="#l00138">thr.c:138</a></div></div>
 <div class="ttc" id="athr_8c_html_a4888a6647e98910ac529aff5c9a9758a"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a4888a6647e98910ac529aff5c9a9758a">thr_hooks_at_exit</a></div><div class="ttdeci">static void thr_hooks_at_exit(void *unused)</div><div class="ttdef"><b>Definition</b> <a href="#l00054">thr.c:54</a></div></div>
 <div class="ttc" id="athr_8c_html_a571d312d0e337a446a972df1f3a7838f"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a571d312d0e337a446a972df1f3a7838f">thr_hooks_key_setup</a></div><div class="ttdeci">static void thr_hooks_key_setup(void)</div><div class="ttdef"><b>Definition</b> <a href="#l00064">thr.c:64</a></div></div>
-<div class="ttc" id="athr_8c_html_a6495adaf58196be54f8b074d55e4a48a"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a6495adaf58196be54f8b074d55e4a48a">core_thread_g</a></div><div class="ttdeci">static struct @111 core_thread_g</div></div>
 <div class="ttc" id="athr_8c_html_a69433f22225decba0f8c620b60d9873b"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a69433f22225decba0f8c620b60d9873b">thr_hooks_atfork_in_child</a></div><div class="ttdeci">static void thr_hooks_atfork_in_child(void)</div><div class="ttdef"><b>Definition</b> <a href="#l00059">thr.c:59</a></div></div>
 <div class="ttc" id="athr_8c_html_a82c482fb4128b8458fca1eb0218b6f7a"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a82c482fb4128b8458fca1eb0218b6f7a">key_once</a></div><div class="ttdeci">pthread_once_t key_once</div><div class="ttdef"><b>Definition</b> <a href="#l00039">thr.c:39</a></div></div>
+<div class="ttc" id="athr_8c_html_a98d6314b8e076f4d40d386c829286592"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a98d6314b8e076f4d40d386c829286592">core_thread_g</a></div><div class="ttdeci">static struct @110 core_thread_g</div></div>
 <div class="ttc" id="athr_8c_html_a9c1c4f9fca6b868294393d4964578be6"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#a9c1c4f9fca6b868294393d4964578be6">thr_create</a></div><div class="ttdeci">int thr_create(pthread_t *restrict thread, const pthread_attr_t *restrict attr, void *(*fn)(void *), void *restrict arg)</div><div class="ttdef"><b>Definition</b> <a href="#l00094">thr.c:94</a></div></div>
 <div class="ttc" id="athr_8c_html_aaca3e757349108160b41ee741acf41ea"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#aaca3e757349108160b41ee741acf41ea">pthread_force_use</a></div><div class="ttdeci">void pthread_force_use(void)</div><div class="ttdoc">pulls the pthread hook module (forces a dependency upon pthreads).</div><div class="ttdef"><b>Definition</b> <a href="#l00129">thr.c:129</a></div></div>
 <div class="ttc" id="athr_8c_html_ab02f87e54c6e8a85867c6a63e61583d5"><div class="ttname"><a href="../../d6/dcc/thr_8c.html#ab02f87e54c6e8a85867c6a63e61583d5">thr_hooks_register</a></div><div class="ttdeci">void thr_hooks_register(void)</div><div class="ttdef"><b>Definition</b> <a href="#l00150">thr.c:150</a></div></div>
@@ -307,7 +307,7 @@ $(function() { codefold.init(1); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jan 19 2024 14:39:57 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
+Generated on Mon Jan 22 2024 07:38:55 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
 </small></address>
 </body>
 </html>

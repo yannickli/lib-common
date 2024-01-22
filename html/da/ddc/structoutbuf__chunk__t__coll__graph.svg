@@ -30,7 +30,7 @@
 <text text-anchor="start" x="14" y="-46.5" font-family="Helvetica,sans-Serif" font-size="10.00">void *nonnull vp</text>
 <text text-anchor="start" x="4" y="-31.5" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="14" y="-31.5" font-family="Helvetica,sans-Serif" font-size="10.00">union outbuf_chunk</text>
-<text text-anchor="start" x="14" y="-20.25" font-family="Helvetica,sans-Serif" font-size="10.00">_t::@195 u</text>
+<text text-anchor="start" x="14" y="-20.25" font-family="Helvetica,sans-Serif" font-size="10.00">_t::@193 u</text>
 <text text-anchor="start" x="57" y="-5.5" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>
 <polygon fill="#666666" stroke="#666666" points="0,-148 0,-148 117,-148 117,-148 0,-148"/>
 <polygon fill="#666666" stroke="#666666" points="0,-17 0,-17 12,-17 12,-17 0,-17"/>

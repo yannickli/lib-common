@@ -933,9 +933,8 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">    <a class="code hl_define" href="../../d3/d2d/compat_8h.html#a3472d8cdbb788d5f1815b3522595bc49">EXPORT</a> <a class="code hl_struct" href="../../d8/dd2/structiop__pkg__t.html">iop_pkg_t</a> <span class="keyword">const</span> * <a class="code hl_define" href="../../d7/d26/group__generic__macros.html#ga02648067ad66739ed70a10195891098a">nullable</a> <span class="keyword">const</span> <a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#a9435f06570130fec6329aed11ee4d73c">iop_packages</a>[];   \</div>
-<div class="line">    <a class="code hl_struct" href="../../d8/dd2/structiop__pkg__t.html">iop_pkg_t</a> <span class="keyword">const</span> * <span class="keyword">const</span> <a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#a9435f06570130fec6329aed11ee4d73c">iop_packages</a>[] = { __VA_ARGS__, NULL }</div>
-<div class="ttc" id="aiop-plugin_8c_html_a9435f06570130fec6329aed11ee4d73c"><div class="ttname"><a href="../../dc/d94/iop-plugin_8c.html#a9435f06570130fec6329aed11ee4d73c">iop_packages</a></div><div class="ttdeci">EXPORT iop_pkg_t const  *nullable const iop_packages[]</div><div class="ttdef"><b>Definition</b> <a href="../../dc/d94/iop-plugin_8c_source.html#l00024">iop-plugin.c:24</a></div></div>
+<b>Value:</b><div class="fragment"><div class="line">    <a class="code hl_define" href="../../d3/d2d/compat_8h.html#a3472d8cdbb788d5f1815b3522595bc49">EXPORT</a> <a class="code hl_struct" href="../../d8/dd2/structiop__pkg__t.html">iop_pkg_t</a> <span class="keyword">const</span> * <a class="code hl_define" href="../../d7/d26/group__generic__macros.html#ga02648067ad66739ed70a10195891098a">nullable</a> <span class="keyword">const</span> iop_packages[];   \</div>
+<div class="line">    <a class="code hl_struct" href="../../d8/dd2/structiop__pkg__t.html">iop_pkg_t</a> <span class="keyword">const</span> * <span class="keyword">const</span> iop_packages[] = { __VA_ARGS__, NULL }</div>
 <div class="ttc" id="astructiop__pkg__t_html"><div class="ttname"><a href="../../d8/dd2/structiop__pkg__t.html">iop_pkg_t</a></div><div class="ttdef"><b>Definition</b> <a href="../../dd/da3/internals_8h_source.html#l00567">internals.h:567</a></div></div>
 </div><!-- fragment -->
 <p class="definition">Definition at line <a class="el" href="../../dd/da3/internals_8h_source.html#l00636">636</a> of file <a class="el" href="../../dd/da3/internals_8h_source.html">internals.h</a>.</p>
@@ -966,18 +965,17 @@ Variables</h2></td></tr>
 <div class="line">        va_list <a class="code hl_variable" href="../../dc/df9/z_8blk.html#ac959bfda01880938c8ff143206a1dfaa">ap</a>;                                                     \</div>
 <div class="line">                                                                        \</div>
 <div class="line">        va_start(<a class="code hl_variable" href="../../dc/df9/z_8blk.html#ac959bfda01880938c8ff143206a1dfaa">ap</a>, <a class="code hl_variable" href="../../dc/df9/z_8blk.html#a7efeba8874966c8332da285775f362b6">fmt</a>);                                              \</div>
-<div class="line">        if (NULL == <a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#ad74780ca8a87579ce1b3f91de2cfa61b">iop_vtable</a>.iop_set_verr) {                          \</div>
+<div class="line">        if (NULL == iop_vtable.iop_set_verr) {                          \</div>
 <div class="line">            fputs(<span class="stringliteral">&quot;iop_vtable.iop_set_verr not defined&quot;</span>, stderr);       \</div>
 <div class="line">            exit(1);                                                    \</div>
 <div class="line">        }                                                               \</div>
-<div class="line">        (<a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#ad74780ca8a87579ce1b3f91de2cfa61b">iop_vtable</a>.iop_set_verr)(<a class="code hl_variable" href="../../dc/df9/z_8blk.html#a7efeba8874966c8332da285775f362b6">fmt</a>, <a class="code hl_variable" href="../../dc/df9/z_8blk.html#ac959bfda01880938c8ff143206a1dfaa">ap</a>);                             \</div>
+<div class="line">        (iop_vtable.iop_set_verr)(<a class="code hl_variable" href="../../dc/df9/z_8blk.html#a7efeba8874966c8332da285775f362b6">fmt</a>, <a class="code hl_variable" href="../../dc/df9/z_8blk.html#ac959bfda01880938c8ff143206a1dfaa">ap</a>);                             \</div>
 <div class="line">        va_end(<a class="code hl_variable" href="../../dc/df9/z_8blk.html#ac959bfda01880938c8ff143206a1dfaa">ap</a>);                                                     \</div>
 <div class="line">        <span class="keywordflow">return</span> -1;                                                      \</div>
 <div class="line">    }                                                                   \</div>
 <div class="ttc" id="agroup__generic__macros_html_ga1a7066a31c058653905186805a59f858"><div class="ttname"><a href="../../d7/d26/group__generic__macros.html#ga1a7066a31c058653905186805a59f858">nonnull</a></div><div class="ttdeci">#define nonnull</div><div class="ttdef"><b>Definition</b> <a href="../../da/dec/core_2macros_8h_source.html#l00076">core/macros.h:76</a></div></div>
 <div class="ttc" id="ainternals_8h_html_a19323019851cd07d99ee2595e4668e27"><div class="ttname"><a href="#a19323019851cd07d99ee2595e4668e27">iop__void__s</a></div><div class="ttdeci">EXPORT iop_struct_t const iop__void__s</div><div class="ttdef"><b>Definition</b> <a href="../../dd/da3/internals_8h_source.html#l00614">internals.h:614</a></div></div>
 <div class="ttc" id="ainternals_8h_html_a881c978d2f0c9af2417e58b10b6811a2"><div class="ttname"><a href="#a881c978d2f0c9af2417e58b10b6811a2">iop__void__sp</a></div><div class="ttdeci">EXPORT iop_struct_t const  *const nonnull iop__void__sp</div><div class="ttdef"><b>Definition</b> <a href="../../dd/da3/internals_8h_source.html#l00615">internals.h:615</a></div></div>
-<div class="ttc" id="aiop-plugin_8c_html_ad74780ca8a87579ce1b3f91de2cfa61b"><div class="ttname"><a href="../../dc/d94/iop-plugin_8c.html#ad74780ca8a87579ce1b3f91de2cfa61b">iop_vtable</a></div><div class="ttdeci">EXPORT iop_dso_vt_t iop_vtable</div><div class="ttdef"><b>Definition</b> <a href="../../dc/d94/iop-plugin_8c_source.html#l00022">iop-plugin.c:22</a></div></div>
 <div class="ttc" id="aiop_8blk_html_a99d5b583e03768c1b4bb9934e4c533d5"><div class="ttname"><a href="../../d0/d2d/iop_8blk.html#a99d5b583e03768c1b4bb9934e4c533d5">iop_set_err</a></div><div class="ttdeci">int iop_set_err(const char *fmt,...)</div><div class="ttdef"><b>Definition</b> <a href="../../d0/d2d/iop_8blk_source.html#l03231">iop.blk:3231</a></div></div>
 <div class="ttc" id="astr-l_8h_html_a2a21c5d8332e6579321198b4855fcb87"><div class="ttname"><a href="../../df/d0a/str-l_8h.html#a2a21c5d8332e6579321198b4855fcb87">LSTR_IMMED</a></div><div class="ttdeci">#define LSTR_IMMED(str)</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0a/str-l_8h_source.html#l00051">str-l.h:51</a></div></div>
 <div class="ttc" id="astructiop__struct__t_html"><div class="ttname"><a href="../../da/dea/structiop__struct__t.html">iop_struct_t</a></div><div class="ttdef"><b>Definition</b> <a href="../../dd/da3/internals_8h_source.html#l00368">internals.h:368</a></div></div>
@@ -1000,8 +998,8 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">    <a class="code hl_define" href="../../d3/d2d/compat_8h.html#a3472d8cdbb788d5f1815b3522595bc49">EXPORT</a> <a class="code hl_struct" href="../../d6/db9/structiop__dso__vt__t.html">iop_dso_vt_t</a> <a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#ad74780ca8a87579ce1b3f91de2cfa61b">iop_vtable</a>;                                     \</div>
-<div class="line">    <a class="code hl_struct" href="../../d6/db9/structiop__dso__vt__t.html">iop_dso_vt_t</a> <a class="code hl_variable" href="../../dc/d94/iop-plugin_8c.html#ad74780ca8a87579ce1b3f91de2cfa61b">iop_vtable</a> = {                                         \</div>
+<b>Value:</b><div class="fragment"><div class="line">    <a class="code hl_define" href="../../d3/d2d/compat_8h.html#a3472d8cdbb788d5f1815b3522595bc49">EXPORT</a> <a class="code hl_struct" href="../../d6/db9/structiop__dso__vt__t.html">iop_dso_vt_t</a> iop_vtable;                                     \</div>
+<div class="line">    <a class="code hl_struct" href="../../d6/db9/structiop__dso__vt__t.html">iop_dso_vt_t</a> iop_vtable = {                                         \</div>
 <div class="line">        .<a class="code hl_variable" href="../../d6/db9/structiop__dso__vt__t.html#a7c1d523f124da1ce2336bc2cd11d3d2e">vt_size</a> = <span class="keyword">sizeof</span>(<a class="code hl_typedef" href="#a4f5e90675c0cf586e1e9c1356c16c2c5">iop_dso_vt_t</a>),                                \</div>
 <div class="line">        .<a class="code hl_function" href="../../d0/d2d/iop_8blk.html#a80a43668828f72316f0f32e18429d97b">iop_set_verr</a> = NULL,                                           \</div>
 <div class="line">    };</div>
@@ -2884,7 +2882,7 @@ Here is the caller graph for this function:</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jan 19 2024 14:40:03 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
+Generated on Mon Jan 22 2024 07:39:01 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
 </small></address>
 </body>
 </html>

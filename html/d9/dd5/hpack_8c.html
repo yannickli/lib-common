@@ -275,7 +275,7 @@ Macros</h2></td></tr>
 <tr class="separator:a5145f6e488e22cb38737bbea40a0f1f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a222f9860ae862fbc3aa6bc2bf4c09081" id="r_a222f9860ae862fbc3aa6bc2bf4c09081"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a222f9860ae862fbc3aa6bc2bf4c09081">STBL_ITEM</a>(k,  v)&#160;&#160;&#160;{ <a class="el" href="../../df/d0a/str-l_8h.html#a2a21c5d8332e6579321198b4855fcb87">LSTR_IMMED</a>(<a class="el" href="#a7bee4e1a925ccffeee9284b6e05b1a9e">TK_STR</a>(k)), <a class="el" href="../../df/d0a/str-l_8h.html#a2a21c5d8332e6579321198b4855fcb87">LSTR_IMMED</a>(<a class="el" href="#a7bee4e1a925ccffeee9284b6e05b1a9e">TK_STR</a>(v)) }</td></tr>
 <tr class="separator:a222f9860ae862fbc3aa6bc2bf4c09081"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5ccf356c63a3c491b9d43769ed518c89" id="r_a5ccf356c63a3c491b9d43769ed518c89"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ccf356c63a3c491b9d43769ed518c89">STBL_ITEMS_COUNT</a>&#160;&#160;&#160;(<a class="el" href="../../d7/d26/group__generic__macros.html#ga28bb744b2aba938f09c7bfe1afbe44fa">countof</a>(<a class="el" href="#a984f086a44be0a971f22ca360b5bf885">hpack_stbl_g</a>))</td></tr>
+<tr class="memitem:a5ccf356c63a3c491b9d43769ed518c89" id="r_a5ccf356c63a3c491b9d43769ed518c89"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5ccf356c63a3c491b9d43769ed518c89">STBL_ITEMS_COUNT</a>&#160;&#160;&#160;(<a class="el" href="../../d7/d26/group__generic__macros.html#ga28bb744b2aba938f09c7bfe1afbe44fa">countof</a>(<a class="el" href="#aad4eb21cc5bf3585e0a574cf534637bd">hpack_stbl_g</a>))</td></tr>
 <tr class="separator:a5ccf356c63a3c491b9d43769ed518c89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a88399fe2352e139a7bff48dd29e59f07" id="r_a88399fe2352e139a7bff48dd29e59f07"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a88399fe2352e139a7bff48dd29e59f07">HPACK_STBL_IDX_MAX</a>&#160;&#160;&#160;(<a class="el" href="#a5ccf356c63a3c491b9d43769ed518c89">STBL_ITEMS_COUNT</a> - 1) /* 61 */</td></tr>
 <tr class="separator:a88399fe2352e139a7bff48dd29e59f07"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -302,16 +302,16 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:a5efefa44b296976f2147b8acbed1752c" id="r_a5efefa44b296976f2147b8acbed1752c"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
-&#160;&#160;<a class="el" href="#a5efefa44b296976f2147b8acbed1752cabe965011891a98ec56c5e5060dbf705e">XHDR_ADD_DTBL</a> = 1 &lt;&lt; 0
-, <a class="el" href="#a5efefa44b296976f2147b8acbed1752caed65590d9b47dfcdf8928ea9a3598fce">XHDR_NEW_KEY</a> = 1 &lt;&lt; 1
-, <a class="el" href="#a5efefa44b296976f2147b8acbed1752ca54066796010b28083baf8c2857ca3ad7">XHDR_NEW_VAL</a> = 1 &lt;&lt; 2
-, <a class="el" href="#a5efefa44b296976f2147b8acbed1752ca8ec8dc5e5967e9139a8f3b486f3d439f">XHDR_RAW_KEY</a> = 1 &lt;&lt; 3
+<tr class="memitem:a3d01b665f7e924f5f97fa41f5879c7f7" id="r_a3d01b665f7e924f5f97fa41f5879c7f7"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<a class="el" href="#a3d01b665f7e924f5f97fa41f5879c7f7abe965011891a98ec56c5e5060dbf705e">XHDR_ADD_DTBL</a> = 1 &lt;&lt; 0
+, <a class="el" href="#a3d01b665f7e924f5f97fa41f5879c7f7aed65590d9b47dfcdf8928ea9a3598fce">XHDR_NEW_KEY</a> = 1 &lt;&lt; 1
+, <a class="el" href="#a3d01b665f7e924f5f97fa41f5879c7f7a54066796010b28083baf8c2857ca3ad7">XHDR_NEW_VAL</a> = 1 &lt;&lt; 2
+, <a class="el" href="#a3d01b665f7e924f5f97fa41f5879c7f7a8ec8dc5e5967e9139a8f3b486f3d439f">XHDR_RAW_KEY</a> = 1 &lt;&lt; 3
 , <br />
-&#160;&#160;<a class="el" href="#a5efefa44b296976f2147b8acbed1752caf785f30de8b0a206daa8bb555f635217">XHDR_RAW_VAL</a> = 1 &lt;&lt; 4
+&#160;&#160;<a class="el" href="#a3d01b665f7e924f5f97fa41f5879c7f7af785f30de8b0a206daa8bb555f635217">XHDR_RAW_VAL</a> = 1 &lt;&lt; 4
 <br />
  }</td></tr>
-<tr class="separator:a5efefa44b296976f2147b8acbed1752c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a3d01b665f7e924f5f97fa41f5879c7f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -383,24 +383,24 @@ Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a984f086a44be0a971f22ca360b5bf885" id="r_a984f086a44be0a971f22ca360b5bf885"><td class="memItemLeft" >struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:aad4eb21cc5bf3585e0a574cf534637bd" id="r_aad4eb21cc5bf3585e0a574cf534637bd"><td class="memItemLeft" >struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a84bef1a5bc14b9ad113f3ff8bf210b01" id="r_a84bef1a5bc14b9ad113f3ff8bf210b01"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d1/ddc/structlstr__t.html">lstr_t</a>&#160;&#160;&#160;<a class="el" href="#a7dc6faa833766a9c3b744abee0e9a417">key</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:a84bef1a5bc14b9ad113f3ff8bf210b01"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7a0dce1199d73acc8079041d0945dd35" id="r_a7a0dce1199d73acc8079041d0945dd35"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d1/ddc/structlstr__t.html">lstr_t</a>&#160;&#160;&#160;<a class="el" href="#a82aaf8f47bfdd1b83d70bf624129bb0c">val</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:a7a0dce1199d73acc8079041d0945dd35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a984f086a44be0a971f22ca360b5bf885" id="r_a984f086a44be0a971f22ca360b5bf885"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a984f086a44be0a971f22ca360b5bf885">hpack_stbl_g</a> []&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:a984f086a44be0a971f22ca360b5bf885"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5fa47972fcfe8a4c7551593b1b367c8f" id="r_a5fa47972fcfe8a4c7551593b1b367c8f"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d1/ddc/structlstr__t.html">lstr_t</a>&#160;&#160;&#160;<a class="el" href="#a7dc6faa833766a9c3b744abee0e9a417">key</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a5fa47972fcfe8a4c7551593b1b367c8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac19ed02a863d9b2c8b44794bb37cbcfd" id="r_ac19ed02a863d9b2c8b44794bb37cbcfd"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d1/ddc/structlstr__t.html">lstr_t</a>&#160;&#160;&#160;<a class="el" href="#a82aaf8f47bfdd1b83d70bf624129bb0c">val</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:ac19ed02a863d9b2c8b44794bb37cbcfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad4eb21cc5bf3585e0a574cf534637bd" id="r_aad4eb21cc5bf3585e0a574cf534637bd"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aad4eb21cc5bf3585e0a574cf534637bd">hpack_stbl_g</a> []&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:aad4eb21cc5bf3585e0a574cf534637bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4491cce71d4bd33342b5546e2e53c822" id="r_a4491cce71d4bd33342b5546e2e53c822"><td class="memItemLeft" align="right" valign="top">static uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4491cce71d4bd33342b5546e2e53c822">hpack_stbl_key_hash_g</a> [253]</td></tr>
 <tr class="separator:a4491cce71d4bd33342b5546e2e53c822"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca53be0657255b075937e85221eda91d" id="r_aca53be0657255b075937e85221eda91d"><td class="memItemLeft" align="right" valign="top">static const uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aca53be0657255b075937e85221eda91d">hpack_stbl_val_hash_g</a> [31]</td></tr>
 <tr class="separator:aca53be0657255b075937e85221eda91d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c8bd5788087bf2a0f1242b7fadd68fa" id="r_a0c8bd5788087bf2a0f1242b7fadd68fa"><td class="memItemLeft" >struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="memitem:afcde9d17771c4f70ab2f79965c853fbf" id="r_afcde9d17771c4f70ab2f79965c853fbf"><td class="memItemLeft" >struct {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe22f6eeb84660aa7522852435026dde" id="r_afe22f6eeb84660aa7522852435026dde"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d5/d64/structlogger__t.html">logger_t</a>&#160;&#160;&#160;<a class="el" href="#a45517d0686b5a00c9a46cdc97648aa10">logger</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:afe22f6eeb84660aa7522852435026dde"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c8bd5788087bf2a0f1242b7fadd68fa" id="r_a0c8bd5788087bf2a0f1242b7fadd68fa"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0c8bd5788087bf2a0f1242b7fadd68fa">hpack_g</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:a0c8bd5788087bf2a0f1242b7fadd68fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1b4c56be83ebd6b35cec42f2cdd8dbd" id="r_aa1b4c56be83ebd6b35cec42f2cdd8dbd"><td class="memItemLeft" >&#160;&#160;&#160;<a class="el" href="../../d5/d64/structlogger__t.html">logger_t</a>&#160;&#160;&#160;<a class="el" href="#a45517d0686b5a00c9a46cdc97648aa10">logger</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:aa1b4c56be83ebd6b35cec42f2cdd8dbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcde9d17771c4f70ab2f79965c853fbf" id="r_afcde9d17771c4f70ab2f79965c853fbf"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afcde9d17771c4f70ab2f79965c853fbf">hpack_g</a>&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:afcde9d17771c4f70ab2f79965c853fbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a4985e8f93ec4d844193bad891e1ea0c2" name="a4985e8f93ec4d844193bad891e1ea0c2"></a>
@@ -665,7 +665,7 @@ Variables</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define STBL_ITEMS_COUNT&#160;&#160;&#160;(<a class="el" href="../../d7/d26/group__generic__macros.html#ga28bb744b2aba938f09c7bfe1afbe44fa">countof</a>(<a class="el" href="#a984f086a44be0a971f22ca360b5bf885">hpack_stbl_g</a>))</td>
+          <td class="memname">#define STBL_ITEMS_COUNT&#160;&#160;&#160;(<a class="el" href="../../d7/d26/group__generic__macros.html#ga28bb744b2aba938f09c7bfe1afbe44fa">countof</a>(<a class="el" href="#aad4eb21cc5bf3585e0a574cf534637bd">hpack_stbl_g</a>))</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -2206,8 +2206,8 @@ Variables</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="a5efefa44b296976f2147b8acbed1752c" name="a5efefa44b296976f2147b8acbed1752c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5efefa44b296976f2147b8acbed1752c">&#9670;&#160;</a></span>anonymous enum</h2>
+<a id="a3d01b665f7e924f5f97fa41f5879c7f7" name="a3d01b665f7e924f5f97fa41f5879c7f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3d01b665f7e924f5f97fa41f5879c7f7">&#9670;&#160;</a></span>anonymous enum</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2218,11 +2218,11 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a5efefa44b296976f2147b8acbed1752cabe965011891a98ec56c5e5060dbf705e" name="a5efefa44b296976f2147b8acbed1752cabe965011891a98ec56c5e5060dbf705e"></a>XHDR_ADD_DTBL&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a5efefa44b296976f2147b8acbed1752caed65590d9b47dfcdf8928ea9a3598fce" name="a5efefa44b296976f2147b8acbed1752caed65590d9b47dfcdf8928ea9a3598fce"></a>XHDR_NEW_KEY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a5efefa44b296976f2147b8acbed1752ca54066796010b28083baf8c2857ca3ad7" name="a5efefa44b296976f2147b8acbed1752ca54066796010b28083baf8c2857ca3ad7"></a>XHDR_NEW_VAL&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a5efefa44b296976f2147b8acbed1752ca8ec8dc5e5967e9139a8f3b486f3d439f" name="a5efefa44b296976f2147b8acbed1752ca8ec8dc5e5967e9139a8f3b486f3d439f"></a>XHDR_RAW_KEY&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="a5efefa44b296976f2147b8acbed1752caf785f30de8b0a206daa8bb555f635217" name="a5efefa44b296976f2147b8acbed1752caf785f30de8b0a206daa8bb555f635217"></a>XHDR_RAW_VAL&#160;</td><td class="fielddoc"></td></tr>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a3d01b665f7e924f5f97fa41f5879c7f7abe965011891a98ec56c5e5060dbf705e" name="a3d01b665f7e924f5f97fa41f5879c7f7abe965011891a98ec56c5e5060dbf705e"></a>XHDR_ADD_DTBL&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a3d01b665f7e924f5f97fa41f5879c7f7aed65590d9b47dfcdf8928ea9a3598fce" name="a3d01b665f7e924f5f97fa41f5879c7f7aed65590d9b47dfcdf8928ea9a3598fce"></a>XHDR_NEW_KEY&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a3d01b665f7e924f5f97fa41f5879c7f7a54066796010b28083baf8c2857ca3ad7" name="a3d01b665f7e924f5f97fa41f5879c7f7a54066796010b28083baf8c2857ca3ad7"></a>XHDR_NEW_VAL&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a3d01b665f7e924f5f97fa41f5879c7f7a8ec8dc5e5967e9139a8f3b486f3d439f" name="a3d01b665f7e924f5f97fa41f5879c7f7a8ec8dc5e5967e9139a8f3b486f3d439f"></a>XHDR_RAW_KEY&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a3d01b665f7e924f5f97fa41f5879c7f7af785f30de8b0a206daa8bb555f635217" name="a3d01b665f7e924f5f97fa41f5879c7f7af785f30de8b0a206daa8bb555f635217"></a>XHDR_RAW_VAL&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 <p class="definition">Definition at line <a class="el" href="../../d9/dd5/hpack_8c_source.html#l00906">906</a> of file <a class="el" href="../../d9/dd5/hpack_8c_source.html">hpack.c</a>.</p>
@@ -3305,8 +3305,8 @@ Here is the caller graph for this function:</div>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
-<a id="a0c8bd5788087bf2a0f1242b7fadd68fa" name="a0c8bd5788087bf2a0f1242b7fadd68fa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0c8bd5788087bf2a0f1242b7fadd68fa">&#9670;&#160;</a></span>[struct]</h2>
+<a id="afcde9d17771c4f70ab2f79965c853fbf" name="afcde9d17771c4f70ab2f79965c853fbf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcde9d17771c4f70ab2f79965c853fbf">&#9670;&#160;</a></span>[struct]</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -3323,8 +3323,8 @@ Here is the caller graph for this function:</div>
 </div><!-- fragment -->
 </div>
 </div>
-<a id="a984f086a44be0a971f22ca360b5bf885" name="a984f086a44be0a971f22ca360b5bf885"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a984f086a44be0a971f22ca360b5bf885">&#9670;&#160;</a></span>[struct]</h2>
+<a id="aad4eb21cc5bf3585e0a574cf534637bd" name="aad4eb21cc5bf3585e0a574cf534637bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aad4eb21cc5bf3585e0a574cf534637bd">&#9670;&#160;</a></span>[struct]</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -3445,7 +3445,7 @@ Here is the caller graph for this function:</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Jan 19 2024 14:40:05 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
+Generated on Mon Jan 22 2024 07:39:02 for lib-common by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="../../doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.10.0
 </small></address>
 </body>
 </html>

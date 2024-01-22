@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['o_0',['o',['../d4/d9a/str-conv_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'str-conv.c']]],
-  ['o_1',['O',['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c']]],
+  ['o_0',['O',['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c']]],
+  ['o_1',['o',['../d4/d9a/str-conv_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'str-conv.c']]],
   ['o_5fiswrite_2',['O_ISWRITE',['../d6/dea/unix_8h.html#a156d7146ab603621c49de6892616ab4a',1,'unix.h']]],
   ['ob_3',['ob',['../d0/d71/structhttp2__stream__t.html#ab42196afe2aeabc2111859e510384359',1,'http2_stream_t::ob'],['../dc/d05/structhttp2__conn__t.html#aa1e1886181a28ab5f887254a0d367124',1,'http2_conn_t::ob']]],
   ['ob_5fadd_4',['ob_add',['../d3/d83/str-outbuf_8h.html#ad1299a590545c90eb29533812fab4032',1,'str-outbuf.h']]],
@@ -217,7 +217,7 @@ var searchData=
   ['options_214',['options',['../df/d1f/iopc_8c.html#a55d0573362568c0e9e39a2aa698a39e0',1,'options:&#160;iopc.c'],['../dd/d9a/namespacehpack-generate-huffman-tables.html#aa860ec892ea4c04e0d3e4603d626fd73',1,'hpack-generate-huffman-tables.options()']]],
   ['options_5fg_215',['options_g',['../d5/d5d/pxcc_8c.html#ac733ea3b44035dbb0cf43c6e9a137770',1,'pxcc.c']]],
   ['opts_216',['opts',['../df/d1f/iopc_8c.html#ab3896d644f6de2a6f7e3caf23140c527',1,'opts:&#160;iopc.c'],['../d6/d1d/parseopt_8h.html#af244f437ca635da45ccd0cf17deff3a6',1,'opts:&#160;parseopt.h'],['../d5/d5d/pxcc_8c.html#ad5f452db7d57d231408ef96c09c98f9e',1,'opts:&#160;pxcc.c']]],
-  ['opts_5fg_217',['opts_g',['../db/dae/structopts__g.html',1,'opts_g'],['../d1/d4c/dso2openapi_8c.html#a8e1e29cd847c6218938f76ad24ef9329',1,'opts_g:&#160;dso2openapi.c'],['../d3/dcd/farchc_8c.html#a3216c5ba6940b63d06d4344c099e1ef3',1,'opts_g:&#160;farchc.c'],['../d0/db3/yamlfmt_8c.html#a0e3f2d9c79c0906fa5a5132928356236',1,'opts_g:&#160;yamlfmt.c']]],
+  ['opts_5fg_217',['opts_g',['../db/dae/structopts__g.html',1,'opts_g'],['../d1/d4c/dso2openapi_8c.html#a0e3f2d9c79c0906fa5a5132928356236',1,'opts_g:&#160;dso2openapi.c'],['../d3/dcd/farchc_8c.html#a3216c5ba6940b63d06d4344c099e1ef3',1,'opts_g:&#160;farchc.c'],['../d0/db3/yamlfmt_8c.html#af0608276fe9bc81cbb1f5f248e0dc776',1,'opts_g:&#160;yamlfmt.c']]],
   ['opts_5fgap_218',['OPTS_GAP',['../d3/d47/parseopt_8c.html#a74e6fb6dcc3fb8a8125099722da89973',1,'parseopt.c']]],
   ['opts_5fwidth_219',['OPTS_WIDTH',['../d3/d47/parseopt_8c.html#a941d48a1cf4b50b646fd371001e75c44',1,'parseopt.c']]],
   ['order_220',['order',['../de/dfe/structmodule__method__t.html#a3b31dfcf157de06c2dff4d0eb9b930f5',1,'module_method_t']]],

@@ -170,7 +170,7 @@
 <text text-anchor="start" x="249" y="-626" font-family="Helvetica,sans-Serif" font-size="10.00">bool b</text>
 <text text-anchor="start" x="239" y="-611" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="249" y="-611" font-family="Helvetica,sans-Serif" font-size="10.00">union scalar_value</text>
-<text text-anchor="start" x="249" y="-599.75" font-family="Helvetica,sans-Serif" font-size="10.00">_t::@140 @141</text>
+<text text-anchor="start" x="249" y="-599.75" font-family="Helvetica,sans-Serif" font-size="10.00">_t::@137 @138</text>
 <text text-anchor="start" x="239" y="-585" font-family="Helvetica,sans-Serif" font-size="10.00">+</text>
 <text text-anchor="start" x="249" y="-585" font-family="Helvetica,sans-Serif" font-size="10.00">scalar_type_t type</text>
 <text text-anchor="start" x="282.5" y="-570" font-family="Helvetica,sans-Serif" font-size="10.00"> </text>

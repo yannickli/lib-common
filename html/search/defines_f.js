@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['o_0',['o',['../d4/d9a/str-conv_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'str-conv.c']]],
-  ['o_1',['O',['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c']]],
+  ['o_0',['O',['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#a396fecfabe3105afc15a61c209f910f0',1,'O:&#160;str-conv.c']]],
+  ['o_1',['o',['../d4/d9a/str-conv_8c.html#ac9ba2c61c69c381438f186315b5f2e9b',1,'str-conv.c']]],
   ['o_5fiswrite_2',['O_ISWRITE',['../d6/dea/unix_8h.html#a156d7146ab603621c49de6892616ab4a',1,'unix.h']]],
   ['ob_5fadd_3',['ob_add',['../d3/d83/str-outbuf_8h.html#ad1299a590545c90eb29533812fab4032',1,'str-outbuf.h']]],
   ['ob_5fadd_5fcompressed_4',['ob_add_compressed',['../df/de4/zlib-wrapper_8h.html#ab59a663b4a5441c169cfb0732b609535',1,'zlib-wrapper.h']]],

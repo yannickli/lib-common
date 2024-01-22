@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['l_0',['l',['../d4/d9a/str-conv_8c.html#a1cb503ddd20ff3cf9588d2b5abd202d8',1,'str-conv.c']]],
-  ['l_1',['L',['../d4/d9a/str-conv_8c.html#aa73214aa5f2f94f63d90bb4e3d99fe53',1,'L:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#aa73214aa5f2f94f63d90bb4e3d99fe53',1,'L:&#160;str-conv.c']]],
+  ['l_0',['L',['../d4/d9a/str-conv_8c.html#aa73214aa5f2f94f63d90bb4e3d99fe53',1,'L:&#160;str-conv.c'],['../d4/d9a/str-conv_8c.html#aa73214aa5f2f94f63d90bb4e3d99fe53',1,'L:&#160;str-conv.c']]],
+  ['l_1',['l',['../d4/d9a/str-conv_8c.html#a1cb503ddd20ff3cf9588d2b5abd202d8',1,'str-conv.c']]],
   ['len_2',['len',['../d8/d17/str-num_8c.html#ac965d90e3dbc32c27e426a48ddc38186',1,'str-num.c']]],
   ['lib_5fcommon_5fversion_3',['LIB_COMMON_VERSION',['../d5/dc4/core_8h.html#a07a6026e03996544ff3bbafc27ef058e',1,'core.h']]],
   ['libc_5fg_4',['libc_g',['../d8/d37/mem_8blk.html#a73f8aff1d037ff5bb252a49a3bb2b400',1,'mem.blk']]],
